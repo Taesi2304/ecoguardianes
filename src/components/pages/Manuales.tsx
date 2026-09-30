@@ -38,18 +38,17 @@ function ListaPasos({ pasos }: { pasos: string[] }) {
 
 export default function Manuales() {
   return (
-    <main className="min-h-screen bg-[#fcfaf2] px-4 py-10 text-[#4a3728] sm:px-8 lg:py-16">
+    <div className="bg-[#fcfaf2] px-4 py-10 text-[#4a3728] sm:px-8 lg:py-16">
       <div className="mx-auto max-w-5xl">
         <header className="mb-12 text-center">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#d8ece1] text-[#2d6a4f]">
             <BookOpen className="h-8 w-8" aria-hidden="true" />
           </div>
-          <a href="https://drive.google.com/file/d/1psTbiKpZVNgJKX14Ld7SUFQeUoVyT7pw/view?usp=sharing" target="_blank" rel="noopener noreferrer">
-            <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-[#2d6a4f]">Guía Eco Guardianes</p>
-          <h1 className="text-4xl font-extrabold leading-tight text-[#4a3728] md:text-5xl">Manuales de uso</h1>
-          <p className="mx-auto items-center mt-5 max-w-2xl text-lg  text-[#4a3728]/80">
-            Haga clic <a href="https://drive.google.com/file/d/1psTbiKpZVNgJKX14Ld7SUFQeUoVyT7pw/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="text-[#2d6a4f] hover:underline">aquí</a> en el enlace y encontrará un manual con instrucciones sencillas para usar la plataforma.
-          </p></a>
+          <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-[#2d6a4f]">Guía Eco Guardianes</p>
+          <h1 className="text-3xl font-extrabold leading-tight text-[#4a3728] sm:text-4xl md:text-5xl">Manuales de uso</h1>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-[#4a3728]/80">
+            Haga clic <a href="https://drive.google.com/file/d/1psTbiKpZVNgJKX14Ld7SUFQeUoVyT7pw/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="font-bold text-[#2d6a4f] underline hover:no-underline">aquí</a> y encontrará un manual con instrucciones sencillas para usar la plataforma.
+          </p>
         </header>
 
         <section className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-[#4a3728]/10 sm:p-8" aria-labelledby="empezar">
@@ -58,11 +57,11 @@ export default function Manuales() {
             <div><p className="text-sm font-bold uppercase tracking-wide text-[#2d6a4f]">Primer paso</p><h2 id="empezar" className="text-2xl font-bold">Crear una cuenta</h2></div>
           </div>
           <ListaPasos pasos={pasosCuenta} />
-          <div className="flex flex-wrap gap-3">
-            <a href="/registro" className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a href="/registro" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
               <UserPlus className="h-5 w-5" aria-hidden="true" /> Ir a "Registro"
             </a>
-            <a href="https://drive.google.com/file/d/1TKK49tpYLj9iqS6P9gorY7YvCoKO3eMp/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-[#2d6a4f] px-5 py-3 text-base font-bold text-[#2d6a4f] transition hover:bg-[#d8ece1]">
+            <a href="https://drive.google.com/file/d/1TKK49tpYLj9iqS6P9gorY7YvCoKO3eMp/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-[#2d6a4f] px-5 py-3 text-base font-bold text-[#2d6a4f] transition hover:bg-[#d8ece1]">
               <PlayCircle className="h-5 w-5" aria-hidden="true" /> Ver tutorial paso a paso
             </a>
           </div>
@@ -75,8 +74,8 @@ export default function Manuales() {
           </div>
           <p className="text-lg leading-relaxed">Seleccione "Iniciar sesión", escriba el correo y la contraseña que registró, y presione "Entrar".</p>
           
-           <div className="flex flex-wrap gap-3">
-            <a href="/login" className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
+           <div className="mt-7 flex flex-wrap gap-3">
+            <a href="/login" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
               <LogIn className="h-5 w-5" aria-hidden="true" /> Ir a "Inicio de sesión"
             </a>
           </div>
@@ -137,7 +136,7 @@ export default function Manuales() {
         <section className="rounded-2xl bg-[#2d6a4f] p-6 text-white shadow-sm sm:p-8" aria-labelledby="ayuda">
           <div className="mb-5 flex items-center gap-4">
             <HelpCircle className="h-8 w-8 shrink-0" aria-hidden="true" />
-            <h2 id="ayuda" className="text-2xl font-bold text-white" style={{ color: '#ffffff' }}>¿Necesita ayuda?</h2>
+            <h2 id="ayuda" className="text-2xl font-bold text-white">¿Necesita ayuda?</h2>
           </div>
           <div className="space-y-1 text-lg leading-relaxed text-white/95">
             <p><strong>No recuerdo mi contraseña:</strong> contacte al equipo Eco Guardianes para recibir apoyo.</p>
@@ -151,6 +150,6 @@ export default function Manuales() {
           <span>Gracias por ayudar a cuidar nuestra comunidad.</span>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -5,8 +5,11 @@ import './Header.css';
 
 const navItems = [
   { label: 'FDMA', href: '/' },
+  { label: 'Cartelera', href: '/cartelera' },
+  { label: 'Talleres', href: '/talleres' },
+  { label: 'Calendario', href: '/calendario' },
   { label: 'Eco Guardianes', href: '/ecoguardianes' },
-  { label: 'Nosotros & Contacto', href: '/info' },
+  { label: 'Contacto', href: '/info' },
 ];
 
 export const Header = () => {

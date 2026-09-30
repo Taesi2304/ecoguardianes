@@ -45,7 +45,7 @@ export const Login = () => {
 
         // Cada rol recibe su pantalla inicial correspondiente.
         const rol = ((usuario?.roles as any)?.[0] || usuario?.roles as any)?.nombre;
-        navigate(rol === 'Administrador' || rol === 'Super Admin' ? '/admin' : '/dashboard');
+        navigate(rol === 'Super Admin' ? '/admin/pagina' : rol === 'Administrador' ? '/admin' : '/dashboard');
       }
     } catch (err: any) {
       // Ahora verás si el error es de la contraseña o si falta el registro en tu tabla
@@ -57,7 +57,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="landing-page min-h-screen flex flex-col items-center justify-center pt-24 pb-12 px-4">
+    <div className="landing-page flex flex-col items-center justify-center px-4 pt-10 pb-12 sm:pt-16">
       
       <div className="bg-[#FFF8DF] border border-[#4A2E18]/10 shadow-sm rounded-xl p-3 mb-6">
         <img src="/logo.svg" alt="Logo" className="w-8 h-8 object-contain" />

@@ -213,17 +213,17 @@ export default function AdminComposteros() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera */}
-      <div className="mb-8 flex items-center justify-between border-b border-[#4A2E18]/10 pb-5">
+      <div className="mb-8 flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">Gestión de Composteros</h1>
           <p className="mt-1 font-medium text-green-700">Administra los puntos de recolección</p>
         </div>
         <button
           onClick={abrirModalNuevo}
-          className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           <Plus className="h-5 w-5" />
           Nuevo Compostero
@@ -264,7 +264,7 @@ export default function AdminComposteros() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="bg-white text-xs uppercase tracking-wider text-gray-500 border-b">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Código</th>
@@ -334,7 +334,7 @@ export default function AdminComposteros() {
       {/* Modal / Overlay */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl bg-white shadow-xl">
             <div className="border-b px-6 py-4">
               <h2 className="text-xl font-bold text-gray-800">
                 {editandoId ? 'Editar Compostero' : 'Nuevo Compostero'}

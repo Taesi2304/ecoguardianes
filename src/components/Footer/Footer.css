@@ -69,7 +69,9 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   color: rgba(74, 46, 24, 0.8);
+  overflow-wrap: anywhere;
 }
 
 .footer-contact-item--align {
@@ -97,11 +99,19 @@
   color: rgba(74, 46, 24, 0.6);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
   .footer-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
 
+@media (min-width: 768px) {
   .footer-bottom {
     flex-direction: row;
   }

@@ -219,7 +219,7 @@ export default function AdminConvocatorias() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl space-y-8 py-2 sm:py-4 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Convocatorias</h1>

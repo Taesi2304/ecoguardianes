@@ -141,7 +141,7 @@ export default function AdminHistorial() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-7xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       <div className="mb-8 flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>

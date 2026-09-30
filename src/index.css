@@ -6,35 +6,11 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --text: #3f2d29;
-  --text-h: #1d1d1d;
-  --bg: #fff;
-  --border: oklch(0.922 0 0);
-  --code-bg: #f4f3ec;
-  --accent: oklch(0.97 0 0);
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
   color-scheme: light;
-  color: var(--text);
-  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 
   --background: oklch(1 0 0);
   --foreground: #1c1c1c;
@@ -48,8 +24,10 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: #4d3d38;
+  --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
@@ -65,179 +43,40 @@
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0)
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #3f2d29;
-    --text-h: #1d1d1d;
-    --bg: #fff8df;
-    --border: oklch(0.922 0 0);
-    --code-bg: #f4f3ec;
-    --accent: oklch(0.97 0 0);
-    --accent-bg: rgba(170, 59, 255, 0.1);
-    --accent-border: rgba(170, 59, 255, 0.5);
-    --social-bg: rgba(244, 243, 236, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: none;
-  }
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 #root {
   width: 100%;
-  max-width: 100%;
-  margin: 0;
-  text-align: left;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  background: #FFF8DF;
-  color: var(--text);
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
+/* En iPhone, un input con letra menor a 16px hace zoom al enfocarlo */
 @media (max-width: 767px) {
-  body {
+  input.text-sm,
+  input.text-xs,
+  select.text-sm,
+  select.text-xs,
+  textarea.text-sm,
+  textarea.text-xs {
     font-size: 16px;
   }
-
-  h1 {
-    font-size: 2rem !important;
-    line-height: 1.15;
-  }
-
-  h2 {
-    font-size: 1.5rem !important;
-  }
-
-  h3 {
-    font-size: 1.35rem !important;
-  }
-
-  button,
-  [type='button'],
-  [type='submit'],
-  [role='button'] {
-    min-height: 44px;
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-  }
-
-  input,
-  select,
-  textarea {
-    min-height: 44px !important;
-    font-size: 16px !important;
-  }
-
-  .space-y-2 > :not([hidden]) ~ :not([hidden]),
-  .space-y-3 > :not([hidden]) ~ :not([hidden]),
-  .space-y-4 > :not([hidden]) ~ :not([hidden]),
-  .space-y-5 > :not([hidden]) ~ :not([hidden]),
-  .space-y-6 > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 0.9rem !important;
-  }
-
-  .rounded-xl,
-  .rounded-lg {
-    border-radius: 0.8rem;
-  }
-
-  .overflow-x-auto table {
-    min-width: 720px;
-  }
-
-  .overflow-x-auto th,
-  .overflow-x-auto td {
-    padding-top: 0.7rem !important;
-    padding-bottom: 0.7rem !important;
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-    font-size: 0.78rem !important;
-  }
-
-  .overflow-x-auto thead th {
-    font-size: 0.7rem !important;
-    letter-spacing: 0.08em;
-  }
 }
 
-.text-gray-300,
-.text-gray-400,
-.text-gray-500,
-.text-gray-600,
-.text-gray-700,
-.text-muted-foreground {
-  color: #4d3d38 !important;
-}
-
-.text-gray-800,
-.text-gray-900 {
-  color: #2a221f !important;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* Grises cálidos: mantienen el tono café del sitio sin perder la jerarquía entre tonos */
+@theme {
+  --color-gray-50: #faf8f5;
+  --color-gray-100: #f3efe9;
+  --color-gray-200: #e6dfd6;
+  --color-gray-300: #d3c8bb;
+  --color-gray-400: #9c8b7e;
+  --color-gray-500: #74625a;
+  --color-gray-600: #5c4b44;
+  --color-gray-700: #4d3d38;
+  --color-gray-800: #3a2e2a;
+  --color-gray-900: #2a221f;
 }
 
 @theme inline {
@@ -317,10 +156,30 @@ code {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Estilos base dentro de @layer base: las clases de Tailwind siempre pueden sobrescribirlos */
 @layer base {
   * {
-    @apply border-border outline-ring/50;}
-  body {
-    @apply bg-background text-foreground;}
+    @apply border-border outline-ring/50;
+  }
+
   html {
-    @apply font-sans;}}
+    @apply font-sans;
+  }
+
+  body {
+    margin: 0;
+    background: #FFF8DF;
+    color: #4A2E18;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 700;
+    line-height: 1.2;
+    color: #2a221f;
+  }
+}

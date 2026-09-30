@@ -97,15 +97,15 @@ export default function MiHistorial() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="flex items-center gap-4 mb-8 border-b pb-5">
+    <div className="max-w-4xl mx-auto py-2 sm:py-4">
+      <div className="flex items-center gap-3 sm:gap-4 mb-8 border-b pb-5">
         <div className="bg-[#CFE9D6] rounded-full p-3 flex items-center justify-center shrink-0">
-          <img src="/historial.svg" alt="Planta" className="h-12 w-12 object-contain" />
+          <img src="/historial.svg" alt="Planta" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
         </div>
-        <div>
+        <div className="min-w-0">
           {/* Aquí se pone dinámicamente el nombre de TU compostero asignado */}
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-none">{nombreCompostero}</h1>
-          <p className="text-xl text-gray-500 mt-3">Historial de actualizaciones y monitoreo</p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight break-words">{nombreCompostero}</h1>
+          <p className="text-lg sm:text-xl text-gray-500 mt-2">Historial de actualizaciones y monitoreo</p>
         </div>
       </div>
 
@@ -170,7 +170,7 @@ export default function MiHistorial() {
                     </span>
                   </div>
                   
-                  <div>
+                  <div className="min-w-0">
                     {autor?.nombre ? (
                       <span className="inline-flex items-center bg-green-100 text-green-800 px-2.5 py-0.5 rounded-full text-[11px] uppercase font-bold tracking-wider">
                         Tu registro

@@ -47,39 +47,55 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     { name: 'Cerrar Sesión', path: '/login', icon: '/salir.svg' },
   ];
 
-  const menuAdmin = [
-    { name: 'Inicio', path: '/admin', icon: '/inicio.svg' },
+  const menuCompostero = [
+    { name: 'Resumen', path: '/admin', icon: '/inicio.svg' },
     { name: 'Registrar Visita', path: '/dashboard/Nueva-Bitacora', icon: '/bitacora.svg' },
     { name: 'Historial', path: '/admin/historial', icon: '/historial.svg' },
     { name: 'Composteros', path: '/admin/composteros', icon: '/compostero.svg' },
+    ...(isSuperAdmin ? [{ name: 'Colonias', path: '/admin/colonias', icon: '/comunidad.svg' }] : []),
     { name: 'Usuarios', path: '/admin/usuarios', icon: '/usuarios.svg' },
     { name: 'Reportes', path: '/admin/reportes', icon: '/reporte.svg' },
-    { name: 'Mi Perfil', path: '/admin/perfil', icon: '/usuarios.svg' },
-    { name: 'Cerrar Sesión', path: '/login', icon: '/salir.svg' },
-
   ];
 
-  const menuItems = isAdmin
-    ? isSuperAdmin
+  const menuCuenta = [
+    { name: 'Mi Perfil', path: '/admin/perfil', icon: '/usuarios.svg' },
+    { name: 'Cerrar Sesión', path: '/login', icon: '/salir.svg' },
+  ];
+
+  // Super Admin (FDMA): primero la página del festival; el compostero es una extensión
+  const menuPagina = [
+    { name: 'Página de inicio', path: '/admin/pagina', icon: '/inicio.svg' },
+    { name: 'Cartelera', path: '/admin/cartelera', icon: '/mapa.svg' },
+    { name: 'Talleres', path: '/admin/talleres', icon: '/planta-tierra.svg' },
+    { name: 'Calendario', path: '/admin/calendario', icon: '/historial.svg' },
+    { name: 'Convocatorias', path: '/admin/convocatorias', icon: '/reporte.svg' },
+    { name: 'Publicaciones', path: '/admin/publicaciones', icon: '/foto-camara.svg' },
+    { name: 'Aliados', path: '/admin/aliados', icon: '/corazon.svg' },
+  ];
+
+  const grupos: { titulo?: string; items: typeof menuGuardiana }[] = !isAdmin
+    ? [{ items: menuGuardiana }]
+    : isSuperAdmin
       ? [
-          menuAdmin[0],
-          { name: 'Colonias', path: '/admin/colonias', icon: '/comunidad.svg' },
-          { name: 'Convocatorias', path: '/admin/convocatorias', icon: '/reporte.svg' },
-          ...menuAdmin.slice(1),
+          { titulo: 'Página del Festival', items: menuPagina },
+          { titulo: 'Eco Guardianes', items: menuCompostero },
+          { titulo: 'Cuenta', items: menuCuenta },
         ]
-      : menuAdmin
-    : menuGuardiana;
+      : [
+          { items: menuCompostero },
+          { titulo: 'Cuenta', items: menuCuenta },
+        ];
 
   if (cargandoRol) {
     return (
-      <aside className="flex h-screen w-64 items-center justify-center bg-[#FFF8DF] border-r border-[#4A2E18]/10">
+      <aside className="flex h-dvh w-full items-center justify-center bg-[#FFF8DF] border-r border-[#4A2E18]/10">
         <Loader2 className="h-6 w-6 animate-spin text-green-600" />
       </aside>
     );
   }
 
   return (
-    <aside className="sticky top-0 h-screen w-64 bg-[#FFF8DF] border-r border-[#4A2E18]/10 flex flex-col">
+    <aside className="flex h-dvh w-full flex-col bg-[#FFF8DF] border-r border-[#4A2E18]/10">
       
       {/* Cabecera del Sidebar */}
       <div className="p-6 flex items-center justify-between border-b border-[#4A2E18]/10">
@@ -90,15 +106,22 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
         
         {/* Botón de cerrar (X) solo aparece en celular */}
         {onClose && (
-          <button onClick={onClose} className="md:hidden p-2 hover:bg-[#4A2E18]/5 rounded-lg">
+          <button type="button" onClick={onClose} aria-label="Cerrar menú" className="lg:hidden p-2 hover:bg-[#4A2E18]/5 rounded-lg">
             <img src="/cerrar.svg" alt="Cerrar" className="w-5 h-5 object-contain" />
           </button>
         )}
       </div>
 
       {/* Lista de Navegación */}
-      <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => {
+      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        {grupos.map((grupo, indice) => (
+          <div key={grupo.titulo || indice} className="space-y-2">
+            {grupo.titulo && (
+              <p className={`px-4 pb-1 text-xs font-bold uppercase tracking-wider text-[#4A2E18]/45 ${indice > 0 ? 'mt-3 border-t border-[#4A2E18]/10 pt-4' : ''}`}>
+                {grupo.titulo}
+              </p>
+            )}
+            {grupo.items.map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
@@ -120,7 +143,9 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
               {item.name}
             </Link>
           );
-        })}
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Botón Salir

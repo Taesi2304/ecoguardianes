@@ -291,14 +291,14 @@ export default function NuevaBitacora() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4">
+    <div className="max-w-3xl mx-auto py-2 sm:py-4">
       <div className="flex items-center gap-3 mb-6">
-        <div className="bg-green-100 p-3 rounded-full">
+        <div className="shrink-0 bg-green-100 p-3 rounded-full">
           {/* <Leaf className="text-green-600 h-6 w-6" /> */}
-          <img src="/bitacora.svg" alt="bitacora" className="h-12 w-12" />
+          <img src="/bitacora.svg" alt="bitacora" className="h-10 w-10 sm:h-12 sm:w-12" />
         </div>
-        <div>
-          <h3 className="text-3xl font-bold text-gray-900">Actualizar Bitácora del Compostero</h3>
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Actualizar Bitácora del Compostero</h1>
           <p className="text-gray-500">Registro de visita para monitoreo del compostero</p>
         </div>
       </div>
@@ -428,7 +428,7 @@ export default function NuevaBitacora() {
                 )}
               />
 
-              <div className="mt-8 border-t pt-6">
+              <div className="border-t pt-6 md:col-span-2">
                 <h4 className="mb-4 flex items-center gap-2 text-sm font-bold text-red-600">
                   <AlertTriangle className="h-4 w-4" /> Alertas de Mantenimiento Urgente
                 </h4>

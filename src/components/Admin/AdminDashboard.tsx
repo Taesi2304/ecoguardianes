@@ -142,7 +142,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera */}
       <div className="mb-8 flex items-center gap-4 border-b border-[#4A2E18]/10 pb-5">
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500">
                   <tr>
                     <th className="px-6 py-4 font-semibold">Código</th>

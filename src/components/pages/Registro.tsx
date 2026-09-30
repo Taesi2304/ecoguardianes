@@ -111,7 +111,7 @@ export const Registro = () => {
   };
 
   return (
-    <div className="landing-page min-h-screen flex flex-col items-center justify-center pt-24 pb-12 px-4">
+    <div className="landing-page flex flex-col items-center justify-center px-4 pt-10 pb-12 sm:pt-16">
       
       <div className="bg-[#FFF8DF] border border-[#4A2E18]/10 shadow-sm rounded-xl p-3 mb-6">
         {step === 1 ? (
@@ -187,7 +187,7 @@ export const Registro = () => {
               <input className="contact-input w-full mt-1 border-white" type="text" name="nombre" required value={formData.nombre} onChange={handleChange} />
             </label>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="contact-field block">
                 <span className="contact-label text-[#2D7A3E]">Apellido Paterno:*</span>
                 <input className="contact-input w-full mt-1 border-white" type="text" name="apellido_paterno" required value={formData.apellido_paterno} onChange={handleChange} />

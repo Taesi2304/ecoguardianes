@@ -143,7 +143,6 @@ export const Landing = () => {
             </span>
           </div>
 
-          <br />
           <div className="hero-note">
             Hecho por amor, tierra y comunidad. 
           </div>
@@ -204,8 +203,7 @@ export const Landing = () => {
       </section>
 
       <section id="visitas" className="section-block section-block--narrow">
-        <h2 className="section-title section-title--center">¿Cómo funciona?</h2>
-        <br /> <br />
+        <h2 className="section-title section-title--center mb-10">¿Cómo funciona?</h2>
         <div className="steps-grid">
           {[
             { step: '1', title: 'Registro', desc: 'Únete a la comunidad y crea tu espacio de compostaje.', icon: <img src={compostero1} alt="Registro" className="step-icon-image" /> },

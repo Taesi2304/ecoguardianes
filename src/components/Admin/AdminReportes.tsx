@@ -367,7 +367,7 @@ export default function AdminReportes() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-7xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera y Botones */}
       <div className="mb-8 border-b border-[#4A2E18]/10 pb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -400,12 +400,12 @@ export default function AdminReportes() {
             <Filter className="h-4 w-4 text-green-600" /> Filtros:
           </div>
           
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Compostero:</span>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <span className="w-20 shrink-0 text-xs text-gray-500 sm:w-auto">Compostero:</span>
             <select
               value={filtroComposteroId}
               onChange={e => setFiltroComposteroId(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg sm:max-w-xs sm:flex-none border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
             >
               <option value="todos">-- Todos los composteros --</option>
               {listaComposteros.map(c => (
@@ -414,23 +414,23 @@ export default function AdminReportes() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Desde:</span>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <span className="w-20 shrink-0 text-xs text-gray-500 sm:w-auto">Desde:</span>
             <input 
               type="date" 
               value={filtroFechaInicio} 
               onChange={e => setFiltroFechaInicio(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg sm:flex-none border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Hasta:</span>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <span className="w-20 shrink-0 text-xs text-gray-500 sm:w-auto">Hasta:</span>
             <input 
               type="date" 
               value={filtroFechaFin} 
               onChange={e => setFiltroFechaFin(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg sm:flex-none border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
             />
           </div>
 

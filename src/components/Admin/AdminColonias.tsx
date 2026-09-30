@@ -158,7 +158,7 @@ export default function AdminColonias() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera */}
       <div className="mb-8 flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
@@ -193,7 +193,7 @@ export default function AdminColonias() {
       <Card className="overflow-hidden shadow-sm border-transparent bg-white">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 border-b">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Colonia</th>
@@ -251,7 +251,7 @@ export default function AdminColonias() {
       {/* Modal */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl bg-white shadow-xl">
             <div className="border-b px-6 py-4"><h2 className="text-xl font-bold text-gray-800">{editandoId ? 'Editar Colonia' : 'Nueva Colonia'}</h2></div>
             <form onSubmit={guardarColonia} className="p-6">
               <div className="space-y-4">
@@ -260,7 +260,7 @@ export default function AdminColonias() {
                   <input type="text" name="nombre" required value={formulario.nombre} onChange={manejarCambio} placeholder="Ej. Valle de Casa Blanca" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">Municipio</label>
                     <input type="text" name="municipio" value={formulario.municipio} onChange={manejarCambio} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-gray-50 focus:border-green-500 focus:outline-none" />

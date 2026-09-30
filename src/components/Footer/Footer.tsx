@@ -1,9 +1,29 @@
+import { useEffect, useState } from 'react';
 import { UserCircleIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 import './Footer.css';
 
+interface Aliado {
+  id: string;
+  nombre: string;
+  enlace_url: string;
+}
+
 export const Footer = () => {
+  // Los aliados se administran en /admin/aliados
+  const [aliados, setAliados] = useState<Aliado[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from('aliados')
+      .select('id, nombre, enlace_url')
+      .eq('activo', true)
+      .order('orden', { ascending: true })
+      .then(({ data }) => setAliados((data || []) as Aliado[]));
+  }, []);
+
   return (
     <footer className="footer-wrapper">
       <div className="footer-grid">
@@ -22,6 +42,9 @@ export const Footer = () => {
           <h4 className="footer-title">Navegación</h4>
           <ul className="footer-link-list">
             <li><Link to="/" className="footer-link">FDMA-Festival</Link></li>
+            <li><Link to="/cartelera" className="footer-link">Cartelera</Link></li>
+            <li><Link to="/talleres" className="footer-link">Talleres</Link></li>
+            <li><Link to="/calendario" className="footer-link">Calendario</Link></li>
             <li><Link to="/ecoguardianes" className="footer-link">Eco Guardianes</Link></li>
             <li><Link to="/info" className="footer-link">Nosotros & Contacto</Link></li>
             <li><Link to="/login" className="footer-link">Inicio de sesión</Link></li>
@@ -44,102 +67,19 @@ export const Footer = () => {
         <div className="footer-section">
           <h4 className="footer-title">Aliados</h4>
 
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://instagram.com/eco_marce_shop"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @eco_marce_shop
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/fdma.mx"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @fdma.mx
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/puratastudio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @puratastudio
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/vivero_monos_garden"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @vivero_monos_garden
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/pomodoro_agroecologico"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @pomodoro_agroecologico
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/_ware_street"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @_ware_street
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/edgara.castillo"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @edgara.castillo
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/parquecasablanca3"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @parquecasablanca3
-            </a>
-          </div>
+          {aliados.map((aliado) => (
+            <div key={aliado.id} className="footer-contact-item">
+              <UserCircleIcon className="footer-contact-icon text-pink-500" />
+              <a
+                href={aliado.enlace_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline hover:text-green-500 transition-colors"
+              >
+                {aliado.nombre}
+              </a>
+            </div>
+          ))}
 
           <div className="footer-contact-item">
             <svg

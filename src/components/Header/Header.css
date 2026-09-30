@@ -167,7 +167,8 @@
   background: rgba(45, 122, 62, 0.08);
 }
 
-@media (min-width: 768px) {
+/* El menú completo (logo + 6 links + 2 botones) necesita ~1150px; antes se usa el menú hamburguesa */
+@media (min-width: 1200px) {
   .header-nav {
     display: flex;
   }
@@ -189,10 +190,6 @@
 
   .brand-logo {
     height: 1.8rem;
-  }
-
-  .header-link-btn {
-    display: none;
   }
 }
 

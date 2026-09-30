@@ -62,12 +62,12 @@ export const Informacion = () => {
         <div className="paper-card about-card">
           <p className="about-copy text-lg font-medium text-[#4A2E18]">
             Una 
-            <span className="text-bold"> idea que nació del diálogo  </span>
+            <span className="font-bold"> idea que nació del diálogo  </span>
             y se hizo posible gracias al trabajo colectivo. 
             El objetivo es crear una propuesta 
-            <span className="text-bold"> autosostenible </span>
+            <span className="font-bold"> autosostenible </span>
             que nos permita seguir
-             <span className="text-bold"> regenerando el suelo de Matamoros </span>
+             <span className="font-bold"> regenerando el suelo de Matamoros </span>
              transformando nuestros residuos orgánicos en vida y fortaleciendo los vínculos de nuestra comunidad.
           </p>
         </div>
