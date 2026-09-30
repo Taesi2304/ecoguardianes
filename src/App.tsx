@@ -8,6 +8,7 @@ import Manuales from './components/pages/Manuales';
 
 import AvisoPrivacidad from './components/pages/AvisoPrivacidad';
 import TerminosCondiciones from './components/pages/TerminosCondiciones';
+import ConectarRedes from './components/pages/ConectarRedes';
 
 import { Login } from './components/pages/Login';
 import { Registro } from './components/pages/Registro';
@@ -73,6 +74,8 @@ export default function App() {
           <Route path="/registro" element={<Registro />} />
           <Route path="/aviso-privacidad" element={<AvisoPrivacidad />} />
           <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
+          {/* Enlace de un solo uso para que FDMA autorice sus redes (Admin → Publicaciones) */}
+          <Route path="/conectar-redes" element={<ConectarRedes />} />
           <Route path="/talleres" element={<Talleres />} />
           <Route path="/calendario" element={<Calendario />} />
         </Route>

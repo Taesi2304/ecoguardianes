@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatearFecha } from '@/lib/utils';
+import ConexionRedes from './ConexionRedes';
 
 type RedSocial = 'instagram' | 'facebook';
 
@@ -16,6 +17,7 @@ interface Publicacion {
   enlace_url: string | null;
   fecha_publicacion: string;
   activo: boolean;
+  origen?: 'manual' | 'automatico'; // 'automatico' = traída de Meta por sincronizar-redes
 }
 
 interface FormularioPublicacion {
@@ -65,7 +67,7 @@ export default function AdminPublicaciones() {
 
     const { data, error: errorConsulta } = await supabase
       .from('publicaciones')
-      .select('id, texto, imagen_url, red_social, enlace_url, fecha_publicacion, activo')
+      .select('*')
       .order('fecha_publicacion', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -226,6 +228,8 @@ export default function AdminPublicaciones() {
 
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}
 
+      <ConexionRedes onSincronizado={cargarPublicaciones} />
+
       {formularioAbierto && (
         <Card className="border-transparent bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
@@ -285,13 +289,17 @@ export default function AdminPublicaciones() {
                     <img src={publicacion.imagen_url} alt="" className="h-full w-full object-cover" />
                     <img src={publicacion.red_social === 'facebook' ? '/fb-icon.svg' : '/ig-icon.svg'} alt={publicacion.red_social} className="absolute left-2 top-2 h-7 w-7 rounded-full bg-white p-1 shadow" />
                     {!publicacion.activo && <span className="absolute right-2 top-2 rounded-full bg-gray-800 px-2 py-0.5 text-xs font-semibold text-white">Oculta</span>}
+                    {publicacion.origen === 'automatico' && <span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-green-700 shadow">Automática</span>}
                   </div>
                   <div className="flex items-center justify-between px-3 py-2">
                     <span className="text-xs text-gray-500">{formatearFecha(publicacion.fecha_publicacion)}</span>
                     <div className="flex gap-1">
                       <button onClick={() => abrirEdicion(publicacion)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button>
                       <button onClick={() => alternarEstado(publicacion)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={publicacion.activo ? 'Ocultar' : 'Mostrar'}>{publicacion.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                      <button onClick={() => eliminar(publicacion)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
+                      {/* Una automática borrada se volvería a importar: para quitarla de la página se oculta */}
+                      {publicacion.origen !== 'automatico' && (
+                        <button onClick={() => eliminar(publicacion)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
+                      )}
                     </div>
                   </div>
                 </article>

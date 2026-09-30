@@ -99,19 +99,10 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       
       {/* Cabecera del Sidebar */}
       <div className="p-6 flex items-center justify-between border-b border-[#4A2E18]/10">
-        <div className="flex items-center gap-3">
-          {isSuperAdmin ? (
-            <>
-              <img src="/logo_fdma.svg" alt="" className="h-9 w-9 rounded-full object-contain mix-blend-multiply" />
-              <span className="font-bold text-xl text-[#2D6A4F]">FDMA</span>
-            </>
-          ) : (
-            <>
-              <img src="/logo.svg" alt="Logo" className="w-8 h-8 object-contain" />
-              <span className="font-bold text-xl text-[#4A2E18]">Eco Guardianes</span>
-            </>
-          )}
-        </div>
+        <Link to="/" onClick={onClose} aria-label="Ir a la página del Festival" className="flex items-center gap-3 rounded-lg transition-opacity hover:opacity-80">
+          <img src="/logo_fdma.svg" alt="" className="h-9 w-9 rounded-full object-contain mix-blend-multiply" />
+          <span className="font-bold text-xl text-[#2D6A4F]">FDMA</span>
+        </Link>
         
         {/* Botón de cerrar (X) solo aparece en celular */}
         {onClose && (
