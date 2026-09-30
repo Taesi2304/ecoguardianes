@@ -21,7 +21,8 @@ type Metricas = {
 };
 
 export default function AdminDashboard() {
-  const whatsappGroupLink = 'https://chat.whatsapp.com/JmNLCT0TpYK9TqjfawWLdd?s=cl&p=i&mlu=0';
+  // Grupo de WhatsApp de la colonia del admin (se configura en Admin → Colonias)
+  const [grupoWhatsapp, setGrupoWhatsapp] = useState<string | null>(null);
 
   const [composteros, setComposteros] = useState<Compostero[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -43,7 +44,7 @@ export default function AdminDashboard() {
       // 1. Obtener perfil del admin
       const { data: usuario, error: usuarioError } = await supabase
         .from('usuarios')
-        .select('colonia_id, roles(nombre), colonias(nombre)')
+        .select('colonia_id, roles(nombre), colonias(nombre, whatsapp_url)')
         .eq('auth_user_id', user.id)
         .single();
 
@@ -58,7 +59,9 @@ export default function AdminDashboard() {
       const superAdmin = rolNombre === 'Super Admin';
       setEsSuperAdmin(superAdmin);
       
-      const coloniaNombre = Array.isArray(usuario.colonias) ? usuario.colonias[0]?.nombre : (usuario.colonias as any)?.nombre;
+      const colonia = Array.isArray(usuario.colonias) ? usuario.colonias[0] : (usuario.colonias as any);
+      const coloniaNombre = colonia?.nombre;
+      setGrupoWhatsapp(colonia?.whatsapp_url || null);
       setNombreZona(superAdmin ? 'todas las zonas' : coloniaNombre || 'tu colonia');
       const coloniaId = usuario.colonia_id;
 
@@ -159,15 +162,30 @@ export default function AdminDashboard() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-green-700">Comunidad</p>
           <h2 className="mt-1 text-lg font-bold text-gray-900">Grupo de WhatsApp</h2>
+          {!esSuperAdmin && !grupoWhatsapp && (
+            <p className="mt-1 text-sm text-gray-600">Tu colonia aún no tiene grupo.</p>
+          )}
+          {esSuperAdmin && (
+            <p className="mt-1 text-sm text-gray-600">Cada colonia tiene su propio grupo.</p>
+          )}
         </div>
-        <a
-          href={whatsappGroupLink}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center justify-center rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1fad56]"
-        >
-          Unirme a la comunidad
-        </a>
+        {esSuperAdmin ? (
+          <Link
+            to="/admin/colonias"
+            className="inline-flex items-center justify-center rounded-full border border-green-600 bg-white px-4 py-2.5 text-sm font-bold text-green-700 shadow-sm transition hover:bg-green-50"
+          >
+            Configurar grupos por colonia
+          </Link>
+        ) : grupoWhatsapp && (
+          <a
+            href={grupoWhatsapp}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1fad56]"
+          >
+            Unirme a la comunidad
+          </a>
+        )}
       </div>
 
       {/* Tarjetas Redirigibles */}

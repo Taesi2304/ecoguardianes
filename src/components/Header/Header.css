@@ -30,8 +30,30 @@
 
 .brand-logo {
   display: block;
-  height: 2.1rem;
-  width: auto;
+  height: 2.6rem;
+  width: 2.6rem;
+  border-radius: 9999px;
+  mix-blend-mode: multiply; /* el logo trae fondo gris claro */
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.brand-name {
+  color: #2D6A4F;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brand-sub {
+  color: #4A2E18;
+  font-size: 0.68rem;
+  font-weight: 600;
+  opacity: 0.75;
 }
 
 .header-nav {
@@ -189,7 +211,12 @@
   }
 
   .brand-logo {
-    height: 1.8rem;
+    height: 2.2rem;
+    width: 2.2rem;
+  }
+
+  .brand-name {
+    font-size: 1.1rem;
   }
 }
 

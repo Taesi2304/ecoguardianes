@@ -1,14 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Edit, Eye, EyeOff, Loader2, Plus, Save, Trash2, X } from 'lucide-react';
+import { AlertCircle, Edit, Eye, EyeOff, Loader2, Plus, Save, Tags, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatearFecha, formatearHora } from '@/lib/utils';
-import { CATEGORIAS } from '@/components/Calendario/eventos';
-import type { Categoria, EventoCalendario } from '@/components/Calendario/eventos';
+import { cargarCategorias, estiloPunto } from '@/components/Calendario/eventos';
+import type { CategoriaCalendario } from '@/components/Calendario/eventos';
+import { EditorCatalogo } from './EditorCatalogo';
 
-interface Evento extends EventoCalendario {
+interface Evento {
+  id: string;
+  titulo: string;
+  fecha: string;
+  hora_inicio: string | null;
+  hora_fin: string | null;
+  lugar: string | null;
+  categoria_id: string | null;
+  descripcion: string | null;
+  enlace_url: string | null;
   activo: boolean;
 }
 
@@ -18,7 +28,7 @@ interface FormularioEvento {
   hora_inicio: string;
   hora_fin: string;
   lugar: string;
-  categoria: Categoria;
+  categoria_id: string;
   descripcion: string;
   enlace_url: string;
 }
@@ -29,7 +39,7 @@ const formularioInicial: FormularioEvento = {
   hora_inicio: '',
   hora_fin: '',
   lugar: '',
-  categoria: 'campo',
+  categoria_id: '',
   descripcion: '',
   enlace_url: '',
 };
@@ -46,10 +56,19 @@ export default function AdminCalendario() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categorias, setCategorias] = useState<CategoriaCalendario[]>([]);
+  const [editandoCategorias, setEditandoCategorias] = useState(false);
 
   useEffect(() => {
     cargarEventos();
+    recargarCategorias();
   }, []);
+
+  function recargarCategorias() {
+    cargarCategorias().then(setCategorias);
+  }
+
+  const categoriaPorId = (id: string | null) => categorias.find((categoria) => categoria.id === id) ?? null;
 
   async function cargarEventos() {
     setCargando(true);
@@ -57,7 +76,7 @@ export default function AdminCalendario() {
 
     const { data, error: errorConsulta } = await supabase
       .from('eventos_calendario')
-      .select('id, titulo, fecha, hora_inicio, hora_fin, lugar, categoria, descripcion, enlace_url, activo')
+      .select('id, titulo, fecha, hora_inicio, hora_fin, lugar, categoria_id, descripcion, enlace_url, activo')
       .order('fecha', { ascending: true })
       .order('hora_inicio', { ascending: true });
 
@@ -100,7 +119,7 @@ export default function AdminCalendario() {
       hora_inicio: evento.hora_inicio?.slice(0, 5) || '',
       hora_fin: evento.hora_fin?.slice(0, 5) || '',
       lugar: evento.lugar || '',
-      categoria: evento.categoria,
+      categoria_id: evento.categoria_id || '',
       descripcion: evento.descripcion || '',
       enlace_url: evento.enlace_url || '',
     });
@@ -127,7 +146,7 @@ export default function AdminCalendario() {
       hora_inicio: formulario.hora_inicio || null,
       hora_fin: formulario.hora_fin || null,
       lugar: formulario.lugar.trim() || null,
-      categoria: formulario.categoria,
+      categoria_id: formulario.categoria_id || null,
       descripcion: formulario.descripcion.trim() || null,
       enlace_url: formulario.enlace_url.trim() || null,
     };
@@ -182,12 +201,35 @@ export default function AdminCalendario() {
           <h1 className="text-3xl font-bold text-gray-900">Calendario</h1>
           <p className="mt-1 font-medium text-green-700">Actividades del equipo a lo largo del año. Los talleres extraordinarios aparecen solos.</p>
         </div>
-        <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
-          <Plus className="h-5 w-5" /> Nuevo evento
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setEditandoCategorias((actual) => !actual)} className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <Tags className="h-5 w-5" /> Categorías
+          </button>
+          <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
+            <Plus className="h-5 w-5" /> Nuevo evento
+          </button>
+        </div>
       </div>
 
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}
+
+      {editandoCategorias && (
+        <div className="relative">
+          <button onClick={() => setEditandoCategorias(false)} className="absolute right-3 top-3 z-10 rounded-lg p-2 text-gray-500 hover:bg-gray-200" title="Cerrar"><X className="h-5 w-5" /></button>
+          <EditorCatalogo
+            // key: reinicia el editor con los datos recién guardados
+            key={categorias.map((categoria) => `${categoria.id}${categoria.nombre}${categoria.color}`).join()}
+            titulo="Categorías"
+            descripcion="Aparecen en la leyenda del calendario con su color, en el orden de esta lista."
+            tabla="calendario_categorias"
+            items={categorias}
+            maxLongitud={80}
+            avisoEliminar="Los eventos que la usan quedarán sin categoría (en gris)."
+            protegidos={Object.fromEntries(categorias.filter((categoria) => categoria.clave === 'taller').map((categoria) => [categoria.id, 'Los talleres extraordinarios se muestran con esta categoría; puedes renombrarla o cambiar su color, pero no borrarla.']))}
+            onCambio={recargarCategorias}
+          />
+        </div>
+      )}
 
       {formularioAbierto && (
         <Card className="border-transparent bg-white shadow-sm">
@@ -202,11 +244,13 @@ export default function AdminCalendario() {
                   <input name="titulo" value={formulario.titulo} onChange={manejarCambio} maxLength={150} placeholder="Jornada de reforestación" className={claseInput} required />
                 </label>
                 <label className="block text-sm font-semibold text-gray-700">Categoría
-                  <select name="categoria" value={formulario.categoria} onChange={manejarCambio} className={`${claseInput} bg-white`}>
-                    {(Object.keys(CATEGORIAS) as Categoria[]).map((clave) => (
-                      <option key={clave} value={clave}>{CATEGORIAS[clave].nombre}</option>
+                  <select name="categoria_id" value={formulario.categoria_id} onChange={manejarCambio} className={`${claseInput} bg-white`} required>
+                    <option value="" disabled>Elige una categoría</option>
+                    {categorias.map((categoria) => (
+                      <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>
                     ))}
                   </select>
+                  <button type="button" onClick={() => setEditandoCategorias(true)} className="mt-1 text-xs font-semibold text-green-700 hover:underline">+ Agregar o editar categorías</button>
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   <label className="block text-sm font-semibold text-gray-700">Fecha
@@ -261,7 +305,7 @@ export default function AdminCalendario() {
                 <ul className="divide-y divide-gray-100">
                   {eventosPorMes[mes].map((evento) => (
                     <li key={evento.id} className={`flex items-center gap-4 px-6 py-3 ${evento.activo ? '' : 'opacity-50'}`}>
-                      <span className={`h-3 w-3 shrink-0 rounded-full ${CATEGORIAS[evento.categoria].punto}`} title={CATEGORIAS[evento.categoria].nombre} />
+                      <span className="h-3 w-3 shrink-0 rounded-full" style={estiloPunto(categoriaPorId(evento.categoria_id))} title={categoriaPorId(evento.categoria_id)?.nombre ?? 'Sin categoría'} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-semibold text-gray-900">{evento.titulo}</p>
                         <p className="truncate text-sm text-gray-500">

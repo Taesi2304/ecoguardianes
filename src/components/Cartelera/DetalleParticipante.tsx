@@ -1,5 +1,6 @@
-import { CalendarPlus, ExternalLink, MapPin } from 'lucide-react';
-import { enlaceGoogleCalendar, formatearFecha, formatearHora } from '@/lib/utils';
+import { ExternalLink, MapPin } from 'lucide-react';
+import { formatearFecha, formatearHora } from '@/lib/utils';
+import { BotonCalendario } from '@/components/BotonCalendario';
 import { ordenarHorarios } from './cartelera';
 import type { Catalogo, Participante } from './cartelera';
 
@@ -13,7 +14,7 @@ export function DetalleParticipante({ participante, tipo }: Props) {
   const horarios = ordenarHorarios(participante.cartelera_horarios);
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border bg-[#1a1716]/85 backdrop-blur-md" style={{ borderColor: `${color}99` }}>
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border bg-[#10241b]/75 backdrop-blur-md" style={{ borderColor: `${color}99` }}>
       <div className="flex items-start justify-between gap-4 px-6 pt-6">
         {tipo
           ? <span className="rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ backgroundColor: color }}>{tipo.nombre}</span>
@@ -48,20 +49,23 @@ export function DetalleParticipante({ participante, tipo }: Props) {
           {horarios.length > 0 && (
             <ul className="grid gap-2 sm:grid-cols-2">
               {horarios.map((horario) => (
-                <li key={horario.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+                // flex-wrap: al elegir calendario, las opciones bajan a su propia línea
+                <li key={horario.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate text-sm font-medium text-white"><MapPin className="h-3.5 w-3.5 shrink-0" style={{ color }} />{horario.sede}</p>
                     <p className="text-sm tabular-nums text-white/60">{formatearFecha(horario.fecha)} · {formatearHora(horario.hora_inicio)}</p>
                   </div>
-                  <a
-                    href={enlaceGoogleCalendar({ titulo: `${participante.nombre}${participante.subtitulo ? ` — ${participante.subtitulo}` : ''}`, fecha: horario.fecha, hora_inicio: horario.hora_inicio, hora_fin: horario.hora_fin, lugar: horario.sede })}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white"
-                    title="Agregar a mi calendario"
-                  >
-                    <CalendarPlus className="h-4 w-4" />
-                  </a>
+                  <BotonCalendario
+                    variante="oscuro"
+                    evento={{
+                      titulo: `${participante.nombre}${participante.subtitulo ? ` — ${participante.subtitulo}` : ''}`,
+                      fecha: horario.fecha,
+                      hora_inicio: horario.hora_inicio,
+                      hora_fin: horario.hora_fin,
+                      lugar: horario.sede,
+                      descripcion: participante.descripcion,
+                    }}
+                  />
                 </li>
               ))}
             </ul>

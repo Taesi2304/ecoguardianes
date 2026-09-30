@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Plus, Edit, EyeOff, Eye, Search, AlertCircle, Map, MapPin, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Edit, EyeOff, Eye, Search, AlertCircle, Map, MapPin, Trash2, MessageCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ interface Colonia {
   estado: string;
   codigo_postal: string | null;
   codigo_acceso_colonia: string;
+  whatsapp_url: string | null;
   activo: boolean;
   created_at: string;
 }
@@ -30,7 +31,8 @@ export default function AdminColonias() {
     municipio: 'Matamoros',
     estado: 'Tamaulipas',
     codigo_postal: '',
-    codigo_acceso_colonia: ''
+    codigo_acceso_colonia: '',
+    whatsapp_url: ''
   });
 
   useEffect(() => {
@@ -89,7 +91,8 @@ export default function AdminColonias() {
       municipio: 'Matamoros', 
       estado: 'Tamaulipas', 
       codigo_postal: '',
-      codigo_acceso_colonia: generarCodigoAcceso() 
+      codigo_acceso_colonia: generarCodigoAcceso(),
+      whatsapp_url: ''
     });
     setModalAbierto(true);
   };
@@ -101,7 +104,8 @@ export default function AdminColonias() {
       municipio: c.municipio || 'Matamoros',
       estado: c.estado || 'Tamaulipas',
       codigo_postal: c.codigo_postal || '',
-      codigo_acceso_colonia: c.codigo_acceso_colonia || generarCodigoAcceso()
+      codigo_acceso_colonia: c.codigo_acceso_colonia || generarCodigoAcceso(),
+      whatsapp_url: c.whatsapp_url || ''
     });
     setModalAbierto(true);
   };
@@ -113,12 +117,14 @@ export default function AdminColonias() {
   const guardarColonia = async (e: React.FormEvent) => {
     e.preventDefault();
     setCargando(true);
+    // Un campo vacío se guarda como null: la colonia aún no tiene grupo
+    const datos = { ...formulario, whatsapp_url: formulario.whatsapp_url.trim() || null };
     try {
       if (editandoId) {
-        const { error } = await supabase.from('colonias').update(formulario).eq('id', editandoId);
+        const { error } = await supabase.from('colonias').update(datos).eq('id', editandoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('colonias').insert([formulario]);
+        const { error } = await supabase.from('colonias').insert([datos]);
         if (error) throw error;
       }
       setModalAbierto(false);
@@ -207,7 +213,18 @@ export default function AdminColonias() {
               <tbody className="divide-y divide-gray-100 bg-white">
                 {coloniasFiltradas.map((c) => (
                   <tr key={c.id} className={`transition-colors hover:bg-green-50/30 ${!c.activo ? 'opacity-60' : ''}`}>
-                    <td className="px-6 py-4 font-bold text-gray-900 text-base">{c.nombre}</td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-gray-900 text-base">{c.nombre}</p>
+                      {c.whatsapp_url ? (
+                        <a href={c.whatsapp_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline">
+                          <MessageCircle className="h-3.5 w-3.5" /> Grupo de WhatsApp
+                        </a>
+                      ) : (
+                        <span className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
+                          <MessageCircle className="h-3.5 w-3.5" /> Sin grupo de WhatsApp
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-gray-600">
                       <div className="flex flex-col gap-0.5">
                         <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gray-400" /> {c.municipio}, {c.estado}</span>
@@ -275,6 +292,12 @@ export default function AdminColonias() {
                   <label className="mb-1 block text-sm font-medium text-gray-700">Código de Acceso (Único) *</label>
                   <input type="text" name="codigo_acceso_colonia" required value={formulario.codigo_acceso_colonia} onChange={manejarCambio} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-green-700 font-bold focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
                   <p className="mt-1 text-xs text-gray-500">Este código servirá para que los vecinos se vinculen a esta colonia en el futuro.</p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Grupo de WhatsApp (Opcional)</label>
+                  <input type="url" name="whatsapp_url" value={formulario.whatsapp_url} onChange={manejarCambio} placeholder="https://chat.whatsapp.com/..." className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                  <p className="mt-1 text-xs text-gray-500">Si lo dejas vacío, los Eco Guardianes de esta colonia verán el aviso "Tu colonia aún no tiene grupo".</p>
                 </div>
               </div>
               

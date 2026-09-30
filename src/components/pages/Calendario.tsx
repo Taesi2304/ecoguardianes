@@ -4,9 +4,10 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarPlus, ChevronLeft, ChevronRight, Clock, ExternalLink, Loader2, MapPin, X } from 'lucide-react';
-import { enlaceGoogleCalendar, formatearFecha, formatearHora } from '@/lib/utils';
-import { CATEGORIAS, cargarEventos } from '@/components/Calendario/eventos';
-import type { Categoria, EventoCalendario } from '@/components/Calendario/eventos';
+import { formatearFecha, formatearHora } from '@/lib/utils';
+import { BotonCalendario } from '@/components/BotonCalendario';
+import { cargarCategorias, cargarEventos, estiloChip, estiloPunto } from '@/components/Calendario/eventos';
+import type { CategoriaCalendario, EventoCalendario } from '@/components/Calendario/eventos';
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const aClave = (fecha: Date) => format(fecha, 'yyyy-MM-dd');
@@ -16,6 +17,11 @@ export default function Calendario() {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
   const [mesCargado, setMesCargado] = useState<string | null>(null);
   const [seleccionado, setSeleccionado] = useState<EventoCalendario | null>(null);
+  const [categorias, setCategorias] = useState<CategoriaCalendario[]>([]);
+
+  useEffect(() => {
+    cargarCategorias().then(setCategorias);
+  }, []);
 
   // La cuadrícula empieza en lunes e incluye días de los meses vecinos
   const dias = useMemo(() => eachDayOfInterval({
@@ -68,8 +74,8 @@ export default function Calendario() {
         </div>
 
         <ul className="mb-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-[#4a3728]/80">
-          {(Object.keys(CATEGORIAS) as Categoria[]).map((clave) => (
-            <li key={clave} className="flex items-center gap-2"><span className={`h-3 w-3 rounded-full ${CATEGORIAS[clave].punto}`} />{CATEGORIAS[clave].nombre}</li>
+          {categorias.map((categoria) => (
+            <li key={categoria.id} className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={estiloPunto(categoria)} />{categoria.nombre}</li>
           ))}
         </ul>
 
@@ -96,7 +102,8 @@ export default function Calendario() {
                         <button
                           key={evento.id}
                           onClick={() => setSeleccionado(evento)}
-                          className={`block w-full truncate rounded-md border px-1.5 py-0.5 text-left text-xs font-medium ${CATEGORIAS[evento.categoria].chip}`}
+                          className="block w-full truncate rounded-md border px-1.5 py-0.5 text-left text-xs font-medium"
+                          style={estiloChip(evento.categoria)}
                           title={evento.titulo}
                         >
                           {evento.hora_inicio && <span className="font-bold">{evento.hora_inicio.slice(0, 5)} </span>}
@@ -124,7 +131,7 @@ export default function Calendario() {
                   {eventosPorDia[aClave(dia)].map((evento) => (
                     <li key={evento.id}>
                       <button onClick={() => setSeleccionado(evento)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
-                        <span className={`h-3 w-3 shrink-0 rounded-full ${CATEGORIAS[evento.categoria].punto}`} />
+                        <span className="h-3 w-3 shrink-0 rounded-full" style={estiloPunto(evento.categoria)} />
                         <span className="min-w-0 flex-1">
                           <span className="block font-semibold text-[#4a3728]">{evento.titulo}</span>
                           {(evento.hora_inicio || evento.lugar) && (
@@ -147,7 +154,7 @@ export default function Calendario() {
           <div role="dialog" aria-modal="true" aria-labelledby="titulo-evento" className="w-full max-w-md rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
               <div>
-                <span className={`mb-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${CATEGORIAS[seleccionado.categoria].chip}`}>{CATEGORIAS[seleccionado.categoria].nombre}</span>
+                {seleccionado.categoria && <span className="mb-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={estiloChip(seleccionado.categoria)}>{seleccionado.categoria.nombre}</span>}
                 <h2 id="titulo-evento" className="text-xl font-bold text-[#4a3728]">{seleccionado.titulo}</h2>
               </div>
               <button onClick={() => setSeleccionado(null)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Cerrar"><X className="h-5 w-5" /></button>
@@ -164,13 +171,13 @@ export default function Calendario() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 {seleccionado.enlace_url && (
                   <a href={seleccionado.enlace_url} target={seleccionado.enlace_url.startsWith('/') ? undefined : '_blank'} rel="noreferrer" className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-green-700">
-                    <ExternalLink className="h-4 w-4" /> {seleccionado.categoria === 'taller' && seleccionado.enlace_url === '/talleres' ? 'Registrarme' : 'Más información'}
+                    <ExternalLink className="h-4 w-4" /> {seleccionado.es_taller ? 'Registrarme' : 'Más información'}
                   </a>
                 )}
                 {seleccionado.hora_inicio && (
-                  <a href={enlaceGoogleCalendar({ ...seleccionado, hora_inicio: seleccionado.hora_inicio })} target="_blank" rel="noreferrer" className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-bold text-[#4a3728] hover:bg-gray-50">
-                    <CalendarPlus className="h-4 w-4" /> Agregar a mi calendario
-                  </a>
+                  <div className="flex flex-1">
+                    <BotonCalendario evento={{ ...seleccionado, hora_inicio: seleccionado.hora_inicio }} />
+                  </div>
                 )}
               </div>
             </div>

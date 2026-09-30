@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarPlus, CheckCircle2, Loader2, MessageCircle, X } from 'lucide-react';
+import { CheckCircle2, Loader2, MessageCircle, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { enlaceGoogleCalendar, formatearFecha, formatearHora } from '@/lib/utils';
+import { formatearFecha, formatearHora } from '@/lib/utils';
+import { BotonCalendario } from '@/components/BotonCalendario';
 import type { TallerPublico } from './talleres';
 
 interface Props {
@@ -94,9 +95,7 @@ export function ModalRegistroTaller({ taller, onCerrar, onRegistrado }: Props) {
                   <MessageCircle className="h-5 w-5" /> Unirme al grupo de WhatsApp
                 </a>
               )}
-              <a href={enlaceGoogleCalendar(taller)} target="_blank" rel="noreferrer" className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-bold text-[#4a3728] hover:bg-gray-50">
-                <CalendarPlus className="h-5 w-5" /> Agregar a mi calendario
-              </a>
+              <BotonCalendario evento={{ ...taller, descripcion: [taller.facilitador && `Imparte: ${taller.facilitador}`, taller.descripcion].filter(Boolean).join('\n') }} />
             </div>
           </div>
         ) : (
@@ -112,7 +111,7 @@ export function ModalRegistroTaller({ taller, onCerrar, onRegistrado }: Props) {
             </label>
             <label className="flex items-start gap-2 text-sm text-gray-600">
               <input type="checkbox" checked={aceptaPrivacidad} onChange={(e) => setAceptaPrivacidad(e.target.checked)} className="mt-1 h-4 w-4 accent-green-600" required />
-              <span>Acepto el <Link to="/aviso-privacidad" target="_blank" className="font-semibold text-green-700 underline">aviso de privacidad</Link> y que FDMA me contacte por WhatsApp sobre este taller.</span>
+              <span>Acepto el <Link to="/aviso-privacidad" target="_blank" className="font-semibold text-green-700 underline">aviso de privacidad</Link>.</span>
             </label>
 
             {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}

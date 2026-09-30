@@ -6,7 +6,7 @@ import { TarjetaTaller } from '../Talleres/TarjetaTaller';
 import { ModalRegistroTaller } from '../Talleres/ModalRegistroTaller';
 import { CAMPOS_TALLER_PUBLICO } from '../Talleres/talleres';
 import type { TallerPublico } from '../Talleres/talleres';
-import { CATEGORIAS, cargarEventos } from '../Calendario/eventos';
+import { cargarEventos, estiloPunto } from '../Calendario/eventos';
 import type { EventoCalendario } from '../Calendario/eventos';
 
 const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=100091930835447';
@@ -255,7 +255,7 @@ export const LandingFDMA = () => {
                 </div>
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 font-semibold text-[#4a3728]">
-                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${CATEGORIAS[evento.categoria].punto}`} />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={estiloPunto(evento.categoria)} />
                     <span className="truncate">{evento.titulo}</span>
                   </p>
                   <p className="truncate text-sm text-[#4a3728]/60">{[formatearHora(evento.hora_inicio), evento.lugar].filter(Boolean).join(' · ')}</p>

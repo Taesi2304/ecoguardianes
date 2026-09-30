@@ -29,12 +29,13 @@ export const Footer = () => {
       <div className="footer-grid">
         <div className="footer-brand">
           <div className="footer-brand-row">
-            <Link to="/" aria-label="Ir al inicio">
-              <img src="/logo-horizontal.svg" alt="Eco Guardianes" className="footer-brand-logo" />
+            <Link to="/" aria-label="Ir al inicio" className="footer-brand-link">
+              <img src="/logo_fdma.svg" alt="" className="footer-brand-logo" />
+              <span className="footer-brand-name">FDMA<small>Festival del Medio Ambiente</small></span>
             </Link>
           </div>
           <p className="footer-brand-copy">
-            Monitoreando hoy el compost que transforma el mañana.
+            Un espacio dedicado a la educación y la acción ambiental. Hogar del proyecto de composta comunitaria Eco Guardianes.
           </p>
         </div>
 
@@ -107,7 +108,7 @@ export const Footer = () => {
       </div>
 
       <div className="footer-bottom text-center">
-        <p>© 2026 Eco Guardianes. Todos los derechos reservados.</p>
+        <p>© 2026 FDMA · Festival del Medio Ambiente. Todos los derechos reservados.</p>
         <p>
           Hecho con amor. Desarrollado por{' '}
           <a

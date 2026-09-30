@@ -25,7 +25,11 @@ export const Header = () => {
     <header className="header-container">
       <div className="header-inner">
         <Link to="/" className="header-brand" aria-label="Ir al inicio">
-          <img src="/logo-horizontal.svg" alt="Eco Guardianes" className="brand-logo" />
+          <img src="/logo_fdma.svg" alt="" className="brand-logo" />
+          <span className="brand-text">
+            <span className="brand-name">FDMA</span>
+            <span className="brand-sub">Festival del Medio Ambiente</span>
+          </span>
         </Link>
 
         <nav className="header-nav" aria-label="Navegación principal">

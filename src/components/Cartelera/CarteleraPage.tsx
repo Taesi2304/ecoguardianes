@@ -6,6 +6,10 @@ import { CAMPOS_PARTICIPANTE, cargarCatalogos } from './cartelera';
 import type { AjustesCartelera, Catalogo, Participante } from './cartelera';
 import { TarjetaParticipante } from './TarjetaParticipante';
 import { DetalleParticipante } from './DetalleParticipante';
+import { Bienvenida } from './Bienvenida';
+
+// Mientras FDMA no suba su propia foto en Admin → Cartelera → Ajustes
+const FONDO_POR_DEFECTO = '/galeria/foto3.jpeg';
 
 const normalizar = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -63,6 +67,7 @@ export default function CarteleraPage() {
     });
   }, [participantes, busqueda, tipoId, grupoId]);
 
+  const carteleraVacia = !cargando && participantes.length === 0;
   const seleccionado = participantes.find((participante) => participante.id === seleccionadoId);
   // En escritorio siempre hay uno a la vista; en celular solo si se tocó
   const enEscritorio = seleccionado ?? filtrados[0];
@@ -71,23 +76,25 @@ export default function CarteleraPage() {
     setParametros(id ? { p: id } : {}, { replace: true });
   }
 
-  // La barra inferior pone "Todos" al centro, como "Inicio" en la referencia
-  const mitad = Math.ceil(grupos.length / 2);
-  const barra: (Catalogo | null)[] = [...grupos.slice(0, mitad), null, ...grupos.slice(mitad)];
+  // La barra inferior pone "Todos" al centro, como "Inicio" en la referencia; solo grupos con participantes
+  const gruposConParticipantes = grupos.filter((grupo) => participantes.some((participante) => participante.grupo_id === grupo.id));
+  const mitad = Math.ceil(gruposConParticipantes.length / 2);
+  const barra: (Catalogo | null)[] = [...gruposConParticipantes.slice(0, mitad), null, ...gruposConParticipantes.slice(mitad)];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#141211] font-sans text-white">
-      {ajustes?.cartelera_fondo_url && (
-        <img src={ajustes.cartelera_fondo_url} alt="" aria-hidden="true" className="fixed inset-0 h-full w-full object-cover" />
+    <div className="relative min-h-screen overflow-hidden bg-[#12261d] font-sans text-white">
+      {!cargando && (
+        <img src={ajustes?.cartelera_fondo_url || FONDO_POR_DEFECTO} alt="" aria-hidden="true" className="fixed inset-0 h-full w-full object-cover" />
       )}
-      <div className="fixed inset-0 bg-gradient-to-br from-black/70 via-black/45 to-black/75" aria-hidden="true" />
+      {/* Velo verde bosque: deja ver la foto sin perder legibilidad */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0c1f16]/80 via-[#0c1f16]/45 to-[#0c1f16]/75" aria-hidden="true" />
 
       <div className="relative z-10 flex h-screen flex-col px-4 pb-28 pt-4 lg:px-8">
         <header className="mb-4 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white">
             <ArrowLeft className="h-4 w-4" /> FDMA
           </Link>
-          <h1 className="truncate text-center text-sm font-medium uppercase tracking-[0.2em] text-white/80">{ajustes?.festival_nombre ?? 'Cartelera'}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{ajustes?.festival_nombre ?? 'Cartelera'}</h1>
           <div className="flex gap-2">
             {ajustes?.cartelera_pdf_url && (
               <a href={ajustes.cartelera_pdf_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white" title="Descargar cartelera en PDF">
@@ -102,9 +109,10 @@ export default function CarteleraPage() {
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(360px,40%)_1fr]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(360px,40%)_1fr]">
           {/* Panel izquierdo: búsqueda, filtros y lista */}
-          <section className="flex min-h-0 flex-col rounded-2xl bg-[#1a1716]/80 p-6 backdrop-blur-md">
+          {/* Con la cartelera vacía, en celular se muestra la bienvenida en lugar de una lista vacía */}
+          <section className={`min-h-0 min-w-0 flex-col rounded-2xl bg-[#10241b]/70 p-6 backdrop-blur-md ${carteleraVacia ? 'hidden lg:flex' : 'flex'}`}>
             <label className="mb-5 block">
               <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Buscar</span>
               <span className="relative block">
@@ -113,7 +121,7 @@ export default function CarteleraPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Participante, actividad o sede"
-                  className="w-full rounded-xl bg-black/40 py-3.5 pl-11 pr-10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+                  className="w-full rounded-xl bg-black/30 py-3.5 pl-11 pr-10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
                 />
                 {busqueda && (
                   <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-white/50 hover:text-white" aria-label="Limpiar búsqueda"><X className="h-4 w-4" /></button>
@@ -162,9 +170,11 @@ export default function CarteleraPage() {
           </section>
 
           {/* Panel derecho (escritorio) */}
-          <div className="hidden min-h-0 lg:block">
-            {enEscritorio && (
+          <div className={`min-h-0 min-w-0 lg:block ${carteleraVacia ? 'block' : 'hidden'}`}>
+            {enEscritorio ? (
               <DetalleParticipante key={enEscritorio.id} participante={enEscritorio} tipo={enEscritorio.tipo_id ? tiposPorId[enEscritorio.tipo_id] : undefined} />
+            ) : !cargando && (
+              <Bienvenida festival={ajustes?.festival_nombre} sinParticipantes={participantes.length === 0} />
             )}
           </div>
         </div>
@@ -181,7 +191,7 @@ export default function CarteleraPage() {
       )}
 
       {/* Barra inferior de grupos */}
-      {grupos.length > 0 && (
+      {gruposConParticipantes.length > 0 && (
         <nav aria-label="Grupos de participantes" className="fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
           <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-[#f4f1ec]/95 p-1.5 shadow-2xl backdrop-blur">
             {barra.map((grupo) => {

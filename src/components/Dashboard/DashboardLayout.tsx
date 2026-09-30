@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 
 export const DashboardLayout = () => {
+  // Secciones de "Página del Festival" (solo Super Admin) llevan la marca FDMA
+  const { pathname } = useLocation();
+  const enPaginaFestival = /^\/admin\/(pagina|cartelera|talleres|calendario|convocatorias|publicaciones|aliados)/.test(pathname);
+
   // Estado para controlar si el menú móvil está abierto o cerrado
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -33,8 +37,17 @@ export const DashboardLayout = () => {
         {/* Barra superior móvil */}
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#4A2E18]/10 bg-[#FFF8DF] px-4 py-3 shadow-sm lg:hidden">
           <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Logo" className="w-6 h-6 object-contain" />
-            <span className="font-bold text-lg text-[#4A2E18]">Eco-Guardianes</span>
+            {enPaginaFestival ? (
+              <>
+                <img src="/logo_fdma.svg" alt="" className="h-7 w-7 rounded-full object-contain mix-blend-multiply" />
+                <span className="font-bold text-lg text-[#2D6A4F]">FDMA</span>
+              </>
+            ) : (
+              <>
+                <img src="/logo.svg" alt="Logo" className="w-6 h-6 object-contain" />
+                <span className="font-bold text-lg text-[#4A2E18]">Eco-Guardianes</span>
+              </>
+            )}
           </div>
 
           <button
