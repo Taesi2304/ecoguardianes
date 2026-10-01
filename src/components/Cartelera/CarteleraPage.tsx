@@ -5,8 +5,7 @@ import { ArrowLeft, ChevronDown, Download, Loader2, Map as MapIcon, Search, X } 
 import { supabase } from '@/lib/supabase';
 import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, etiquetaDia } from './cartelera';
 import type { Catalogo, Edicion, Participante } from './cartelera';
-import { TarjetaParticipante } from './TarjetaParticipante';
-import { DetalleParticipante } from './DetalleParticipante';
+import { DetalleActivo, FichaParticipante } from './DetalleParticipante';
 import { Bienvenida } from './Bienvenida';
 
 // Mientras FDMA no suba su propia foto en Admin → Cartelera → Ajustes
@@ -71,8 +70,8 @@ export default function CarteleraPage() {
   // En celular los filtros van plegados para que la lista quede a la vista
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   // ?p=<id> permite compartir el enlace a un participante; ?edicion=2026 muestra una edición anterior
-  const [parametros, setParametros] = useSearchParams();
-  const seleccionadoId = parametros.get('p');
+  const [parametros] = useSearchParams();
+  const enlaceId = parametros.get('p');
   const anioEdicion = Number(parametros.get('edicion')) || undefined;
 
   useEffect(() => {
@@ -132,17 +131,98 @@ export default function CarteleraPage() {
   }, [participantes, busqueda, tipoId, grupoId, fecha]);
 
   const carteleraVacia = !cargando && participantes.length === 0;
-  const seleccionado = participantes.find((participante) => participante.id === seleccionadoId);
-  // En escritorio siempre hay uno a la vista; en celular solo si se tocó
-  const enEscritorio = seleccionado ?? filtrados[0];
 
-  function seleccionar(id: string | null) {
-    setParametros({ ...(anioEdicion ? { edicion: String(anioEdicion) } : {}), ...(id ? { p: id } : {}) }, { replace: true });
+  // Ficha activa: la que cruza la mitad de la pantalla al desplazarse, como en la referencia de ITCA
+  const [activoId, setActivoId] = useState<string | null>(null);
+  const fichas = useRef(new Map<string, HTMLLIElement>());
+
+  useEffect(() => {
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        const visible = entradas.find((entrada) => entrada.isIntersecting);
+        if (visible) setActivoId((visible.target as HTMLElement).dataset.id ?? null);
+      },
+      { rootMargin: '-50% 0px -50% 0px' },
+    );
+    fichas.current.forEach((ficha) => observador.observe(ficha));
+    return () => observador.disconnect();
+  }, [filtrados]);
+
+  const activo = filtrados.find((participante) => participante.id === activoId) ?? filtrados[0];
+
+  function enfocar(id: string) {
+    fichas.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+
+  // Enlace compartido (?p=<id>): al cargar, se desplaza hasta esa ficha
+  const enlaceAplicado = useRef(false);
+  useEffect(() => {
+    if (cargando || enlaceAplicado.current || !enlaceId) return;
+    enlaceAplicado.current = true;
+    requestAnimationFrame(() => fichas.current.get(enlaceId)?.scrollIntoView({ block: 'center' }));
+  }, [cargando, enlaceId]);
 
   // La barra inferior pone "Todos" al centro, como "Inicio" en la referencia
   const mitad = Math.ceil(dias.length / 2);
   const barra: (string | null)[] = [...dias.slice(0, mitad), null, ...dias.slice(mitad)];
+
+  const contador = <p className="text-sm text-white/50">{filtrados.length} {filtrados.length === 1 ? 'participante' : 'participantes'}</p>;
+
+  // Los mismos filtros van en el panel fijo (escritorio) y en "Buscar y filtrar" (celular)
+  const filtros = (
+    <div className="space-y-4">
+      <label className="block">
+        <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Buscar</span>
+        <span className="relative block">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Participante, actividad o sede"
+            className="w-full rounded-xl bg-black/30 py-3 pl-11 pr-10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+          />
+          {busqueda && (
+            <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-white/50 hover:text-white" aria-label="Limpiar búsqueda"><X className="h-4 w-4" /></button>
+          )}
+        </span>
+      </label>
+
+      {tiposConParticipantes.length > 0 && (
+        <div className="border-t border-white/10 pt-4">
+          <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Actividad</span>
+          <FilaDeslizable>
+            {[{ id: null, nombre: 'Todas' }, ...tiposConParticipantes].map((tipo) => (
+              <button
+                key={tipo.id ?? 'todas'}
+                onClick={() => setTipoId(tipo.id)}
+                className={`shrink-0 rounded-lg px-4 py-2 text-sm transition ${tipoId === tipo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
+              >
+                {tipo.nombre}
+              </button>
+            ))}
+          </FilaDeslizable>
+        </div>
+      )}
+
+      {gruposConParticipantes.length > 0 && (
+        <div>
+          <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Grupo</span>
+          <FilaDeslizable>
+            {[{ id: null, nombre: 'Todos', color: null }, ...gruposConParticipantes].map((grupo) => (
+              <button
+                key={grupo.id ?? 'todos'}
+                onClick={() => setGrupoId(grupo.id)}
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm transition ${grupoId === grupo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
+              >
+                {grupo.color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />}
+                {grupo.nombre}
+              </button>
+            ))}
+          </FilaDeslizable>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-[#12261d] font-sans text-white">
@@ -152,7 +232,8 @@ export default function CarteleraPage() {
       {/* Velo verde bosque: deja ver la foto sin perder legibilidad */}
       <div className="fixed inset-0 bg-gradient-to-br from-[#0c1f16]/80 via-[#0c1f16]/45 to-[#0c1f16]/75" aria-hidden="true" />
 
-      <div className="relative z-10 flex min-h-screen flex-col px-4 pb-28 pt-4 lg:h-screen lg:px-8">
+      {/* Toda la página se desplaza con la barra del navegador; solo el panel izquierdo queda fijo */}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 pt-4 lg:px-8">
         <header className="mb-4 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white">
             <ArrowLeft className="h-4 w-4" /> FDMA
@@ -179,140 +260,101 @@ export default function CarteleraPage() {
           </div>
         )}
 
-        <div className="grid flex-1 grid-cols-1 gap-6 lg:min-h-0 lg:grid-cols-[minmax(360px,40%)_1fr]">
-          {/* Panel izquierdo: búsqueda, filtros y lista */}
-          {/* Con la cartelera vacía, en celular se muestra la bienvenida en lugar de una lista vacía */}
-          <section className={`min-w-0 flex-col rounded-2xl bg-[#10241b]/70 p-6 backdrop-blur-md lg:min-h-0 ${carteleraVacia ? 'hidden lg:flex' : 'flex'}`}>
-            {/* Solo en celular: barra para mostrar u ocultar los filtros; queda fija arriba al bajar */}
+        {/* Celular: "Buscar y filtrar" plegable que se queda fijo arriba al bajar */}
+        {!carteleraVacia && (
+          <div className="sticky top-2 z-30 mb-4 lg:hidden">
             <button
               type="button"
               onClick={() => setFiltrosAbiertos((abiertos) => !abiertos)}
               aria-expanded={filtrosAbiertos}
-              className="sticky top-2 z-10 -mx-3 -mt-3 mb-3 flex items-center justify-between rounded-xl bg-[#0c1f16]/95 px-4 py-3 text-left shadow-lg backdrop-blur lg:hidden"
+              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-[#0c1f16]/95 px-4 py-3 text-left shadow-lg backdrop-blur"
             >
               <span className="flex items-baseline gap-2 font-medium text-white">
                 Buscar y filtrar <span className="text-sm tabular-nums text-white/50">{filtrados.length}</span>
               </span>
               <ChevronDown className={`h-5 w-5 text-white/70 transition-transform ${filtrosAbiertos ? 'rotate-180' : ''}`} />
             </button>
-
-            <div className={`${filtrosAbiertos ? 'block' : 'hidden'} lg:block`}>
-            <label className="mb-5 block">
-              <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Buscar</span>
-              <span className="relative block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-                <input
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  placeholder="Participante, actividad o sede"
-                  className="w-full rounded-xl bg-black/30 py-3.5 pl-11 pr-10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-                />
-                {busqueda && (
-                  <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-white/50 hover:text-white" aria-label="Limpiar búsqueda"><X className="h-4 w-4" /></button>
-                )}
-              </span>
-            </label>
-
-            {tiposConParticipantes.length > 0 && (
-              <div className="mb-3 border-t border-white/10 pt-5">
-                <span className="mb-3 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Actividad</span>
-                <FilaDeslizable>
-                  {[{ id: null, nombre: 'Todas' }, ...tiposConParticipantes].map((tipo) => (
-                    <button
-                      key={tipo.id ?? 'todas'}
-                      onClick={() => setTipoId(tipo.id)}
-                      className={`shrink-0 rounded-lg px-4 py-2 text-sm transition ${tipoId === tipo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
-                    >
-                      {tipo.nombre}
-                    </button>
-                  ))}
-                </FilaDeslizable>
+            {filtrosAbiertos && (
+              <div className="mt-2 max-h-[70svh] space-y-4 overflow-y-auto rounded-xl border border-white/10 bg-[#0c1f16]/95 p-4 shadow-lg backdrop-blur">
+                {filtros}
+                {contador}
               </div>
             )}
+          </div>
+        )}
 
-            {gruposConParticipantes.length > 0 && (
-              <div className="mb-3">
-                <span className="mb-3 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Grupo</span>
-                <FilaDeslizable>
-                  {[{ id: null, nombre: 'Todos', color: null }, ...gruposConParticipantes].map((grupo) => (
-                    <button
-                      key={grupo.id ?? 'todos'}
-                      onClick={() => setGrupoId(grupo.id)}
-                      className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm transition ${grupoId === grupo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
-                    >
-                      {grupo.color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />}
-                      {grupo.nombre}
-                    </button>
-                  ))}
-                </FilaDeslizable>
-              </div>
-            )}
-
-            </div>
-
-            <p className="mb-2 hidden text-sm text-white/50 lg:block">{filtrados.length} {filtrados.length === 1 ? 'participante' : 'participantes'}</p>
-
-            <div className="-mx-6 border-t border-white/10 lg:min-h-0 lg:flex-1 lg:overflow-y-auto [scrollbar-color:rgba(255,255,255,0.4)_transparent] [scrollbar-width:thin]">
-              {cargando ? (
-                <div className="flex justify-center p-10"><Loader2 className="h-7 w-7 animate-spin text-white/60" /></div>
-              ) : filtrados.length === 0 ? (
-                <p className="p-8 text-center text-white/60">{participantes.length === 0 ? 'La cartelera se publicará pronto.' : 'No hay resultados con esos filtros.'}</p>
-              ) : (
-                <div className="pl-2">
-                  {filtrados.map((participante) => (
-                    <TarjetaParticipante
-                      key={`${participante.id}-${fecha ?? 'todos'}`}
-                      participante={participante}
-                      fecha={fecha}
-                      tipo={participante.tipo_id ? tiposPorId[participante.tipo_id] : undefined}
-                      seleccionado={participante.id === enEscritorio?.id}
-                      onSeleccionar={() => seleccionar(participante.id)}
-                    />
-                  ))}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          {/* Escritorio: panel fijo con los filtros y los datos de la ficha activa */}
+          <div className="hidden lg:col-span-5 lg:block">
+            <div className="sticky top-0 flex h-svh items-center pb-32 pt-[4svh]">
+              <aside className="flex max-h-full w-full flex-col gap-4 overflow-hidden rounded-2xl border border-white/10 bg-[#10241b]/80 p-6 backdrop-blur-md">
+                <div className="flex-none space-y-3">
+                  {filtros}
+                  {contador}
                 </div>
-              )}
+                {activo && (
+                  <div className="min-h-0 flex-auto overflow-y-auto overscroll-contain border-t border-white/10 pr-2 pt-4 [scrollbar-color:rgba(255,255,255,0.4)_transparent] [scrollbar-width:thin]">
+                    <DetalleActivo participante={activo} fecha={fecha} />
+                  </div>
+                )}
+              </aside>
             </div>
-          </section>
+          </div>
 
-          {/* Panel derecho (escritorio) */}
-          <div className={`min-w-0 lg:block lg:min-h-0 ${carteleraVacia ? 'block' : 'hidden'}`}>
-            {enEscritorio ? (
-              <DetalleParticipante key={enEscritorio.id} participante={enEscritorio} tipo={enEscritorio.tipo_id ? tiposPorId[enEscritorio.tipo_id] : undefined} />
-            ) : !cargando && (
-              <Bienvenida festival={edicion?.nombre} sinParticipantes={participantes.length === 0} />
+          <div className="lg:col-span-7">
+            {cargando ? (
+              <div className="flex justify-center p-16"><Loader2 className="h-8 w-8 animate-spin text-white/60" /></div>
+            ) : carteleraVacia ? (
+              <div className="py-6 lg:py-[16svh]">
+                <Bienvenida festival={edicion?.nombre} sinParticipantes />
+              </div>
+            ) : filtrados.length === 0 ? (
+              <p className="rounded-2xl bg-[#10241b]/70 p-8 text-center text-white/70 backdrop-blur-md lg:mt-[16svh]">No hay resultados con esos filtros.</p>
+            ) : (
+              <ol className="pb-32 lg:pb-0">
+                {filtrados.map((participante) => (
+                  <li
+                    key={participante.id}
+                    data-id={participante.id}
+                    ref={(elemento) => {
+                      if (elemento) fichas.current.set(participante.id, elemento);
+                      else fichas.current.delete(participante.id);
+                    }}
+                    className="py-2 lg:py-[8svh] lg:first:pt-[16svh] lg:last:pb-[34svh]"
+                  >
+                    <FichaParticipante
+                      participante={participante}
+                      tipo={participante.tipo_id ? tiposPorId[participante.tipo_id] : undefined}
+                      activa={participante.id === activo?.id}
+                      fecha={fecha}
+                      onEnfocar={() => enfocar(participante.id)}
+                    />
+                  </li>
+                ))}
+              </ol>
             )}
           </div>
         </div>
       </div>
-
-      {/* Detalle en celular: hoja inferior */}
-      {seleccionado && (
-        <div className="fixed inset-0 z-30 flex items-end bg-black/60 lg:hidden" onClick={() => seleccionar(null)}>
-          <div className="relative h-[88vh] w-full" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => seleccionar(null)} className="absolute right-3 top-3 z-10 rounded-full bg-black/50 p-2 text-white" aria-label="Cerrar"><X className="h-5 w-5" /></button>
-            <DetalleParticipante key={seleccionado.id} participante={seleccionado} tipo={seleccionado.tipo_id ? tiposPorId[seleccionado.tipo_id] : undefined} />
-          </div>
-        </div>
-      )}
 
       {/* Barra inferior de días (sale de las fechas de los horarios) */}
       {dias.length > 1 && (
         <nav aria-label="Días del festival" className="fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
           <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-[#f4f1ec]/95 p-1.5 shadow-2xl backdrop-blur">
             {barra.map((dia) => {
-              const activo = dia === fecha;
+              const diaActivo = dia === fecha;
               const color = dia ? COLORES_DIA[dias.indexOf(dia) % COLORES_DIA.length] : null;
               return (
                 <button
                   key={dia ?? 'todos'}
                   onClick={() => setFecha(dia)}
-                  aria-pressed={activo}
+                  aria-pressed={diaActivo}
                   className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition sm:px-5 sm:text-base ${
-                    activo ? 'text-[#1a1716] shadow-[0_0_0_3px_#1a1716]' : 'text-[#1a1716]/80 hover:bg-black/5'
+                    diaActivo ? 'text-[#1a1716] shadow-[0_0_0_3px_#1a1716]' : 'text-[#1a1716]/80 hover:bg-black/5'
                   }`}
-                  style={activo ? { backgroundColor: color ?? '#ffffff' } : undefined}
+                  style={diaActivo ? { backgroundColor: color ?? '#ffffff' } : undefined}
                 >
-                  {color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: activo ? '#1a1716' : color }} />}
+                  {color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: diaActivo ? '#1a1716' : color }} />}
                   {dia ? etiquetaDia(dia) : 'Todos'}
                 </button>
               );

@@ -43,17 +43,23 @@ interface ImagenAmpliableProps {
   src: string;
   alt?: string;
   className?: string;
+  onQuitar?: () => void; // Si se pasa, aparece la ✕ roja en la esquina para quitar la imagen
 }
 
 // Miniatura que al hacer clic muestra la imagen completa en el visor
-export function ImagenAmpliable({ src, alt = '', className = '' }: ImagenAmpliableProps) {
+export function ImagenAmpliable({ src, alt = '', className = '', onQuitar }: ImagenAmpliableProps) {
   const [abierta, setAbierta] = useState(false);
   return (
-    <>
-      <button type="button" onClick={() => setAbierta(true)} className={`shrink-0 cursor-zoom-in overflow-hidden ${className}`} title="Ver en grande">
+    <div className={`relative shrink-0 ${className}`}>
+      <button type="button" onClick={() => setAbierta(true)} className="h-full w-full cursor-zoom-in overflow-hidden rounded-[inherit]" title="Ver en grande">
         <img src={src} alt={alt} className="h-full w-full object-cover" />
       </button>
+      {onQuitar && (
+        <button type="button" onClick={onQuitar} className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-md hover:bg-red-700" title="Quitar imagen" aria-label={`Quitar ${alt || 'imagen'}`}>
+          <X className="h-4 w-4" />
+        </button>
+      )}
       {abierta && <VisorImagenes fotos={[src]} indice={0} nombre={alt || 'Imagen'} onCambiar={() => {}} onCerrar={() => setAbierta(false)} />}
-    </>
+    </div>
   );
 }

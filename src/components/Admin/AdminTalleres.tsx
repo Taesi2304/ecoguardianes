@@ -170,7 +170,7 @@ export default function AdminTalleres() {
 
   async function guardar(e: FormEvent) {
     e.preventDefault();
-    if (!editandoId && !formulario.imagen) {
+    if (!formulario.imagen && !imagenActual) {
       toast.error('Selecciona la imagen o cartel del taller.');
       return;
     }
@@ -380,11 +380,11 @@ export default function AdminTalleres() {
                     {formulario.descripcion.length} / {LIMITE_DESCRIPCION} caracteres permitidos
                   </span>
                 </label>
-                <label className="block text-sm font-semibold text-gray-700">Imagen o cartel<input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
+                <label className="block text-sm font-semibold text-gray-700">Imagen o cartel{!(urlImagenNueva || imagenActual) && <input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required />}</label>
                 {(urlImagenNueva || imagenActual) && (
                   <div>
-                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen del taller" className="aspect-square w-full max-w-xs rounded-lg" />
-                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen del taller" className="aspect-square w-full max-w-xs rounded-lg" onQuitar={() => (formulario.imagen ? setFormulario((actual) => ({ ...actual, imagen: null })) : setImagenActual(''))} />
+                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para verla en grande, ✕ para quitarla</p>
                   </div>
                 )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">

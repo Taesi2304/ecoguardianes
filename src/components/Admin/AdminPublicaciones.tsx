@@ -204,7 +204,7 @@ export default function AdminPublicaciones() {
 
   async function guardar(e: FormEvent) {
     e.preventDefault();
-    if (!editandoId && !formulario.imagen) {
+    if (!formulario.imagen && !imagenActual) {
       toast.error('Selecciona la imagen de la publicación.');
       return;
     }
@@ -334,11 +334,11 @@ export default function AdminPublicaciones() {
                 </label>
               </div>
               <div className="space-y-4">
-                <label className="block text-sm font-semibold text-gray-700">Imagen<input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
+                <label className="block text-sm font-semibold text-gray-700">Imagen{!(urlImagenNueva || imagenActual) && <input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required />}</label>
                 {(urlImagenNueva || imagenActual) && (
                   <div>
-                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la publicación" className="aspect-square w-full max-w-xs rounded-lg" />
-                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la publicación" className="aspect-square w-full max-w-xs rounded-lg" onQuitar={() => (formulario.imagen ? setFormulario((actual) => ({ ...actual, imagen: null })) : setImagenActual(''))} />
+                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para verla en grande, ✕ para quitarla</p>
                   </div>
                 )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">

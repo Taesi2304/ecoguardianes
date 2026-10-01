@@ -14,6 +14,7 @@ interface Convocatoria {
   imagen_url: string;
   enlace_url?: string;
   fecha_cierre?: string | null; // Fecha límite opcional: sale en el Calendario y la oculta de la landing al pasar
+  texto_boton?: string | null; // Vacío → "Registro"
   activo: boolean;
   created_at: string;
 }
@@ -23,8 +24,12 @@ interface FormularioConvocatoria {
   descripcion: string;
   enlace_url: string;
   fecha_cierre: string;
+  texto_boton: string;
   imagen: File | null;
 }
+
+const TEXTO_BOTON_POR_DEFECTO = 'Registro';
+const SUGERENCIAS_BOTON = ['Registro', 'Más información', 'Descargar bases', 'Inscribirme'];
 
 const BUCKET = 'imagenes_convocatorias';
 
@@ -33,6 +38,7 @@ const formularioInicial: FormularioConvocatoria = {
   descripcion: '',
   enlace_url: '',
   fecha_cierre: '',
+  texto_boton: '',
   imagen: null,
 };
 
@@ -108,7 +114,7 @@ export default function AdminConvocatorias() {
     setEditandoId(convocatoria.id);
     setFormularioAbierto(true);
     setImagenActual(convocatoria.imagen_url);
-    setFormulario({ titulo: convocatoria.titulo, descripcion: convocatoria.descripcion, enlace_url: convocatoria.enlace_url || '', fecha_cierre: convocatoria.fecha_cierre || '', imagen: null });
+    setFormulario({ titulo: convocatoria.titulo, descripcion: convocatoria.descripcion, enlace_url: convocatoria.enlace_url || '', fecha_cierre: convocatoria.fecha_cierre || '', texto_boton: convocatoria.texto_boton || '', imagen: null });
   }
 
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -140,7 +146,7 @@ export default function AdminConvocatorias() {
       toast.error('Completa el título y la descripción.');
       return;
     }
-    if (!editandoId && !formulario.imagen) {
+    if (!formulario.imagen && !imagenActual) {
       toast.error('Selecciona una imagen para la convocatoria.');
       return;
     }
@@ -162,6 +168,7 @@ export default function AdminConvocatorias() {
         descripcion: formulario.descripcion.trim(),
         enlace_url: formulario.enlace_url.trim() || null,
         fecha_cierre: formulario.fecha_cierre || null,
+        texto_boton: formulario.texto_boton.trim() || null,
         imagen_url: imagenUrl,
         ...(editandoId ? {} : { activo: true }),
       };
@@ -255,6 +262,15 @@ export default function AdminConvocatorias() {
               <div className="space-y-5">
                 <label className="block text-sm font-semibold text-gray-700">Título<input name="titulo" value={formulario.titulo} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" required /></label>
                 <label className="block text-sm font-semibold text-gray-700">Enlace de redirección (Opcional)<input name="enlace_url" type="url" placeholder="https://forms.gle/..." value={formulario.enlace_url} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" /></label>
+                {formulario.enlace_url.trim() && (
+                  <label className="block text-sm font-semibold text-gray-700">Texto del botón (Opcional)
+                    <input name="texto_boton" value={formulario.texto_boton} onChange={manejarCambio} maxLength={30} placeholder={TEXTO_BOTON_POR_DEFECTO} list="sugerencias-boton" className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" />
+                    <datalist id="sugerencias-boton">
+                      {SUGERENCIAS_BOTON.map((texto) => <option key={texto} value={texto} />)}
+                    </datalist>
+                    <span className="mt-1 block text-xs font-normal text-gray-500">Lo que dice el botón verde. Si lo dejas vacío dice "{TEXTO_BOTON_POR_DEFECTO}".</span>
+                  </label>
+                )}
                 <label className="block text-sm font-semibold text-gray-700">Fecha límite (Opcional)
                   <input name="fecha_cierre" type="date" value={formulario.fecha_cierre} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" />
                   <span className="mt-1 block text-xs font-normal text-gray-500">Aparece en el Calendario y la convocatoria se oculta sola de la página al pasar esta fecha.</span>
@@ -279,11 +295,11 @@ export default function AdminConvocatorias() {
 </label>
                </div>
               <div className="space-y-4">
-                <label className="block text-sm font-semibold text-gray-700">Imagen<input type="file" accept="image/*" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
+                <label className="block text-sm font-semibold text-gray-700">Imagen{!(urlImagenNueva || imagenActual) && <input type="file" accept="image/*" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required />}</label>
                 {(urlImagenNueva || imagenActual) && (
                   <div>
-                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la convocatoria" className="h-40 w-full rounded-lg" />
-                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la convocatoria" className="h-40 w-full rounded-lg" onQuitar={() => (formulario.imagen ? setFormulario((actual) => ({ ...actual, imagen: null })) : setImagenActual(''))} />
+                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para verla en grande, ✕ para quitarla</p>
                   </div>
                 )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">

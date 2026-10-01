@@ -70,10 +70,10 @@ async function borrarImagenesSinUso(urls: string[], participanteId: string | nul
 }
 
 // Miniatura de una foto aún no subida: URL local temporal que se libera al quitarla
-function VistaPreviaArchivo({ archivo }: { archivo: File }) {
+function VistaPreviaArchivo({ archivo, onQuitar }: { archivo: File; onQuitar: () => void }) {
   const url = useUrlLocal(archivo);
   return url
-    ? <ImagenAmpliable src={url} alt={archivo.name} className="h-24 w-24 rounded-lg border-2 border-dashed border-green-400" />
+    ? <ImagenAmpliable src={url} alt={archivo.name} className="h-24 w-24 rounded-lg border-2 border-dashed border-green-400" onQuitar={onQuitar} />
     : <div className="h-24 w-24 rounded-lg bg-green-50" />;
 }
 
@@ -376,14 +376,12 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                 <div className="flex flex-wrap gap-3">
                   {formulario.imagenes.map((url) => (
                     <div key={url} className="relative">
-                      <ImagenAmpliable src={url} alt="Foto del participante" className="h-24 w-24 rounded-lg" />
-                      <button type="button" onClick={() => setFormulario((actual) => ({ ...actual, imagenes: actual.imagenes.filter((item) => item !== url) }))} className="absolute -right-2 -top-2 rounded-full bg-white p-1 text-red-600 shadow" title="Quitar foto"><X className="h-4 w-4" /></button>
+                      <ImagenAmpliable src={url} alt="Foto del participante" className="h-24 w-24 rounded-lg" onQuitar={() => setFormulario((actual) => ({ ...actual, imagenes: actual.imagenes.filter((item) => item !== url) }))} />
                     </div>
                   ))}
                   {formulario.nuevasImagenes.map((archivo, indice) => (
                     <div key={`${archivo.name}-${indice}`} className="relative">
-                      <VistaPreviaArchivo archivo={archivo} />
-                      <button type="button" onClick={() => setFormulario((actual) => ({ ...actual, nuevasImagenes: actual.nuevasImagenes.filter((_, i) => i !== indice) }))} className="absolute -right-2 -top-2 rounded-full bg-white p-1 text-red-600 shadow" title="Quitar foto"><X className="h-4 w-4" /></button>
+                      <VistaPreviaArchivo archivo={archivo} onQuitar={() => setFormulario((actual) => ({ ...actual, nuevasImagenes: actual.nuevasImagenes.filter((_, i) => i !== indice) }))} />
                     </div>
                   ))}
                   {totalImagenes < MAX_IMAGENES && (

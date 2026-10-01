@@ -123,7 +123,7 @@ export default function AdminAliados() {
       toast.error('Completa el nombre y el enlace.');
       return;
     }
-    if (!editandoId && !formulario.imagen) {
+    if (!formulario.imagen && !imagenActual) {
       toast.error('Selecciona la foto o logo del aliado.');
       return;
     }
@@ -238,11 +238,11 @@ export default function AdminAliados() {
                 </label>
               </div>
               <div className="space-y-4">
-                <label className="block text-sm font-semibold text-gray-700">Foto o logo<input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
+                <label className="block text-sm font-semibold text-gray-700">Foto o logo{!(urlImagenNueva || imagenActual) && <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required />}</label>
                 {(urlImagenNueva || imagenActual) && (
                   <div className="flex items-center gap-3">
-                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Foto o logo del aliado" className="h-24 w-24 rounded-full border" />
-                    <p className="text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Foto o logo del aliado" className="h-24 w-24 rounded-full border" onQuitar={() => (formulario.imagen ? setFormulario((actual) => ({ ...actual, imagen: null })) : setImagenActual(''))} />
+                    <p className="text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para verla en grande, ✕ para quitarla</p>
                   </div>
                 )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">

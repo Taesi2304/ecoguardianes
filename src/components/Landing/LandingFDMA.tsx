@@ -9,6 +9,7 @@ import type { TallerPublico } from '../Talleres/talleres';
 import { cargarEventos, estiloPunto } from '../Calendario/eventos';
 import type { EventoCalendario } from '../Calendario/eventos';
 import { cargarEdicion } from '../Cartelera/cartelera';
+import { VisorImagenes } from '../VisorImagenes';
 
 const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=100091930835447';
 const INSTAGRAM_URL = 'https://www.instagram.com/fdma.mx';
@@ -51,6 +52,7 @@ interface Convocatoria {
   imagen_url: string;
   enlace_url?: string;
   fecha_cierre?: string | null;
+  texto_boton?: string | null; // Vacío → "Registro"
 }
 
 // "Cierra hoy", "Cierra en 3 días"… o la fecha si falta más de una semana
@@ -84,6 +86,7 @@ export const LandingFDMA = () => {
   const [aliados, setAliados] = useState<Aliado[]>([]);
   const [talleres, setTalleres] = useState<TallerPublico[]>([]);
   const [tallerSeleccionado, setTallerSeleccionado] = useState<TallerPublico | null>(null);
+  const [cartelAbierto, setCartelAbierto] = useState<Convocatoria | null>(null);
   const [eventosSemana, setEventosSemana] = useState<EventoCalendario[]>([]);
 
   const cargarTalleres = useCallback(() => supabase
@@ -123,17 +126,18 @@ export const LandingFDMA = () => {
     };
 
     const cargarConvocatorias = async () => {
+      // Las vencidas se ocultan solas (fecha_cierre se edita en Admin → Convocatorias).
+      // Primero las que cierran antes; las que no tienen fecha límite van al final, más nuevas primero.
+      const hoy = new Date().toLocaleDateString('en-CA');
       const { data, error } = await supabase
         .from('convocatorias')
         .select('*')
         .eq('activo', true)
-        .order('created_at', { ascending: false })
-        .limit(12);
+        .or(`fecha_cierre.is.null,fecha_cierre.gte.${hoy}`)
+        .order('fecha_cierre', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: false });
 
-      // Las vencidas se ocultan solas (fecha_cierre se edita en Admin → Convocatorias)
-      const hoy = new Date().toLocaleDateString('en-CA');
-      const vigentes = ((data || []) as Convocatoria[]).filter((c) => !c.fecha_cierre || c.fecha_cierre >= hoy);
-      if (!error) setConvocatorias(vigentes.slice(0, 3));
+      if (!error) setConvocatorias((data || []) as Convocatoria[]);
       setCargandoConvocatorias(false);
     };
 
@@ -302,14 +306,17 @@ export const LandingFDMA = () => {
                           key={convocatoria.id} 
                           className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm border border-[#4a3728]/10"
                         >
-                          {/* Contenedor tipo Instagram (1:1) con fondo sutil para evitar espacios blancos vacíos */}
-                          <div className="flex w-full items-center justify-center bg-[#f8f5f2] aspect-square">
-                            <img 
-                              src={convocatoria.imagen_url} 
-                              alt={convocatoria.titulo} 
-                              className="h-full w-full object-contain" 
-                            />
-                          </div>
+                          {/* Cartel completo (sin recorte) en 4:3; los lados se rellenan con el mismo cartel desenfocado.
+                              Clic para verlo en grande y leer QR o letra chica */}
+                          <button
+                            type="button"
+                            onClick={() => setCartelAbierto(convocatoria)}
+                            className="relative aspect-[4/3] w-full cursor-zoom-in overflow-hidden bg-[#f8f5f2]"
+                            title="Ver cartel completo"
+                          >
+                            <img src={convocatoria.imagen_url} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-xl" />
+                            <img src={convocatoria.imagen_url} alt={convocatoria.titulo} loading="lazy" className="relative h-full w-full object-contain drop-shadow-md" />
+                          </button>
                           
                           <div className="flex flex-grow flex-col p-5">
                             {convocatoria.fecha_cierre && (
@@ -318,7 +325,7 @@ export const LandingFDMA = () => {
                               </span>
                             )}
                             <h3 className="mb-2 text-xl font-bold text-[#4a3728]">{convocatoria.titulo}</h3>
-                            <p className="mb-5 text-base leading-relaxed text-[#4a3728]/75">
+                            <p className="mb-5 line-clamp-3 text-base leading-relaxed text-[#4a3728]/75" title={convocatoria.descripcion}>
                               {convocatoria.descripcion}
                             </p>
                             
@@ -330,13 +337,16 @@ export const LandingFDMA = () => {
                                 rel="noopener noreferrer"
                                 className="mt-auto block w-full rounded-xl bg-green-600 px-4 py-2.5 text-center text-sm font-bold text-white transition hover:bg-green-700 shadow-sm"
                               >
-                                Más información / Registro
+                                {convocatoria.texto_boton || 'Registro'}
                               </a>
                             )}
                           </div>
                         </article>
                       ))}
                     </div>
+                  )}
+                  {cartelAbierto && (
+                    <VisorImagenes fotos={[cartelAbierto.imagen_url]} indice={0} nombre={cartelAbierto.titulo} onCambiar={() => {}} onCerrar={() => setCartelAbierto(null)} />
                   )}
                   </section>
                   )}
