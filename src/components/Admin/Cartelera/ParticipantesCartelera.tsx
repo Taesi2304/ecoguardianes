@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { AlertCircle, CalendarClock, Edit, Eye, EyeOff, ImagePlus, Loader2, Plus, Save, Trash2, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,7 +85,9 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState(''); // '' = todos, 'sin' = sin tipo, o el id del tipo
-  const [fechaFiltro, setFechaFiltro] = useState(''); // '' = todas, 'sin' = sin horarios, o 'AAAA-MM-DD'
+  // '' = todas, 'sin' = sin horarios, o 'AAAA-MM-DD' (?fecha= al llegar desde el Calendario)
+  const [parametros] = useSearchParams();
+  const [fechaFiltro, setFechaFiltro] = useState(parametros.get('fecha') ?? '');
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);

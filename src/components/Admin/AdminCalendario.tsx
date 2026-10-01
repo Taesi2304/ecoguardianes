@@ -33,6 +33,16 @@ const ORIGENES = {
 type Origen = keyof typeof ORIGENES;
 const origenDe = (id: string) => (Object.keys(ORIGENES) as Origen[]).find((origen) => id.startsWith(`${origen}-`));
 
+// Un día del festival junta los horarios de varios participantes: se abre la Cartelera
+// filtrada en ese día (y en su edición) para editar cada presentación
+function rutaOrigen(evento: Evento & { origen: Origen }) {
+  if (evento.origen !== 'festival') return ORIGENES[evento.origen].ruta;
+  const parametros = new URLSearchParams({ fecha: evento.fecha });
+  const anio = evento.enlace_url?.match(/edicion=(\d{4})/)?.[1];
+  if (anio) parametros.set('edicion', anio);
+  return `${ORIGENES.festival.ruta}?${parametros}`;
+}
+
 interface FormularioEvento {
   titulo: string;
   fecha: string;
@@ -382,13 +392,13 @@ export default function AdminCalendario() {
                         </p>
                         {evento.origen && (
                           <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                            Automático · viene de {ORIGENES[evento.origen].seccion}
+                            Automático · {evento.origen === 'festival' ? `resume ${evento.descripcion?.replace(' en la cartelera de este día.', '') ?? 'los horarios'} de la Cartelera` : `viene de ${ORIGENES[evento.origen].seccion}`}
                           </span>
                         )}
                       </div>
                       {evento.origen ? (
                         // Se edita u oculta en su sección para que no quede distinto de su origen
-                        <Link to={ORIGENES[evento.origen].ruta} className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50" title={`Editar o quitar en ${ORIGENES[evento.origen].seccion}`}>
+                        <Link to={rutaOrigen({ ...evento, origen: evento.origen })} className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50" title={`Editar o quitar en ${ORIGENES[evento.origen].seccion}`}>
                           <span className="hidden sm:inline">Editar en {ORIGENES[evento.origen].seccion}</span>
                           <span className="sm:hidden">Editar</span>
                           <ArrowRight className="h-4 w-4" />

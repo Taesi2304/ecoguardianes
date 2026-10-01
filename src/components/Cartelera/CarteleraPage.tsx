@@ -175,17 +175,18 @@ export default function CarteleraPage() {
   const contador = <p className="text-sm text-white/50">{filtrados.length} {filtrados.length === 1 ? 'participante' : 'participantes'}</p>;
 
   // Los mismos filtros van en el panel fijo (escritorio) y en "Buscar y filtrar" (celular)
+  // En laptop va más compacto para dejarle espacio a la descripción en el panel fijo
   const filtros = (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:space-y-3">
       <label className="block">
-        <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Buscar</span>
+        <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50 lg:mb-1.5">Buscar</span>
         <span className="relative block">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
           <input
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Participante, actividad o sede"
-            className="w-full rounded-xl bg-black/30 py-3 pl-11 pr-10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="w-full rounded-xl bg-black/30 py-3 pl-11 pr-10 lg:py-2.5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
           />
           {busqueda && (
             <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-white/50 hover:text-white" aria-label="Limpiar búsqueda"><X className="h-4 w-4" /></button>
@@ -194,14 +195,14 @@ export default function CarteleraPage() {
       </label>
 
       {tiposConParticipantes.length > 0 && (
-        <div className="border-t border-white/10 pt-4">
-          <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Actividad</span>
+        <div className="border-t border-white/10 pt-4 lg:pt-3">
+          <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50 lg:mb-1.5">Actividad</span>
           <FilaDeslizable>
             {[{ id: null, nombre: 'Todas' }, ...tiposConParticipantes].map((tipo) => (
               <button
                 key={tipo.id ?? 'todas'}
                 onClick={() => setTipoId(tipo.id)}
-                className={`shrink-0 rounded-lg px-4 py-2 text-sm transition ${tipoId === tipo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
+                className={`shrink-0 rounded-lg px-4 py-2 text-sm transition lg:py-1.5 ${tipoId === tipo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
               >
                 {tipo.nombre}
               </button>
@@ -212,13 +213,13 @@ export default function CarteleraPage() {
 
       {gruposConParticipantes.length > 0 && (
         <div>
-          <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Grupo</span>
+          <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50 lg:mb-1.5">Grupo</span>
           <FilaDeslizable>
             {[{ id: null, nombre: 'Todos', color: null }, ...gruposConParticipantes].map((grupo) => (
               <button
                 key={grupo.id ?? 'todos'}
                 onClick={() => setGrupoId(grupo.id)}
-                className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm transition ${grupoId === grupo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm transition lg:py-1.5 ${grupoId === grupo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
               >
                 {grupo.color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />}
                 {grupo.nombre}
@@ -292,9 +293,10 @@ export default function CarteleraPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Escritorio: panel fijo con los filtros y los datos de la ficha activa */}
           <div className="hidden lg:col-span-5 lg:block">
-            <div className="sticky top-0 flex h-svh items-center pb-32 pt-[4svh]">
-              <aside className="flex max-h-full w-full flex-col gap-4 overflow-hidden rounded-2xl border border-white/10 bg-[#10241b]/80 p-6 backdrop-blur-md">
-                <div className="flex-none space-y-3">
+            {/* pb-28: deja libre el alto de la barra de días */}
+            <div className="sticky top-0 flex h-svh items-center pb-28 pt-4">
+              <aside className="flex max-h-full w-full flex-col gap-3 overflow-hidden rounded-2xl border border-white/10 bg-[#10241b]/80 p-5 backdrop-blur-md">
+                <div className="flex-none space-y-2">
                   {filtros}
                   {contador}
                 </div>

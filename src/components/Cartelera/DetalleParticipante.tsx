@@ -4,9 +4,9 @@ import { VisorImagenes } from '@/components/VisorImagenes';
 import { Presentaciones } from './Presentaciones';
 import type { Catalogo, Participante } from './cartelera';
 
-// Como en la referencia de ITCA: de frente la descripción, al voltear las fotos.
+// Tarjeta de dos caras: fotos y descripción, se voltea con un botón.
 // Las dos caras ocupan la misma celda del grid, así la tarjeta mide lo que la más alta.
-const SEGUNDOS_POR_FOTO = 1;
+const SEGUNDOS_POR_FOTO = 1.5;
 
 function TarjetaDosCaras({ nombre, descripcion, imagenes, color, animar, onAmpliar }: {
   nombre: string;
@@ -17,8 +17,9 @@ function TarjetaDosCaras({ nombre, descripcion, imagenes, color, animar, onAmpli
   onAmpliar: (indice: number) => void;
 }) {
   const hayFotos = imagenes.length > 0;
-  // Sin descripción no hay nada que voltear: se muestran las fotos directo
-  const [volteada, setVolteada] = useState(!descripcion);
+  // Empieza en las fotos porque llaman más la atención; la descripción queda al voltear.
+  // Sin fotos se muestra la descripción
+  const [volteada, setVolteada] = useState(hayFotos || !descripcion);
   const [foto, setFoto] = useState(0);
   const [pausado, setPausado] = useState(false);
 

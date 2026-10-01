@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { ExternalLink, Loader2, Plus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { cargarCatalogos, cargarEdiciones } from '@/components/Cartelera/cartelera';
 import type { Catalogo, Edicion } from '@/components/Cartelera/cartelera';
 import { ParticipantesCartelera } from './Cartelera/ParticipantesCartelera';
@@ -12,16 +13,18 @@ type Pestana = 'participantes' | 'catalogos' | 'ajustes';
 const PESTANAS: { clave: Pestana; nombre: string }[] = [
   { clave: 'participantes', nombre: 'Participantes' },
   { clave: 'catalogos', nombre: 'Tipos y grupos' },
-  { clave: 'ajustes', nombre: 'Edición' },
+  { clave: 'ajustes', nombre: 'EdiciÃ³n' },
 ];
 
 export default function AdminCartelera() {
   const [pestana, setPestana] = useState<Pestana>('participantes');
   const [catalogos, setCatalogos] = useState<{ tipos: Catalogo[]; grupos: Catalogo[] } | null>(null);
-  // Cada año es una edición con sus propios participantes; los tipos y grupos se comparten
+  // Cada aÃ±o es una ediciÃ³n con sus propios participantes; los tipos y grupos se comparten
   const [ediciones, setEdiciones] = useState<Edicion[] | null>(null);
   const [edicionId, setEdicionId] = useState<string | null>(null);
   const [creandoEdicion, setCreandoEdicion] = useState(false);
+  const [parametros] = useSearchParams();
+  const anioEnlace = parametros.get('edicion');
 
   const recargarCatalogos = useCallback(() => {
     cargarCatalogos().then(setCatalogos);
@@ -33,6 +36,9 @@ export default function AdminCartelera() {
     setEdicionId((actual) => {
       const deseada = seleccionar ?? actual;
       if (deseada && lista.some((edicion) => edicion.id === deseada)) return deseada;
+      // Al llegar desde el Calendario (?edicion=2026) se abre esa ediciÃ³n
+      const delEnlace = lista.find((edicion) => String(edicion.anio) === anioEnlace);
+      if (delEnlace) return delEnlace.id;
       return (lista.find((edicion) => edicion.es_actual) ?? lista[0])?.id ?? null;
     });
   }, []);
@@ -49,27 +55,27 @@ export default function AdminCartelera() {
       <div className="flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Cartelera del festival</h1>
-          <p className="mt-1 font-medium text-green-700">Participantes, horarios y archivos de cada edición del festival</p>
+          <p className="mt-1 font-medium text-green-700">Participantes, horarios y archivos de cada ediciÃ³n del festival</p>
         </div>
         <a href={edicion && !edicion.es_actual ? `/cartelera?edicion=${edicion.anio}` : '/cartelera'} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
           <ExternalLink className="h-4 w-4" /> Ver cartelera
         </a>
       </div>
 
-      {/* Selector de edición */}
+      {/* Selector de ediciÃ³n */}
       {ediciones === null ? (
         <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-green-600" /></div>
       ) : ediciones.length === 0 ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Aún no hay ediciones del festival. Si es la primera vez, corre <code className="rounded bg-white px-1">database/18_ediciones_festival.sql</code> en Supabase: convierte la cartelera actual en la primera edición.
+          AÃºn no hay ediciones del festival. Si es la primera vez, corre <code className="rounded bg-white px-1">database/18_ediciones_festival.sql</code> en Supabase: convierte la cartelera actual en la primera ediciÃ³n.
         </p>
       ) : (
         <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
           <label className="flex flex-1 flex-col gap-2 text-sm font-semibold text-gray-700 sm:flex-row sm:items-center">
-            <span className="shrink-0">Edición:</span>
+            <span className="shrink-0">EdiciÃ³n:</span>
             <select value={edicionId ?? ''} onChange={(e) => setEdicionId(e.target.value)} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-normal focus:border-green-500 focus:outline-none sm:max-w-sm">
               {ediciones.map((item) => (
-                <option key={item.id} value={item.id}>{item.anio} · {item.nombre}{item.es_actual ? ' (actual)' : ''}</option>
+                <option key={item.id} value={item.id}>{item.anio} Â· {item.nombre}{item.es_actual ? ' (actual)' : ''}</option>
               ))}
             </select>
             {edicion && !edicion.es_actual && (
@@ -77,7 +83,7 @@ export default function AdminCartelera() {
             )}
           </label>
           <button onClick={() => setCreandoEdicion(true)} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700">
-            <Plus className="h-4 w-4" /> Nueva edición
+            <Plus className="h-4 w-4" /> Nueva ediciÃ³n
           </button>
         </div>
       )}
@@ -100,7 +106,7 @@ export default function AdminCartelera() {
         <ParticipantesCartelera tipos={catalogos.tipos} grupos={catalogos.grupos} edicionId={edicionId} />
       )}
       {catalogos && pestana === 'catalogos' && (
-        // key: reinicia los editores con los datos recién guardados
+        // key: reinicia los editores con los datos reciÃ©n guardados
         <CatalogosCartelera key={JSON.stringify(catalogos)} tipos={catalogos.tipos} grupos={catalogos.grupos} onCambio={recargarCatalogos} />
       )}
       {pestana === 'ajustes' && edicion && (
