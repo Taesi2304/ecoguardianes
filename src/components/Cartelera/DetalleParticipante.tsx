@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, HandCoins, MapPin } from 'lucide-react';
 import { VisorImagenes } from '@/components/VisorImagenes';
 import { Presentaciones } from './Presentaciones';
+import { textoCostoCartelera } from './cartelera';
 import type { Catalogo, Participante } from './cartelera';
 
 // Tarjeta de dos caras: fotos y descripción, se voltea con un botón.
@@ -108,6 +109,17 @@ function TarjetaDosCaras({ nombre, descripcion, imagenes, color, animar, onAmpli
   );
 }
 
+// Gratuito o cuota de recuperación, como en Talleres
+function Costo({ costo }: { costo: number | null }) {
+  const texto = textoCostoCartelera(costo);
+  if (!texto) return null;
+  return (
+    <p className="mt-2 inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">
+      <HandCoins className="h-4 w-4 shrink-0 text-[#95d5b2]" />{texto}
+    </p>
+  );
+}
+
 function EnlaceRedes({ url }: { url: string | null }) {
   if (!url) return null;
   return (
@@ -162,6 +174,7 @@ export function FichaParticipante({ participante, tipo, activa, fecha, onEnfocar
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{participante.nombre}</h2>
           {participante.subtitulo && <p className="mt-1 text-white/70">{participante.subtitulo}</p>}
+          <Costo costo={participante.costo} />
         </div>
 
         {/* Celular: descripción y fotos en la tarjeta que se voltea */}

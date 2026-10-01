@@ -3,8 +3,8 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Loader2, MessageCircle, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { formatearFecha, formatearHora } from '@/lib/utils';
 import { BotonCalendario } from '@/components/BotonCalendario';
+import { textoFecha, textoHorario } from './talleres';
 import type { TallerPublico } from './talleres';
 
 interface Props {
@@ -84,8 +84,8 @@ export function ModalRegistroTaller({ taller, onCerrar, onRegistrado }: Props) {
               <p className="text-sm">Gracias, <strong>{datos.nombre.trim().split(' ')[0]}</strong>. Tu lugar está apartado. Toma captura de esta pantalla como comprobante.</p>
             </div>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-              <dt className="font-semibold text-[#4a3728]/60">Fecha</dt><dd className="text-[#4a3728]">{formatearFecha(taller.fecha)}</dd>
-              <dt className="font-semibold text-[#4a3728]/60">Hora</dt><dd className="text-[#4a3728]">{formatearHora(taller.hora_inicio)}{taller.hora_fin ? ` – ${formatearHora(taller.hora_fin)}` : ''}</dd>
+              <dt className="font-semibold text-[#4a3728]/60">Fecha</dt><dd className="text-[#4a3728]">{textoFecha(taller.fecha)}</dd>
+              <dt className="font-semibold text-[#4a3728]/60">Hora</dt><dd className="text-[#4a3728]">{textoHorario(taller.hora_inicio, taller.hora_fin)}</dd>
               <dt className="font-semibold text-[#4a3728]/60">Lugar</dt><dd className="text-[#4a3728]">{taller.lugar}</dd>
               {taller.facilitador && <><dt className="font-semibold text-[#4a3728]/60">Imparte</dt><dd className="text-[#4a3728]">{taller.facilitador}</dd></>}
             </dl>
@@ -95,7 +95,10 @@ export function ModalRegistroTaller({ taller, onCerrar, onRegistrado }: Props) {
                   <MessageCircle className="h-5 w-5" /> Unirme al grupo de WhatsApp
                 </a>
               )}
-              <BotonCalendario evento={{ ...taller, descripcion: [taller.facilitador && `Imparte: ${taller.facilitador}`, taller.descripcion].filter(Boolean).join('\n') }} />
+              {/* Sin fecha y hora confirmadas no hay nada que agendar */}
+              {taller.fecha && taller.hora_inicio && (
+                <BotonCalendario evento={{ ...taller, fecha: taller.fecha, hora_inicio: taller.hora_inicio, descripcion: [taller.facilitador && `Imparte: ${taller.facilitador}`, taller.descripcion].filter(Boolean).join('\n') }} />
+              )}
             </div>
           </div>
         ) : (

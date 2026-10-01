@@ -3,7 +3,7 @@ import type { ReactNode, WheelEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Download, Loader2, Map as MapIcon, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, etiquetaDia } from './cartelera';
+import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, claveHora, etiquetaDia } from './cartelera';
 import type { Catalogo, Edicion, Participante } from './cartelera';
 import { DetalleActivo, FichaParticipante } from './DetalleParticipante';
 import { Bienvenida } from './Bienvenida';
@@ -114,7 +114,7 @@ export default function CarteleraPage() {
     // Primer horario (fecha + hora) del participante; con un día elegido, solo los de ese día
     const primerHorario = (participante: Participante) => participante.cartelera_horarios
       .filter((horario) => !fecha || horario.fecha === fecha)
-      .map((horario) => `${horario.fecha} ${horario.hora_inicio}`)
+      .map((horario) => `${horario.fecha} ${claveHora(horario.hora_inicio)}`)
       .sort()[0];
 
     const resultado = participantes.filter((participante) => {

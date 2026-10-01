@@ -9,7 +9,7 @@ import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
 import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { formatearFecha, formatearHora } from '@/lib/utils';
-import { BUCKET_IMAGENES, CAMPOS_PARTICIPANTE, etiquetaDia, ordenarHorarios } from '@/components/Cartelera/cartelera';
+import { BUCKET_IMAGENES, CAMPOS_PARTICIPANTE, claveHora, etiquetaDia, ordenarHorarios } from '@/components/Cartelera/cartelera';
 import type { Catalogo, Participante } from '@/components/Cartelera/cartelera';
 
 interface HorarioFormulario {
@@ -28,10 +28,19 @@ interface FormularioParticipante {
   grupo_ids: string[];
   procedencia: string;
   enlace_url: string;
+  tipoCosto: TipoCosto;
+  costo: string;
   imagenes: string[];
   nuevasImagenes: File[];
   horarios: HorarioFormulario[];
 }
+
+type TipoCosto = 'ninguno' | 'gratuito' | 'cuota';
+const OPCIONES_COSTO: { valor: TipoCosto; texto: string }[] = [
+  { valor: 'ninguno', texto: 'No mostrar' },
+  { valor: 'gratuito', texto: 'Gratuito' },
+  { valor: 'cuota', texto: 'Cuota de recuperación' },
+];
 
 const MAX_IMAGENES = 6;
 const claseInput = 'mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none';
@@ -47,6 +56,8 @@ const formularioInicial = (): FormularioParticipante => ({
   grupo_ids: [],
   procedencia: '',
   enlace_url: '',
+  tipoCosto: 'ninguno',
+  costo: '',
   imagenes: [],
   nuevasImagenes: [],
   horarios: [horarioVacio()],
@@ -141,6 +152,8 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
       grupo_ids: participante.grupo_ids,
       procedencia: participante.procedencia || '',
       enlace_url: participante.enlace_url || '',
+      tipoCosto: participante.costo === null ? 'ninguno' : Number(participante.costo) === 0 ? 'gratuito' : 'cuota',
+      costo: participante.costo !== null && Number(participante.costo) > 0 ? String(participante.costo) : '',
       imagenes: participante.imagenes,
       nuevasImagenes: [],
       horarios: participante.cartelera_horarios.length > 0
@@ -148,7 +161,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
             clave: horario.id,
             sede: horario.sede,
             fecha: horario.fecha,
-            hora_inicio: horario.hora_inicio.slice(0, 5),
+            hora_inicio: horario.hora_inicio?.slice(0, 5) || '',
             hora_fin: horario.hora_fin?.slice(0, 5) || '',
           }))
         : [horarioVacio()],
@@ -200,8 +213,17 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   async function guardar(e: FormEvent) {
     e.preventDefault();
     const horarios = formulario.horarios.filter((horario) => horario.sede.trim() || horario.fecha || horario.hora_inicio);
-    if (horarios.some((horario) => !horario.sede.trim() || !horario.fecha || !horario.hora_inicio)) {
-      toast.error('Cada horario necesita sede, fecha y hora de inicio.');
+    // La hora puede quedar vacía: en la cartelera sale "Por confirmar"
+    if (horarios.some((horario) => !horario.sede.trim() || !horario.fecha)) {
+      toast.error('Cada horario necesita sede y fecha. La hora puede quedar vacía si no está confirmada.');
+      return;
+    }
+    if (horarios.some((horario) => horario.hora_fin && !horario.hora_inicio)) {
+      toast.error('Escribe la hora de inicio o deja ambas vacías (por confirmar).');
+      return;
+    }
+    if (formulario.tipoCosto === 'cuota' && !(Number(formulario.costo) > 0)) {
+      toast.error('Escribe el monto de la cuota de recuperación.');
       return;
     }
 
@@ -221,6 +243,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
         grupo_ids: formulario.grupo_ids,
         procedencia: formulario.procedencia.trim() || null,
         enlace_url: formulario.enlace_url.trim() || null,
+        costo: formulario.tipoCosto === 'ninguno' ? null : formulario.tipoCosto === 'gratuito' ? 0 : Number(formulario.costo),
         imagenes: [...formulario.imagenes, ...subidas],
       };
 
@@ -246,7 +269,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
           participante_id: participanteId,
           sede: horario.sede.trim(),
           fecha: horario.fecha,
-          hora_inicio: horario.hora_inicio,
+          hora_inicio: horario.hora_inicio || null,
           hora_fin: horario.hora_fin || null,
         })));
         if (errorHorarios) throw errorHorarios;
@@ -310,7 +333,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
     return !termino || `${participante.nombre} ${participante.subtitulo || ''}`.toLowerCase().includes(termino);
   });
   // Con un día elegido, la lista va como programa de ese día: por hora (empates por nombre)
-  if (diaElegido) filtrados.sort((a, b) => horariosVisibles(a)[0].hora_inicio.localeCompare(horariosVisibles(b)[0].hora_inicio));
+  if (diaElegido) filtrados.sort((a, b) => claveHora(horariosVisibles(a)[0].hora_inicio).localeCompare(claveHora(horariosVisibles(b)[0].hora_inicio)));
   const hayFiltros = termino !== '' || tipoFiltro !== '' || fechaFiltro !== '';
   const totalImagenes = formulario.imagenes.length + formulario.nuevasImagenes.length;
 
@@ -388,6 +411,28 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                   <label className="block text-sm font-semibold text-gray-700">Instagram / Facebook / sitio (Opcional)
                     <input name="enlace_url" type="url" value={formulario.enlace_url} onChange={manejarCambio} placeholder="https://www.instagram.com/..." className={claseInput} />
                   </label>
+                  <fieldset>
+                    <legend className="text-sm font-semibold text-gray-700">Costo</legend>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {OPCIONES_COSTO.map(({ valor, texto }) => (
+                        <button
+                          key={valor}
+                          type="button"
+                          onClick={() => setFormulario((actual) => ({ ...actual, tipoCosto: valor }))}
+                          className={`rounded-lg border px-3 py-2 text-sm font-semibold ${formulario.tipoCosto === valor ? 'border-green-600 bg-green-50 text-green-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {texto}
+                        </button>
+                      ))}
+                    </div>
+                    {formulario.tipoCosto === 'cuota' && (
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 mt-1 -translate-y-1/2 text-gray-500">$</span>
+                        <input name="costo" type="number" min={1} step="0.01" value={formulario.costo} onChange={manejarCambio} placeholder="1000" aria-label="Monto de la cuota" className={`${claseInput} pl-7`} required />
+                      </div>
+                    )}
+                    <span className={claseAyuda}>Se ve en la tarjeta de la cartelera. «No mostrar» para stands, música y lo que no aplique.</span>
+                  </fieldset>
                 </div>
               </div>
 
@@ -427,6 +472,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                   ))}
                 </div>
                 <button type="button" onClick={agregarHorario} className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:underline"><Plus className="h-4 w-4" /> Agregar horario</button>
+                <p className={claseAyuda}>Sin hora confirmada, deja la hora vacía. Sin fecha todavía, quita el horario: en la cartelera saldrá «Fecha y hora por confirmar».</p>
               </fieldset>
 
               <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
@@ -467,7 +513,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                         <span className="text-gray-500">
                           {!primerHorario
                             ? 'Sin horarios'
-                            : `${formatearFecha(primerHorario.fecha)} ${formatearHora(primerHorario.hora_inicio)}${visibles.length > 1 ? ` (+${visibles.length - 1})` : ''}`}
+                            : `${formatearFecha(primerHorario.fecha)} ${primerHorario.hora_inicio ? formatearHora(primerHorario.hora_inicio) : '(hora por confirmar)'}${visibles.length > 1 ? ` (+${visibles.length - 1})` : ''}`}
                         </span>
                       </div>
                     </div>

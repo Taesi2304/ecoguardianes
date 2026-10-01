@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
-import { formatearFecha, formatearHora } from '@/lib/utils';
+import { textoFecha, textoHorario } from '@/components/Talleres/talleres';
 
 interface Taller {
   id: string;
@@ -15,8 +15,8 @@ interface Taller {
   facilitador: string | null;
   descripcion: string | null;
   imagen_url: string;
-  fecha: string;
-  hora_inicio: string;
+  fecha: string | null; // null = por confirmar
+  hora_inicio: string | null;
   hora_fin: string | null;
   lugar: string;
   lugar_maps_url: string | null;
@@ -137,8 +137,8 @@ export default function AdminTalleres() {
       titulo: taller.titulo,
       facilitador: taller.facilitador || '',
       descripcion: taller.descripcion || '',
-      fecha: taller.fecha,
-      hora_inicio: taller.hora_inicio.slice(0, 5),
+      fecha: taller.fecha || '',
+      hora_inicio: taller.hora_inicio?.slice(0, 5) || '',
       hora_fin: taller.hora_fin?.slice(0, 5) || '',
       lugar: taller.lugar,
       lugar_maps_url: taller.lugar_maps_url || '',
@@ -181,6 +181,10 @@ export default function AdminTalleres() {
       toast.error('Selecciona la imagen o cartel del taller.');
       return;
     }
+    if (formulario.hora_fin && !formulario.hora_inicio) {
+      toast.error('Escribe la hora de inicio o deja ambas vacías (por confirmar).');
+      return;
+    }
     if (formulario.hora_fin && formulario.hora_fin <= formulario.hora_inicio) {
       toast.error('La hora de término debe ser después de la hora de inicio.');
       return;
@@ -206,8 +210,8 @@ export default function AdminTalleres() {
         titulo: formulario.titulo.trim(),
         facilitador: formulario.facilitador.trim() || null,
         descripcion: formulario.descripcion.trim() || null,
-        fecha: formulario.fecha,
-        hora_inicio: formulario.hora_inicio,
+        fecha: formulario.fecha || null,
+        hora_inicio: formulario.hora_inicio || null,
         hora_fin: formulario.hora_fin || null,
         lugar: formulario.lugar.trim(),
         lugar_maps_url: formulario.lugar_maps_url.trim() || null,
@@ -358,16 +362,19 @@ export default function AdminTalleres() {
                 <label className="block text-sm font-semibold text-gray-700">Facilitador / colectivo (Opcional)
                   <input name="facilitador" value={formulario.facilitador} onChange={manejarCambio} maxLength={150} className={claseInput} />
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <label className="block text-sm font-semibold text-gray-700">Fecha
-                    <input name="fecha" type="date" min={editandoId ? undefined : hoy()} value={formulario.fecha} onChange={manejarCambio} className={claseInput} required />
-                  </label>
-                  <label className="block text-sm font-semibold text-gray-700">Inicio
-                    <input name="hora_inicio" type="time" value={formulario.hora_inicio} onChange={manejarCambio} className={claseInput} required />
-                  </label>
-                  <label className="block text-sm font-semibold text-gray-700">Término
-                    <input name="hora_fin" type="time" value={formulario.hora_fin} onChange={manejarCambio} className={claseInput} />
-                  </label>
+                <div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <label className="block text-sm font-semibold text-gray-700">Fecha
+                      <input name="fecha" type="date" min={editandoId ? undefined : hoy()} value={formulario.fecha} onChange={manejarCambio} className={claseInput} />
+                    </label>
+                    <label className="block text-sm font-semibold text-gray-700">Inicio
+                      <input name="hora_inicio" type="time" value={formulario.hora_inicio} onChange={manejarCambio} className={claseInput} />
+                    </label>
+                    <label className="block text-sm font-semibold text-gray-700">Término
+                      <input name="hora_fin" type="time" value={formulario.hora_fin} onChange={manejarCambio} className={claseInput} />
+                    </label>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Si aún no está confirmada, déjala vacía: en la página saldrá «Por confirmar».</p>
                 </div>
                 <label className="block text-sm font-semibold text-gray-700">Punto de encuentro
                   <input name="lugar" value={formulario.lugar} onChange={manejarCambio} maxLength={200} placeholder="Parque El Laguito, junto al kiosco" className={claseInput} required />
@@ -442,14 +449,14 @@ export default function AdminTalleres() {
             <ul className="divide-y divide-gray-100">
               {talleres.map((taller) => {
                 const inscritos = taller.registros_talleres[0]?.count ?? 0;
-                const pasado = taller.fecha < hoy();
+                const pasado = taller.fecha !== null && taller.fecha < hoy();
                 const lleno = taller.cupo !== null && inscritos >= taller.cupo;
                 return (
                   <li key={taller.id} className={`flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center ${taller.activo && !pasado ? '' : 'opacity-60'}`}>
                     <ImagenAmpliable src={taller.imagen_url} alt={taller.titulo} className="h-16 w-16 rounded-lg" />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-gray-900">{taller.titulo}</p>
-                      <p className="text-sm text-gray-500">{formatearFecha(taller.fecha)} · {formatearHora(taller.hora_inicio)} · {taller.lugar}</p>
+                      <p className="text-sm text-gray-500">{textoFecha(taller.fecha)} · {textoHorario(taller.hora_inicio, null)} · {taller.lugar}</p>
                       <div className="mt-1 flex flex-wrap gap-2 text-xs font-semibold">
                         {pasado && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">Ya pasó</span>}
                         {!taller.activo && <span className="rounded-full bg-gray-800 px-2 py-0.5 text-white">Oculto</span>}

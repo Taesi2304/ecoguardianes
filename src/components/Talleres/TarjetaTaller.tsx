@@ -1,6 +1,5 @@
 import { CalendarDays, Clock, HandCoins, MapPin, User } from 'lucide-react';
-import { formatearFecha, formatearHora } from '@/lib/utils';
-import { lugaresDisponibles, textoCosto } from './talleres';
+import { lugaresDisponibles, textoCosto, textoFecha, textoHorario } from './talleres';
 import type { TallerPublico } from './talleres';
 
 
@@ -30,8 +29,8 @@ export function TarjetaTaller({ taller, onRegistrarme }: Props) {
         {taller.descripcion && <p className="mb-4 text-sm leading-relaxed text-[#4a3728]/75">{taller.descripcion}</p>}
 
         <ul className="mb-5 space-y-1.5 text-sm text-[#4a3728]/85">
-          <li className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-[#2d6a4f]" />{formatearFecha(taller.fecha)}</li>
-          <li className="flex items-center gap-2"><Clock className="h-4 w-4 shrink-0 text-[#2d6a4f]" />{formatearHora(taller.hora_inicio)}{taller.hora_fin ? ` – ${formatearHora(taller.hora_fin)}` : ''}</li>
+          <li className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-[#2d6a4f]" />{textoFecha(taller.fecha)}</li>
+          <li className="flex items-center gap-2"><Clock className="h-4 w-4 shrink-0 text-[#2d6a4f]" />{textoHorario(taller.hora_inicio, taller.hora_fin)}</li>
           <li className="flex items-start gap-2">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2d6a4f]" />
             {taller.lugar_maps_url

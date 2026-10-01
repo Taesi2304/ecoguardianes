@@ -29,7 +29,7 @@ interface HorarioCartelera {
   id: string;
   fecha: string;
   sede: string;
-  hora_inicio: string;
+  hora_inicio: string | null;
   hora_fin: string | null;
   participante: { id: string; nombre: string; subtitulo: string | null; descripcion: string | null };
   edicion: { nombre: string; anio: number } | null; // null si aún no se corre 18_ediciones_festival.sql

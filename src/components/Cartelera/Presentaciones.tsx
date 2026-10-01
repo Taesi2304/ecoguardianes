@@ -18,7 +18,16 @@ export function Presentaciones({ participante, fecha }: Props) {
   const horarios = ordenarHorarios(participante.cartelera_horarios);
   const [pagina, setPagina] = useState(() => Math.max(horarios.findIndex((horario) => horario.fecha === fecha), 0));
   const horario = horarios[pagina];
-  if (!horario) return null;
+
+  // Aún sin ninguna presentación capturada
+  if (!horario) {
+    return (
+      <section className="border-t border-white/10 pt-4">
+        <span className="text-xs font-medium uppercase tracking-[0.15em] text-white/50">Presentación</span>
+        <p className="mt-2 text-white">Fecha y hora por confirmar</p>
+      </section>
+    );
+  }
 
   return (
     <section className="border-t border-white/10 pt-4">
@@ -39,26 +48,29 @@ export function Presentaciones({ participante, fecha }: Props) {
         </div>
         <div>
           <dt className="text-sm text-white/50">Hora</dt>
-          <dd className="tabular-nums text-white">{formatearHora(horario.hora_inicio)}{horario.hora_fin ? ` – ${horario.hora_fin.slice(0, 5)}` : ''}</dd>
+          <dd className="tabular-nums text-white">{horario.hora_inicio ? `${formatearHora(horario.hora_inicio)}${horario.hora_fin ? ` – ${horario.hora_fin.slice(0, 5)}` : ''}` : 'Por confirmar'}</dd>
         </div>
         <div className="col-span-2">
           <dt className="text-sm text-white/50">Sede</dt>
           <dd className="font-medium text-white">{horario.sede}</dd>
         </div>
       </dl>
-      <div className="mt-3">
-        <BotonCalendario
-          variante="oscuro"
-          evento={{
-            titulo: `${participante.nombre}${participante.subtitulo ? ` — ${participante.subtitulo}` : ''}`,
-            fecha: horario.fecha,
-            hora_inicio: horario.hora_inicio,
-            hora_fin: horario.hora_fin,
-            lugar: horario.sede,
-            descripcion: participante.descripcion,
-          }}
-        />
-      </div>
+      {/* Sin hora confirmada no hay nada que agendar */}
+      {horario.hora_inicio && (
+        <div className="mt-3">
+          <BotonCalendario
+            variante="oscuro"
+            evento={{
+              titulo: `${participante.nombre}${participante.subtitulo ? ` — ${participante.subtitulo}` : ''}`,
+              fecha: horario.fecha,
+              hora_inicio: horario.hora_inicio,
+              hora_fin: horario.hora_fin,
+              lugar: horario.sede,
+              descripcion: participante.descripcion,
+            }}
+          />
+        </div>
+      )}
     </section>
   );
 }
