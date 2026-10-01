@@ -106,7 +106,7 @@ export function PieCartelera() {
         <p>© {new Date().getFullYear()} FDMA · Festival del Medio Ambiente</p>
         <p>
           Desarrollado por{' '}
-          <a href="https://www.instagram.com/ijessyou/" target="_blank" rel="noreferrer" className="text-white/70 hover:text-white hover:underline">@ijessyou</a>
+          <a href="https://www.instagram.com/ijessiyou/" target="_blank" rel="noreferrer" className="text-white/70 hover:text-white hover:underline">@ijessiyou</a>
         </p>
       </div>
     </footer>
