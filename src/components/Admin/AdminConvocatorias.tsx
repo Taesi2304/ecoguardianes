@@ -4,6 +4,8 @@ import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Trash2, X } from 
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagenAmpliable } from '@/components/VisorImagenes';
+import { useUrlLocal } from '@/lib/useUrlLocal';
 
 interface Convocatoria {
   id: string;
@@ -51,6 +53,7 @@ export default function AdminConvocatorias() {
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [imagenActual, setImagenActual] = useState('');
+  const urlImagenNueva = useUrlLocal(formulario.imagen);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -277,8 +280,12 @@ export default function AdminConvocatorias() {
                </div>
               <div className="space-y-4">
                 <label className="block text-sm font-semibold text-gray-700">Imagen<input type="file" accept="image/*" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
-                {imagenActual && !formulario.imagen && <img src={imagenActual} alt="Imagen actual" className="h-40 w-full rounded-lg object-cover" />}
-                {formulario.imagen && <p className="text-sm text-green-700">Imagen seleccionada: {formulario.imagen.name}</p>}
+                {(urlImagenNueva || imagenActual) && (
+                  <div>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la convocatoria" className="h-40 w-full rounded-lg" />
+                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                  </div>
+                )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
                   {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Image className="h-5 w-5" /> Guardar convocatoria</>}
                 </button>
@@ -291,7 +298,7 @@ export default function AdminConvocatorias() {
       <Card className="overflow-hidden border-transparent bg-white shadow-sm">
         <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Convocatorias registradas</CardTitle></CardHeader>
         <CardContent className="p-0">
-          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[860px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cierre</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatorias.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><img src={convocatoria.imagen_url} alt="" className="h-14 w-20 rounded-md object-cover" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-2">{convocatoria.titulo}</span></td><td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td className="px-6 py-4 text-gray-600">{convocatoria.fecha_cierre ? <div className="flex flex-col items-start gap-1"><span>{formatearCierre(convocatoria.fecha_cierre)}</span>{convocatoria.fecha_cierre < hoy() && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Vencida</span>}</div> : <span className="text-gray-400">Sin fecha</span>}</td><td className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
+          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[860px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cierre</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatorias.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><ImagenAmpliable src={convocatoria.imagen_url} alt={convocatoria.titulo} className="h-14 w-20 rounded-md" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-2">{convocatoria.titulo}</span></td><td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td className="px-6 py-4 text-gray-600">{convocatoria.fecha_cierre ? <div className="flex flex-col items-start gap-1"><span>{formatearCierre(convocatoria.fecha_cierre)}</span>{convocatoria.fecha_cierre < hoy() && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Vencida</span>}</div> : <span className="text-gray-400">Sin fecha</span>}</td><td className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
         </CardContent>
       </Card>
     </div>

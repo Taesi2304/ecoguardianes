@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Copy, Link2, Loader2, MessageCircle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Copy, Link2, Loader2, MessageCircle, RefreshCw, Unlink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,8 @@ interface EstadoConexion {
   ultimo_error: string | null;
 }
 
+const BUCKET = 'imagenes_publicaciones';
+
 const formatearFechaHora = (fecha: string) =>
   new Date(fecha).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -26,6 +28,7 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
   const [enlace, setEnlace] = useState<string | null>(null);
   const [generando, setGenerando] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
+  const [desconectando, setDesconectando] = useState(false);
 
   useEffect(() => {
     cargarEstado();
@@ -82,6 +85,39 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
     await cargarEstado();
   }
 
+  async function desconectar() {
+    const nombre = estado?.page_nombre || 'la Página';
+    if (!window.confirm(`¿Desvincular ${nombre}? Dejarán de llegar publicaciones nuevas hasta que alguien vuelva a conectar con un enlace.`)) return;
+    const borrarPublicaciones = window.confirm(
+      '¿Borrar también las publicaciones que se trajeron automáticamente?\n\n'
+      + 'Aceptar: se borran de la página de inicio (útil si era una Página de prueba).\n'
+      + 'Cancelar: se quedan como están.',
+    );
+
+    setDesconectando(true);
+    const { data, error } = await supabase.rpc('desconectar_redes', { p_borrar_publicaciones: borrarPublicaciones });
+
+    if (error) {
+      setDesconectando(false);
+      console.error(error);
+      toast.error('No se pudo desvincular.');
+      return;
+    }
+
+    // Las imágenes de las automáticas viven en auto/ dentro del bucket
+    const rutas = ((data as string[] | null) ?? [])
+      .map((url) => url.split(`/${BUCKET}/`)[1])
+      .filter((ruta): ruta is string => !!ruta)
+      .map(decodeURIComponent);
+    if (rutas.length) await supabase.storage.from(BUCKET).remove(rutas);
+
+    setDesconectando(false);
+    setEnlace(null);
+    toast.success(borrarPublicaciones ? `Desvinculada. Se borraron ${rutas.length} publicación(es).` : 'Desvinculada.');
+    if (borrarPublicaciones) onSincronizado();
+    await cargarEstado();
+  }
+
   const conexionPerdida = !!estado?.ultimo_error?.startsWith('CONEXION_PERDIDA');
   const conectado = !!estado?.conectado && !conexionPerdida;
   const mensajeWhatsapp = `Hola, para que las publicaciones de Facebook e Instagram de FDMA aparezcan solas en la página, abre este enlace y autoriza con tu Facebook (solo se hace una vez, vence en 48 horas): ${enlace}`;
@@ -110,7 +146,7 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
                   </p>
                   <p className="mt-1 text-green-800">
                     Las publicaciones nuevas llegan solas cada 6 horas.
-                    {estado?.ultima_sincronizacion && <> Última revisión: {formatearFechaHora(estado.ultima_sincronizacion)}.</>}
+                    {estado?.ultima_sincronizacion && <> Última revisión: {formatearFechaHora(estado.ultima_sincronizacion).replace(/\.?$/, '.')}</>}
                   </p>
                   {!estado?.ig_usuario && (
                     <p className="mt-1 text-amber-700">El Instagram no está vinculado a la Página, así que solo se traen publicaciones de Facebook.</p>
@@ -160,6 +196,17 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
                 >
                   <RefreshCw className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`} />
                   {sincronizando ? 'Sincronizando...' : 'Sincronizar ahora'}
+                </button>
+              )}
+              {(conectado || conexionPerdida) && (
+                <button
+                  type="button"
+                  onClick={desconectar}
+                  disabled={desconectando}
+                  className="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 sm:ml-auto"
+                >
+                  {desconectando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unlink className="h-4 w-4" />}
+                  Desvincular
                 </button>
               )}
             </div>

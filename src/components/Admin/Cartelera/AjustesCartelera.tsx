@@ -4,6 +4,7 @@ import { CheckCircle2, ExternalLink, FileText, Loader2, Save, Star, Trash2, Uplo
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { BUCKET_IMAGENES, BUCKET_PDF } from '@/components/Cartelera/cartelera';
 import type { Edicion } from '@/components/Cartelera/cartelera';
@@ -158,14 +159,15 @@ export function AjustesCartelera({ edicion, onCambio, onEliminada }: Props) {
             return (
               <div key={campo} className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center">
                 {campo === 'cartelera_fondo_url' && url
-                  ? <img src={url} alt="" className="h-14 w-24 shrink-0 rounded-lg object-cover" />
+                  ? <ImagenAmpliable src={url} alt="Foto de fondo de la cartelera" className="h-14 w-24 rounded-lg" />
                   : <div className="flex h-14 w-24 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400"><FileText className="h-6 w-6" /></div>}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-900">{nombreArchivo}</p>
                   <p className="text-sm text-gray-500">{url ? 'Cargado' : 'Sin archivo'} · {ayuda}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {url && <a href={url} target="_blank" rel="noreferrer" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Ver"><ExternalLink className="h-4 w-4" /></a>}
+                  {/* La foto se ve en grande con clic en la miniatura; los PDF se abren en otra pestaña */}
+                  {url && campo !== 'cartelera_fondo_url' && <a href={url} target="_blank" rel="noreferrer" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Ver"><ExternalLink className="h-4 w-4" /></a>}
                   {url && <button onClick={() => quitarArchivo(campo, bucket)} className="rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-red-600">Quitar</button>}
                   <label className={`flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 ${subiendo ? 'pointer-events-none opacity-60' : ''}`}>
                     {subiendo === campo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {url ? 'Reemplazar' : 'Subir'}

@@ -42,7 +42,7 @@ export function TarjetaParticipante({ participante, tipo, seleccionado, onSelecc
       {horario && (
         <div className="mt-4 pr-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-[0.15em] text-white/50">Presentaciones</span>
+            <span className="text-xs font-medium uppercase tracking-[0.15em] text-white/50">Presentación</span>
             {horarios.length > 1 && (
               <div className="flex items-center gap-1 text-sm text-white">
                 <button onClick={() => setPagina((actual) => actual - 1)} disabled={pagina === 0} className="rounded-lg p-1.5 hover:bg-white/10 disabled:opacity-30" aria-label="Presentación anterior"><ChevronLeft className="h-4 w-4" /></button>
@@ -51,7 +51,6 @@ export function TarjetaParticipante({ participante, tipo, seleccionado, onSelecc
               </div>
             )}
           </div>
-          <p className="mb-2 font-medium text-white">{horario.sede}</p>
           <dl className="grid grid-cols-2 gap-2">
             <div>
               <dt className="text-sm text-white/50">Fecha</dt>
@@ -60,6 +59,10 @@ export function TarjetaParticipante({ participante, tipo, seleccionado, onSelecc
             <div>
               <dt className="text-sm text-white/50">Hora</dt>
               <dd className="tabular-nums text-white">{formatearHora(horario.hora_inicio)}{horario.hora_fin ? ` – ${horario.hora_fin.slice(0, 5)}` : ''}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-sm text-white/50">Sede</dt>
+              <dd className="font-medium text-white">{horario.sede}</dd>
             </div>
           </dl>
         </div>

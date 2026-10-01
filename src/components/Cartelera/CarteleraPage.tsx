@@ -36,7 +36,6 @@ export default function CarteleraPage() {
         .from('cartelera_participantes')
         .select(CAMPOS_PARTICIPANTE)
         .eq('activo', true)
-        .order('orden', { ascending: true })
         .order('nombre', { ascending: true });
       if (edicionCargada) consulta = consulta.eq('edicion_id', edicionCargada.id);
 

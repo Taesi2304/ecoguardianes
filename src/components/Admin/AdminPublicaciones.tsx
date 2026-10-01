@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagenAmpliable } from '@/components/VisorImagenes';
+import { useUrlLocal } from '@/lib/useUrlLocal';
 import { formatearFecha } from '@/lib/utils';
 import ConexionRedes from './ConexionRedes';
 
@@ -30,6 +32,50 @@ interface FormularioPublicacion {
 
 const BUCKET = 'imagenes_publicaciones';
 const LIMITE_TEXTO = 300;
+const POR_PAGINA = 24;
+
+type FiltroRed = 'todas' | RedSocial;
+type FiltroEstado = 'todas' | 'visibles' | 'ocultas';
+type FiltroOrigen = 'todas' | 'automatico' | 'manual';
+
+const OPCIONES_RED: { valor: FiltroRed; nombre: string }[] = [
+  { valor: 'todas', nombre: 'Todas' },
+  { valor: 'facebook', nombre: 'Facebook' },
+  { valor: 'instagram', nombre: 'Instagram' },
+];
+const OPCIONES_ESTADO: { valor: FiltroEstado; nombre: string }[] = [
+  { valor: 'todas', nombre: 'Todas' },
+  { valor: 'visibles', nombre: 'Visibles' },
+  { valor: 'ocultas', nombre: 'Ocultas' },
+];
+const OPCIONES_ORIGEN: { valor: FiltroOrigen; nombre: string }[] = [
+  { valor: 'todas', nombre: 'Todas' },
+  { valor: 'automatico', nombre: 'Automáticas' },
+  { valor: 'manual', nombre: 'Manuales' },
+];
+
+function GrupoFiltro<T extends string>({ titulo, opciones, valor, onCambio }: {
+  titulo: string;
+  opciones: { valor: T; nombre: string }[];
+  valor: T;
+  onCambio: (valor: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{titulo}</span>
+      {opciones.map((opcion) => (
+        <button
+          key={opcion.valor}
+          type="button"
+          onClick={() => onCambio(opcion.valor)}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${valor === opcion.valor ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+        >
+          {opcion.nombre}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const hoy = () => new Date().toLocaleDateString('en-CA');
 
@@ -53,13 +99,39 @@ export default function AdminPublicaciones() {
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [imagenActual, setImagenActual] = useState('');
+  const urlImagenNueva = useUrlLocal(formulario.imagen);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filtroRed, setFiltroRed] = useState<FiltroRed>('todas');
+  const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('todas');
+  const [filtroOrigen, setFiltroOrigen] = useState<FiltroOrigen>('todas');
+  const [busqueda, setBusqueda] = useState('');
+  const [mostrando, setMostrando] = useState(POR_PAGINA);
 
   useEffect(() => {
     cargarPublicaciones();
   }, []);
+
+  // Al cambiar un filtro se vuelve a la primera página
+  useEffect(() => {
+    setMostrando(POR_PAGINA);
+  }, [filtroRed, filtroEstado, filtroOrigen, busqueda]);
+
+  const textoBuscado = busqueda.trim().toLowerCase();
+  const filtradas = publicaciones.filter((publicacion) =>
+    (filtroRed === 'todas' || publicacion.red_social === filtroRed)
+    && (filtroEstado === 'todas' || publicacion.activo === (filtroEstado === 'visibles'))
+    && (filtroOrigen === 'todas' || (publicacion.origen ?? 'manual') === filtroOrigen)
+    && (!textoBuscado || (publicacion.texto ?? '').toLowerCase().includes(textoBuscado)));
+  const hayFiltros = filtroRed !== 'todas' || filtroEstado !== 'todas' || filtroOrigen !== 'todas' || textoBuscado !== '';
+
+  function limpiarFiltros() {
+    setFiltroRed('todas');
+    setFiltroEstado('todas');
+    setFiltroOrigen('todas');
+    setBusqueda('');
+  }
 
   async function cargarPublicaciones() {
     setCargando(true);
@@ -263,8 +335,12 @@ export default function AdminPublicaciones() {
               </div>
               <div className="space-y-4">
                 <label className="block text-sm font-semibold text-gray-700">Imagen<input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
-                {imagenActual && !formulario.imagen && <img src={imagenActual} alt="Imagen actual" className="aspect-square w-full max-w-xs rounded-lg object-cover" />}
-                {formulario.imagen && <img src={URL.createObjectURL(formulario.imagen)} alt="Vista previa" className="aspect-square w-full max-w-xs rounded-lg object-cover" />}
+                {(urlImagenNueva || imagenActual) && (
+                  <div>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la publicación" className="aspect-square w-full max-w-xs rounded-lg" />
+                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                  </div>
+                )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
                   {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Image className="h-5 w-5" /> Guardar publicación</>}
                 </button>
@@ -282,11 +358,37 @@ export default function AdminPublicaciones() {
           ) : publicaciones.length === 0 ? (
             <p className="p-8 text-center text-gray-600">Aún no hay publicaciones. Agrega la primera con "Nueva publicación".</p>
           ) : (
+            <>
+            <div className="mb-5 space-y-3 rounded-xl bg-gray-50 p-4">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="search"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar en el texto de las publicaciones..."
+                  className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm focus:border-green-500 focus:outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:gap-6">
+                <GrupoFiltro titulo="Red" opciones={OPCIONES_RED} valor={filtroRed} onCambio={setFiltroRed} />
+                <GrupoFiltro titulo="Estado" opciones={OPCIONES_ESTADO} valor={filtroEstado} onCambio={setFiltroEstado} />
+                <GrupoFiltro titulo="Origen" opciones={OPCIONES_ORIGEN} valor={filtroOrigen} onCambio={setFiltroOrigen} />
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>{filtradas.length} de {publicaciones.length} publicaciones</span>
+                {hayFiltros && <button type="button" onClick={limpiarFiltros} className="font-semibold text-green-700 hover:underline">Quitar filtros</button>}
+              </div>
+            </div>
+
+            {filtradas.length === 0 ? (
+              <p className="p-8 text-center text-gray-600">Ninguna publicación coincide con los filtros.</p>
+            ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {publicaciones.map((publicacion) => (
+              {filtradas.slice(0, mostrando).map((publicacion) => (
                 <article key={publicacion.id} className={`overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm ${publicacion.activo ? '' : 'opacity-50'}`}>
                   <div className="relative aspect-square bg-[#f8f5f2]">
-                    <img src={publicacion.imagen_url} alt="" className="h-full w-full object-cover" />
+                    <ImagenAmpliable src={publicacion.imagen_url} alt="Publicación" className="h-full w-full" />
                     <img src={publicacion.red_social === 'facebook' ? '/fb-icon.svg' : '/ig-icon.svg'} alt={publicacion.red_social} className="absolute left-2 top-2 h-7 w-7 rounded-full bg-white p-1 shadow" />
                     {!publicacion.activo && <span className="absolute right-2 top-2 rounded-full bg-gray-800 px-2 py-0.5 text-xs font-semibold text-white">Oculta</span>}
                     {publicacion.origen === 'automatico' && <span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-green-700 shadow">Automática</span>}
@@ -305,6 +407,16 @@ export default function AdminPublicaciones() {
                 </article>
               ))}
             </div>
+            )}
+
+            {filtradas.length > mostrando && (
+              <div className="mt-6 flex justify-center">
+                <button type="button" onClick={() => setMostrando((actual) => actual + POR_PAGINA)} className="rounded-xl border border-green-600 px-5 py-2 text-sm font-semibold text-green-700 hover:bg-green-50">
+                  Mostrar más ({filtradas.length - mostrando} restantes)
+                </button>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>

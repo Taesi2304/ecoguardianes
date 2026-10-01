@@ -25,7 +25,6 @@ export interface Participante {
   procedencia: string | null;
   imagenes: string[];
   enlace_url: string | null;
-  orden: number;
   activo: boolean;
   cartelera_horarios: Horario[];
 }
@@ -60,7 +59,7 @@ export async function cargarEdicion(anio?: number): Promise<Edicion | null> {
 export const BUCKET_IMAGENES = 'imagenes_cartelera';
 export const BUCKET_PDF = 'archivos_festival';
 
-export const CAMPOS_PARTICIPANTE = 'id, nombre, subtitulo, descripcion, tipo_id, grupo_id, procedencia, imagenes, enlace_url, orden, activo, cartelera_horarios(id, sede, fecha, hora_inicio, hora_fin)';
+export const CAMPOS_PARTICIPANTE = 'id, nombre, subtitulo, descripcion, tipo_id, grupo_id, procedencia, imagenes, enlace_url, activo, cartelera_horarios(id, sede, fecha, hora_inicio, hora_fin)';
 
 export const ordenarHorarios = (horarios: Horario[]) =>
   [...horarios].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio));

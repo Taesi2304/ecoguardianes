@@ -4,6 +4,8 @@ import { AlertCircle, CalendarClock, Edit, Eye, EyeOff, ImagePlus, Loader2, Plus
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagenAmpliable } from '@/components/VisorImagenes';
+import { useUrlLocal } from '@/lib/useUrlLocal';
 import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { formatearFecha, formatearHora } from '@/lib/utils';
 import { BUCKET_IMAGENES, CAMPOS_PARTICIPANTE, ordenarHorarios } from '@/components/Cartelera/cartelera';
@@ -25,7 +27,6 @@ interface FormularioParticipante {
   grupo_id: string;
   procedencia: string;
   enlace_url: string;
-  orden: string;
   imagenes: string[];
   nuevasImagenes: File[];
   horarios: HorarioFormulario[];
@@ -33,6 +34,7 @@ interface FormularioParticipante {
 
 const MAX_IMAGENES = 6;
 const claseInput = 'mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none';
+const claseAyuda = 'mt-1 block text-xs font-normal text-gray-500';
 
 const horarioVacio = (sede = '', fecha = ''): HorarioFormulario => ({ clave: crypto.randomUUID(), sede, fecha, hora_inicio: '', hora_fin: '' });
 
@@ -44,7 +46,6 @@ const formularioInicial = (): FormularioParticipante => ({
   grupo_id: '',
   procedencia: '',
   enlace_url: '',
-  orden: '',
   imagenes: [],
   nuevasImagenes: [],
   horarios: [horarioVacio()],
@@ -70,14 +71,9 @@ async function borrarImagenesSinUso(urls: string[], participanteId: string | nul
 
 // Miniatura de una foto aún no subida: URL local temporal que se libera al quitarla
 function VistaPreviaArchivo({ archivo }: { archivo: File }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    const local = URL.createObjectURL(archivo);
-    setUrl(local);
-    return () => URL.revokeObjectURL(local);
-  }, [archivo]);
+  const url = useUrlLocal(archivo);
   return url
-    ? <img src={url} alt={archivo.name} title={archivo.name} className="h-24 w-24 rounded-lg border-2 border-dashed border-green-400 object-cover" />
+    ? <ImagenAmpliable src={url} alt={archivo.name} className="h-24 w-24 rounded-lg border-2 border-dashed border-green-400" />
     : <div className="h-24 w-24 rounded-lg bg-green-50" />;
 }
 
@@ -100,7 +96,6 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
     let consulta = supabase
       .from('cartelera_participantes')
       .select(CAMPOS_PARTICIPANTE)
-      .order('orden', { ascending: true })
       .order('nombre', { ascending: true });
     if (edicionId) consulta = consulta.eq('edicion_id', edicionId);
     const { data, error: errorConsulta } = await consulta;
@@ -141,7 +136,6 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
       grupo_id: participante.grupo_id || '',
       procedencia: participante.procedencia || '',
       enlace_url: participante.enlace_url || '',
-      orden: participante.orden ? String(participante.orden) : '',
       imagenes: participante.imagenes,
       nuevasImagenes: [],
       horarios: participante.cartelera_horarios.length > 0
@@ -215,7 +209,6 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
         grupo_id: formulario.grupo_id || null,
         procedencia: formulario.procedencia.trim() || null,
         enlace_url: formulario.enlace_url.trim() || null,
-        orden: Number(formulario.orden) || 0,
         imagenes: [...formulario.imagenes, ...subidas],
       };
 
@@ -323,28 +316,26 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                   <label className="block text-sm font-semibold text-gray-700">Actividad u obra (subtítulo)
                     <input name="subtitulo" value={formulario.subtitulo} onChange={manejarCambio} maxLength={200} placeholder="Taller de bombas de semillas" className={claseInput} />
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid items-start gap-3 sm:grid-cols-2">
                     <label className="block text-sm font-semibold text-gray-700">Tipo de actividad
                       <select name="tipo_id" value={formulario.tipo_id} onChange={manejarCambio} className={`${claseInput} bg-white`}>
                         <option value="">Sin tipo</option>
                         {tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}
                       </select>
+                      <span className={claseAyuda}>Qué hace: Taller, Ponencia, Música… Se usa en el filtro «Actividad» y en la etiqueta de color.</span>
                     </label>
                     <label className="block text-sm font-semibold text-gray-700">Grupo
                       <select name="grupo_id" value={formulario.grupo_id} onChange={manejarCambio} className={`${claseInput} bg-white`}>
                         <option value="">Sin grupo</option>
                         {grupos.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
                       </select>
+                      <span className={claseAyuda}>A qué sección pertenece: Talleristas, Infantil, Feria… Aparece en la barra de abajo de la cartelera.</span>
                     </label>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <label className="col-span-2 block text-sm font-semibold text-gray-700">Procedencia
-                      <input name="procedencia" value={formulario.procedencia} onChange={manejarCambio} maxLength={100} placeholder="Tampico" className={claseInput} />
-                    </label>
-                    <label className="block text-sm font-semibold text-gray-700">Orden
-                      <input name="orden" type="number" min={0} value={formulario.orden} onChange={manejarCambio} className={claseInput} />
-                    </label>
-                  </div>
+                  <label className="block text-sm font-semibold text-gray-700">Procedencia
+                    <input name="procedencia" value={formulario.procedencia} onChange={manejarCambio} maxLength={100} placeholder="Tampico" className={claseInput} />
+                    <span className={claseAyuda}>De dónde viene: ciudad, escuela u organización. Se ve arriba a la derecha del detalle.</span>
+                  </label>
                 </div>
                 <div className="space-y-5">
                   <label className="block text-sm font-semibold text-gray-700">Descripción (Opcional)
@@ -361,7 +352,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                 <div className="flex flex-wrap gap-3">
                   {formulario.imagenes.map((url) => (
                     <div key={url} className="relative">
-                      <img src={url} alt="" className="h-24 w-24 rounded-lg object-cover" />
+                      <ImagenAmpliable src={url} alt="Foto del participante" className="h-24 w-24 rounded-lg" />
                       <button type="button" onClick={() => setFormulario((actual) => ({ ...actual, imagenes: actual.imagenes.filter((item) => item !== url) }))} className="absolute -right-2 -top-2 rounded-full bg-white p-1 text-red-600 shadow" title="Quitar foto"><X className="h-4 w-4" /></button>
                     </div>
                   ))}
@@ -420,7 +411,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                 return (
                   <li key={participante.id} className={`flex items-center gap-4 px-6 py-3 ${participante.activo ? '' : 'opacity-50'}`}>
                     {participante.imagenes[0]
-                      ? <img src={participante.imagenes[0]} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                      ? <ImagenAmpliable src={participante.imagenes[0]} alt={participante.nombre} className="h-14 w-14 rounded-lg" />
                       : <div className="h-14 w-14 shrink-0 rounded-lg bg-gray-100" />}
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-gray-900">{participante.nombre}</p>

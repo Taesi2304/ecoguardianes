@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink, MapPin, X } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight, ExternalLink, MapPin } from 'lucide-react';
+import { VisorImagenes } from '@/components/VisorImagenes';
 import { formatearFecha, formatearHora } from '@/lib/utils';
 import { BotonCalendario } from '@/components/BotonCalendario';
 import { ordenarHorarios } from './cartelera';
@@ -8,6 +9,66 @@ import type { Catalogo, Participante } from './cartelera';
 interface Props {
   participante: Participante;
   tipo?: Catalogo;
+}
+
+// Como en la referencia de ITCA: de frente la descripción, al voltear las fotos.
+// Las dos caras ocupan la misma celda del grid, así la tarjeta mide lo que la más alta.
+function TarjetaDosCaras({ nombre, descripcion, imagenes, color, onAmpliar }: {
+  nombre: string;
+  descripcion: string | null;
+  imagenes: string[];
+  color: string;
+  onAmpliar: (indice: number) => void;
+}) {
+  const hayFotos = imagenes.length > 0;
+  // Sin descripción no hay nada que voltear: se muestran las fotos directo
+  const [volteada, setVolteada] = useState(!descripcion);
+  const [foto, setFoto] = useState(0);
+
+  if (!descripcion && !hayFotos) return null;
+
+  const cara = 'col-start-1 row-start-1 flex flex-col rounded-xl border backface-hidden';
+  const botonCara = 'rounded-lg border border-white/20 bg-black/40 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white hover:bg-white/10';
+
+  return (
+    <div className="perspective-[1600px]">
+      <div className={`grid transition-transform duration-700 transform-3d motion-reduce:transition-none ${volteada && descripcion ? 'rotate-y-180' : ''}`}>
+        {descripcion && (
+          <section inert={volteada} className={`${cara} border-white/15 bg-black/20 p-5`}>
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.15em] text-white/50">Descripción</p>
+            <p className="max-w-2xl flex-1 leading-relaxed text-white/80">{descripcion}</p>
+            {hayFotos && (
+              <button type="button" onClick={() => setVolteada(true)} className={`${botonCara} mt-4 self-end`}>
+                Ver fotografías
+              </button>
+            )}
+          </section>
+        )}
+
+        {hayFotos && (
+          <section inert={!volteada} className={`${cara} relative overflow-hidden bg-black/30 ${descripcion ? 'rotate-y-180' : ''}`} style={{ borderColor: `${color}99` }}>
+            <button type="button" onClick={() => onAmpliar(foto)} className="block aspect-[4/3] w-full" aria-label="Ver foto en grande">
+              <img src={imagenes[foto]} alt={`${nombre} — foto ${foto + 1}`} className="h-full w-full object-cover" />
+            </button>
+
+            {imagenes.length > 1 && (
+              <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg bg-black/50 text-sm text-white">
+                <button type="button" onClick={() => setFoto((actual) => (actual - 1 + imagenes.length) % imagenes.length)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Foto anterior"><ChevronLeft className="h-4 w-4" /></button>
+                <span className="min-w-12 text-center tabular-nums">{foto + 1} de {imagenes.length}</span>
+                <button type="button" onClick={() => setFoto((actual) => (actual + 1) % imagenes.length)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Foto siguiente"><ChevronRight className="h-4 w-4" /></button>
+              </div>
+            )}
+
+            {descripcion && (
+              <button type="button" onClick={() => setVolteada(false)} className={`${botonCara} absolute bottom-3 right-3`}>
+                Ver descripción
+              </button>
+            )}
+          </section>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function DetalleParticipante({ participante, tipo }: Props) {
@@ -30,30 +91,15 @@ export function DetalleParticipante({ participante, tipo }: Props) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {participante.imagenes.length > 0 && (
-          // Galería horizontal: todas las fotos en un marco del mismo tamaño (3:4)
-          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 [scrollbar-width:thin]">
-            {participante.imagenes.map((url, indice) => (
-              <button
-                key={url}
-                type="button"
-                onClick={() => setFotoAbierta(indice)}
-                className="aspect-[3/4] w-[75%] shrink-0 snap-start overflow-hidden rounded-xl bg-black/20 sm:w-52 lg:w-56"
-                aria-label={`Ver foto ${indice + 1} en grande`}
-              >
-                <img
-                  src={url}
-                  alt={`${participante.nombre} — foto ${indice + 1}`}
-                  loading={indice === 0 ? 'eager' : 'lazy'}
-                  className="h-full w-full object-cover transition hover:scale-105"
-                />
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="space-y-5 px-6 pb-6 pt-2">
-          {participante.descripcion && <p className="max-w-2xl leading-relaxed text-white/75">{participante.descripcion}</p>}
+        <div className="space-y-5 px-6 pb-6">
+          <TarjetaDosCaras
+            key={participante.id}
+            nombre={participante.nombre}
+            descripcion={participante.descripcion}
+            imagenes={participante.imagenes}
+            color={color}
+            onAmpliar={setFotoAbierta}
+          />
 
           {horarios.length > 0 && (
             <ul className="grid gap-2 sm:grid-cols-2">
@@ -89,46 +135,8 @@ export function DetalleParticipante({ participante, tipo }: Props) {
       </div>
 
       {fotoAbierta !== null && (
-        <VisorFotos fotos={participante.imagenes} indice={fotoAbierta} nombre={participante.nombre} onCambiar={setFotoAbierta} onCerrar={() => setFotoAbierta(null)} />
+        <VisorImagenes fotos={participante.imagenes} indice={fotoAbierta} nombre={`Fotos de ${participante.nombre}`} onCambiar={setFotoAbierta} onCerrar={() => setFotoAbierta(null)} />
       )}
     </article>
-  );
-}
-
-interface VisorProps {
-  fotos: string[];
-  indice: number;
-  nombre: string;
-  onCambiar: (indice: number) => void;
-  onCerrar: () => void;
-}
-
-// Foto completa a pantalla entera; también responde a Esc y a las flechas del teclado
-function VisorFotos({ fotos, indice, nombre, onCambiar, onCerrar }: VisorProps) {
-  const anterior = () => onCambiar((indice - 1 + fotos.length) % fotos.length);
-  const siguiente = () => onCambiar((indice + 1) % fotos.length);
-
-  useEffect(() => {
-    const alPresionar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCerrar();
-      else if (e.key === 'ArrowLeft') anterior();
-      else if (e.key === 'ArrowRight') siguiente();
-    };
-    window.addEventListener('keydown', alPresionar);
-    return () => window.removeEventListener('keydown', alPresionar);
-  });
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" onClick={onCerrar} role="dialog" aria-modal="true" aria-label={`Fotos de ${nombre}`}>
-      <img src={fotos[indice]} alt={`${nombre} — foto ${indice + 1}`} className="max-h-full max-w-full rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
-      <button onClick={onCerrar} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" aria-label="Cerrar"><X className="h-6 w-6" /></button>
-      {fotos.length > 1 && (
-        <>
-          <button onClick={(e) => { e.stopPropagation(); anterior(); }} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" aria-label="Foto anterior"><ChevronLeft className="h-7 w-7" /></button>
-          <button onClick={(e) => { e.stopPropagation(); siguiente(); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" aria-label="Foto siguiente"><ChevronRight className="h-7 w-7" /></button>
-          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm tabular-nums text-white/70">{indice + 1} / {fotos.length}</span>
-        </>
-      )}
-    </div>
   );
 }

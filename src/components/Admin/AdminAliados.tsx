@@ -4,6 +4,8 @@ import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Trash2, X } from 
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagenAmpliable } from '@/components/VisorImagenes';
+import { useUrlLocal } from '@/lib/useUrlLocal';
 
 interface Aliado {
   id: string;
@@ -43,6 +45,7 @@ export default function AdminAliados() {
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [imagenActual, setImagenActual] = useState('');
+  const urlImagenNueva = useUrlLocal(formulario.imagen);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,8 +239,12 @@ export default function AdminAliados() {
               </div>
               <div className="space-y-4">
                 <label className="block text-sm font-semibold text-gray-700">Foto o logo<input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
-                {imagenActual && !formulario.imagen && <img src={imagenActual} alt="Imagen actual" className="h-24 w-24 rounded-full border object-cover" />}
-                {formulario.imagen && <p className="text-sm text-green-700">Imagen seleccionada: {formulario.imagen.name}</p>}
+                {(urlImagenNueva || imagenActual) && (
+                  <div className="flex items-center gap-3">
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Foto o logo del aliado" className="h-24 w-24 rounded-full border" />
+                    <p className="text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                  </div>
+                )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
                   {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Image className="h-5 w-5" /> Guardar aliado</>}
                 </button>
@@ -259,7 +266,7 @@ export default function AdminAliados() {
               {aliados.map((aliado) => (
                 <li key={aliado.id} className={`flex items-center gap-4 px-6 py-3 ${aliado.activo ? '' : 'opacity-50'}`}>
                   <span className="w-6 text-center text-sm text-gray-400">{aliado.orden}</span>
-                  <img src={aliado.imagen_url} alt="" className="h-10 w-10 shrink-0 rounded-full border bg-white object-cover" />
+                  <ImagenAmpliable src={aliado.imagen_url} alt={aliado.nombre} className="h-10 w-10 rounded-full border bg-white" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-gray-900">{aliado.nombre}</p>
                     <a href={aliado.enlace_url} target="_blank" rel="noreferrer" className="block truncate text-xs text-gray-500 hover:text-green-700">{aliado.enlace_url}</a>

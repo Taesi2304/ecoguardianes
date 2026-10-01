@@ -5,6 +5,8 @@ import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagenAmpliable } from '@/components/VisorImagenes';
+import { useUrlLocal } from '@/lib/useUrlLocal';
 import { formatearFecha, formatearHora } from '@/lib/utils';
 
 interface Taller {
@@ -79,6 +81,7 @@ export default function AdminTalleres() {
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [imagenActual, setImagenActual] = useState('');
+  const urlImagenNueva = useUrlLocal(formulario.imagen);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -378,8 +381,12 @@ export default function AdminTalleres() {
                   </span>
                 </label>
                 <label className="block text-sm font-semibold text-gray-700">Imagen o cartel<input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
-                {imagenActual && !formulario.imagen && <img src={imagenActual} alt="Imagen actual" className="aspect-square w-full max-w-xs rounded-lg object-cover" />}
-                {formulario.imagen && <p className="text-sm text-green-700">Imagen seleccionada: {formulario.imagen.name}</p>}
+                {(urlImagenNueva || imagenActual) && (
+                  <div>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen del taller" className="aspect-square w-full max-w-xs rounded-lg" />
+                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para ver en grande</p>
+                  </div>
+                )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
                   {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Image className="h-5 w-5" /> Guardar taller</>}
                 </button>
@@ -404,7 +411,7 @@ export default function AdminTalleres() {
                 const lleno = taller.cupo !== null && inscritos >= taller.cupo;
                 return (
                   <li key={taller.id} className={`flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center ${taller.activo && !pasado ? '' : 'opacity-60'}`}>
-                    <img src={taller.imagen_url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                    <ImagenAmpliable src={taller.imagen_url} alt={taller.titulo} className="h-16 w-16 rounded-lg" />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-gray-900">{taller.titulo}</p>
                       <p className="text-sm text-gray-500">{formatearFecha(taller.fecha)} · {formatearHora(taller.hora_inicio)} · {taller.lugar}</p>
