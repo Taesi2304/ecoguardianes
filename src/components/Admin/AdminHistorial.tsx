@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Search, AlertTriangle, Bug, MapPin, User, Calendar, Sprout, FileText, X } from 'lucide-react';
+import { Loader2, Search, AlertTriangle, MapPin, User, Calendar, Sprout, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
+import { CAMPOS_VISITA, formatearCantidad, sumarPorUnidad, type VisitaBitacora } from '@/lib/bitacora';
+import DetalleVisita from '@/components/Dashboard/DetalleVisita';
 
-interface VisitaHistorial {
-  id: string;
-  fecha: string;
-  cantidad_material: number | null;
-  unidad_medida: string | null;
-  lixiviados: boolean;
-  plagas: boolean;
-  observaciones: string | null;
+interface VisitaHistorial extends VisitaBitacora {
   composteros: {
     codigo: string;
     nombre: string;
@@ -20,10 +15,7 @@ interface VisitaHistorial {
   usuarios: {
     nombre: string;
     apellido_paterno: string | null;
-  };
-  catalogo_acciones: { nombre: string } | null;
-  catalogo_etapas: { nombre: string } | null;
-  evidencias: { url_publica: string; tipo_evidencia: string }[];
+  } | null;
 }
 
 export default function AdminHistorial() {
@@ -33,6 +25,7 @@ export default function AdminHistorial() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroColonia, setFiltroColonia] = useState('todos');
   const [filtroCompostero, setFiltroCompostero] = useState('todos');
+  const [soloAlertas, setSoloAlertas] = useState(false);
   const [esSuperAdmin, setEsSuperAdmin] = useState(false);
   const [imagenSeleccionada, setImagenSeleccionada] = useState<string | null>(null);
 
@@ -65,29 +58,21 @@ export default function AdminHistorial() {
         .select('colonia_id, roles(nombre)')
         .eq('auth_user_id', user.id)
         .single();
-        
+
       const rolNombre = Array.isArray(usuario?.roles) ? usuario.roles[0]?.nombre : (usuario?.roles as any)?.nombre;
       const superAdmin = rolNombre === 'Super Admin';
       setEsSuperAdmin(superAdmin);
       const adminColoniaId = usuario?.colonia_id;
 
-      // Se agregaron 'observaciones' y la relación con 'evidencias'
       let query = supabase
         .from('visitas')
         .select(`
-          id,
-          fecha,
-          cantidad_material,
-         unidad_medida,
-          lixiviados,
-          plagas,
-          observaciones,
+          ${CAMPOS_VISITA},
           composteros!inner (codigo, nombre, colonia_id, colonias(nombre)),
           usuarios (nombre, apellido_paterno),
-          catalogo_acciones (nombre),
-          catalogo_etapas (nombre),
-          evidencias (url_publica, tipo_evidencia)
+          evidencias (url_publica)
         `)
+        .is('deleted_at', null)
         .order('fecha', { ascending: false });
 
       if (!superAdmin && adminColoniaId) {
@@ -97,7 +82,7 @@ export default function AdminHistorial() {
       const { data: dataVisitas, error: errVisitas } = await query;
       if (errVisitas) throw errVisitas;
 
-      setVisitas(dataVisitas as unknown as VisitaHistorial[]);
+      setVisitas((dataVisitas as unknown as VisitaHistorial[]) || []);
     } catch (err: any) {
       setError('Error al cargar el historial.');
       console.error(err);
@@ -124,17 +109,22 @@ export default function AdminHistorial() {
     ).values()
   );
 
+  const texto = busqueda.trim().toLowerCase();
   const visitasFiltradas = visitas.filter(v => {
-    const coincideBusqueda =
-      v.composteros.codigo.toLowerCase().includes(busqueda.toLowerCase()) ||
-      v.composteros.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      v.usuarios.nombre.toLowerCase().includes(busqueda.toLowerCase());
+    const autor = `${v.usuarios?.nombre ?? ''} ${v.usuarios?.apellido_paterno ?? ''}`.toLowerCase();
+    const coincideBusqueda = !texto ||
+      v.composteros.codigo.toLowerCase().includes(texto) ||
+      v.composteros.nombre.toLowerCase().includes(texto) ||
+      autor.includes(texto);
 
     const coincideColonia = filtroColonia === 'todos' || v.composteros.colonia_id === filtroColonia;
     const coincideCompostero = filtroCompostero === 'todos' || v.composteros.codigo === filtroCompostero;
+    const coincideAlerta = !soloAlertas || v.plagas || v.lixiviados;
 
-    return coincideBusqueda && coincideColonia && coincideCompostero;
+    return coincideBusqueda && coincideColonia && coincideCompostero && coincideAlerta;
   });
+
+  const totales = sumarPorUnidad(visitasFiltradas);
 
   if (cargando && visitas.length === 0) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-green-600" /></div>;
@@ -142,7 +132,7 @@ export default function AdminHistorial() {
 
   return (
     <div className="mx-auto max-w-7xl py-2 sm:py-4 animate-in fade-in duration-500">
-      
+
       <div className="mb-8 flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">Historial Comunal</h1>
@@ -154,7 +144,7 @@ export default function AdminHistorial() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por código o usuaria..."
+            placeholder="Buscar por código o Eco Guardián..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-4 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 sm:w-80"
@@ -163,7 +153,7 @@ export default function AdminHistorial() {
       </div>
 
       <Card className="mb-6 border-transparent bg-white shadow-sm">
-        <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+        <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <MapPin className="h-4 w-4 text-green-600" /> Colonia:
@@ -200,8 +190,25 @@ export default function AdminHistorial() {
                 ))}
             </select>
           </div>
+
+          <button
+            type="button"
+            aria-pressed={soloAlertas}
+            onClick={() => setSoloAlertas((actual) => !actual)}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+              soloAlertas ? 'border-red-600 bg-red-600 text-white' : 'border-red-200 bg-white text-red-700 hover:bg-red-50'
+            }`}
+          >
+            <AlertTriangle className="h-4 w-4" /> Solo con alertas
+          </button>
         </CardContent>
       </Card>
+
+      <p className="mb-4 text-sm text-gray-600">
+        {visitasFiltradas.length} registro{visitasFiltradas.length === 1 ? '' : 's'}
+        {' · '}<strong className="text-gray-800">{formatearCantidad(totales.kg, 'kg')}</strong>
+        {totales.litros > 0 && <>{' · '}<strong className="text-gray-800">{formatearCantidad(totales.litros, 'litros')}</strong></>}
+      </p>
 
       {error && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 font-medium text-red-700">{error}</div>
@@ -216,57 +223,28 @@ export default function AdminHistorial() {
           {visitasFiltradas.map((v) => (
             <Card key={v.id} className="overflow-hidden border-transparent bg-white shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
+                <div className="min-w-0 space-y-1.5">
                   <p className="flex items-start gap-2 font-semibold capitalize text-gray-800">
                     <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
                     <span>{new Date(v.fecha).toLocaleString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                   </p>
-                  <span className="mt-2 inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-green-800">Registro comunal</span>
+                  <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
+                    <span className="font-bold text-green-700">{v.composteros.codigo}</span>
+                    <span className="font-medium text-gray-800">{v.composteros.nombre}</span>
+                    <span className="flex items-center gap-1 text-gray-500"><MapPin className="h-3.5 w-3.5" /> {v.composteros.colonias?.nombre || 'Sin colonia'}</span>
+                  </p>
+                  <p className="flex items-center gap-2 text-sm text-gray-600">
+                    <User className="h-4 w-4 text-gray-400" />
+                    {v.usuarios ? `${v.usuarios.nombre} ${v.usuarios.apellido_paterno || ''}`.trim() : 'Usuario eliminado'}
+                  </p>
                 </div>
-                <span className="inline-flex w-fit items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                  <Sprout className="h-4 w-4" /> +{v.cantidad_material || 0} {v.unidad_medida === 'litros' ? 'L' : 'kg'}
+                <span className="inline-flex w-fit shrink-0 items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-sm font-semibold text-green-700">
+                  <Sprout className="h-4 w-4" /> +{formatearCantidad(v.cantidad_material, v.unidad_medida)}
                 </span>
               </div>
 
-              <CardContent className="space-y-5 p-5">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Compostero</p>
-                  <p className="mt-1 font-bold text-green-700">{v.composteros.codigo}</p>
-                  <p className="font-medium text-gray-800">{v.composteros.nombre}</p>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-gray-500"><MapPin className="h-3.5 w-3.5" /> {v.composteros.colonias?.nombre || 'Sin colonia'}</p>
-                </div>
-
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Eco Guardian</p>
-                  <p className="mt-1 flex items-center gap-2 font-medium text-gray-700"><User className="h-4 w-4 text-gray-400" /> {v.usuarios.nombre} {v.usuarios.apellido_paterno}</p>
-                </div>
-
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Detalles y evidencia</p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {v.catalogo_acciones?.nombre && <span className="rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{v.catalogo_acciones.nombre}</span>}
-                    {v.catalogo_etapas?.nombre && <span className="rounded border border-purple-100 bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700">{v.catalogo_etapas.nombre}</span>}
-                  </div>
-                  {v.observaciones && <p className="mt-3 whitespace-pre-wrap text-sm italic text-gray-600">“{v.observaciones}”</p>}
-                  {v.evidencias?.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      {v.evidencias.map((ev, idx) => (
-                        <button key={idx} type="button" onClick={() => setImagenSeleccionada(ev.url_publica)} className="group relative h-24 w-24 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm transition hover:border-green-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" title="Ver evidencia completa" aria-label="Ver evidencia completa">
-                          {ev.tipo_evidencia === 'foto' || ev.url_publica.match(/\.(jpeg|jpg|gif|png)$/i) ? <img src={ev.url_publica} alt="Evidencia" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" /> : <div className="flex h-full w-full items-center justify-center text-gray-400 group-hover:text-green-600"><FileText className="h-6 w-6" /></div>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Alertas</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {v.plagas && <span className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700"><Bug className="h-3.5 w-3.5" /> Plagas</span>}
-                    {v.lixiviados && <span className="flex items-center gap-1.5 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700"><AlertTriangle className="h-3.5 w-3.5" /> Lixiviados</span>}
-                    {!v.plagas && !v.lixiviados && <span className="text-sm text-gray-400">Sin alertas</span>}
-                  </div>
-                </div>
+              <CardContent className="p-5">
+                <DetalleVisita visita={v} onVerFoto={setImagenSeleccionada} />
               </CardContent>
             </Card>
           ))}

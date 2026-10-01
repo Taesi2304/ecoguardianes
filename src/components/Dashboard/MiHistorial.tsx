@@ -1,15 +1,30 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { format, formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
-import { Calendar, Filter, Loader2, X } from 'lucide-react';
+import { Calendar, Loader2, X } from 'lucide-react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CAMPOS_VISITA, formatearCantidad, sumarPorUnidad, type VisitaBitacora } from '@/lib/bitacora';
+import DetalleVisita from './DetalleVisita';
+
+interface VisitaHistorial extends VisitaBitacora {
+  usuarios: { nombre: string; apellido_paterno: string | null } | null;
+  composteros: { nombre: string } | null;
+}
+
+type Vista = 'mios' | 'comunidad';
+
+const capitalizar = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
 export default function MiHistorial() {
-  const [historial, setHistorial] = useState<any[]>([]);
-  const [nombreCompostero, setNombreCompostero] = useState("Cargando tu compostero...");
+  const [historial, setHistorial] = useState<VisitaHistorial[]>([]);
+  const [nombreColonia, setNombreColonia] = useState('');
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
   const [imagenSeleccionada, setImagenSeleccionada] = useState<string | null>(null);
   const [usuarioActualId, setUsuarioActualId] = useState<string | null>(null);
-  const [mostrarSoloMios, setMostrarSoloMios] = useState(true);
+  const [vista, setVista] = useState<Vista>('mios');
 
   useEffect(() => {
     cargarHistorial();
@@ -31,61 +46,61 @@ export default function MiHistorial() {
 
   const cargarHistorial = async () => {
     try {
-      // 1. Saber quién está logueado
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 2. Traer los datos del usuario para saber su colonia
       const { data: usuario } = await supabase
         .from('usuarios')
-        .select('id, colonia_id')
+        .select('id, colonia_id, colonias(nombre)')
         .eq('auth_user_id', user.id)
         .single();
 
       if (!usuario) return;
       setUsuarioActualId(usuario.id);
 
-      // 3. Traer el nombre real de su compostero asignado
-      const { data: compostero } = await supabase
-        .from('composteros')
-        .select('id, nombre')
-        .eq('colonia_id', usuario.colonia_id)
-        .single();
+      const colonia = Array.isArray(usuario.colonias) ? usuario.colonias[0] : usuario.colonias;
+      setNombreColonia((colonia as { nombre?: string } | null)?.nombre || '');
 
-      if (compostero) {
-        setNombreCompostero(`Bitácora: ${compostero.nombre}`);
-        
-        // 4. Traer todas las visitas de ESE compostero, ordenadas por la más reciente
-        // Y de paso, le pedimos a Supabase que traiga las URLs de las fotos de la tabla evidencias
-        const { data: visitas } = await supabase
-          .from('visitas')
-          .select(`
-            id,
-            usuario_id,
-            fecha, 
-            cantidad_material, 
-            unidad_medida,
-            observaciones,
-            usuarios ( nombre, apellido_paterno ),
-            evidencias ( url_publica )
-          `)
-          .eq('compostero_id', compostero.id)
-          .order('fecha', { ascending: false });
+      // Todas las visitas de los composteros de su colonia (puede haber más de uno)
+      let query = supabase
+        .from('visitas')
+        .select(`
+          ${CAMPOS_VISITA},
+          usuarios ( nombre, apellido_paterno ),
+          composteros!inner ( nombre, colonia_id ),
+          evidencias ( url_publica )
+        `)
+        .is('deleted_at', null)
+        .order('fecha', { ascending: false });
 
-        if (visitas) {
-          setHistorial(visitas);
-        }
-      }
-    } catch (error) {
-      console.error("Error al cargar historial:", error);
+      query = usuario.colonia_id
+        ? query.eq('composteros.colonia_id', usuario.colonia_id)
+        : query.eq('usuario_id', usuario.id);
+
+      const { data: visitas, error: errorVisitas } = await query;
+      if (errorVisitas) throw errorVisitas;
+
+      setHistorial((visitas as unknown as VisitaHistorial[]) || []);
+    } catch (err) {
+      console.error("Error al cargar historial:", err);
+      setError(true);
     } finally {
       setCargando(false);
     }
   };
 
-  const historialVisible = mostrarSoloMios
+  const historialVisible = vista === 'mios'
     ? historial.filter((visita) => visita.usuario_id === usuarioActualId)
     : historial;
+
+  const totales = sumarPorUnidad(historialVisible);
+  const ultimaVisita = historialVisible[0]?.fecha;
+
+  const porMes = historialVisible.reduce((grupos, visita) => {
+    const mes = capitalizar(format(new Date(visita.fecha), 'MMMM yyyy', { locale: es }));
+    grupos.set(mes, [...(grupos.get(mes) || []), visita]);
+    return grupos;
+  }, new Map<string, VisitaHistorial[]>());
 
   if (cargando) {
     return (
@@ -96,137 +111,134 @@ export default function MiHistorial() {
     );
   }
 
+  const estadisticas = [
+    { titulo: 'Kilos aportados', valor: formatearCantidad(totales.kg, 'kg'), visible: true },
+    { titulo: 'Litros aportados', valor: formatearCantidad(totales.litros, 'litros'), visible: totales.litros > 0 },
+    { titulo: 'Visitas', valor: String(historialVisible.length), visible: true },
+    {
+      titulo: 'Última visita',
+      valor: ultimaVisita ? formatDistanceToNow(new Date(ultimaVisita), { addSuffix: true, locale: es }) : '—',
+      visible: true,
+    },
+  ].filter((dato) => dato.visible);
+
   return (
     <div className="max-w-4xl mx-auto py-2 sm:py-4">
-      <div className="flex items-center gap-3 sm:gap-4 mb-8 border-b pb-5">
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 border-b pb-5">
         <div className="bg-[#CFE9D6] rounded-full p-3 flex items-center justify-center shrink-0">
-          <img src="/historial.svg" alt="Planta" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
+          <img src="/historial.svg" alt="" aria-hidden="true" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
         </div>
         <div className="min-w-0">
-          {/* Aquí se pone dinámicamente el nombre de TU compostero asignado */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight break-words">{nombreCompostero}</h1>
-          <p className="text-lg sm:text-xl text-gray-500 mt-2">Historial de actualizaciones y monitoreo</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight break-words">Historial de bitácoras</h1>
+          <p className="text-base sm:text-lg text-gray-500 mt-1">
+            {nombreColonia ? `Composteros de ${nombreColonia}` : 'Actualizaciones y monitoreo'}
+          </p>
         </div>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">
-          {historialVisible.length} registro{historialVisible.length === 1 ? '' : 's'} mostrado{historialVisible.length === 1 ? '' : 's'}
-        </p>
-        <div className="flex flex-col items-end gap-2">
-          <p className="text-right text-sm text-gray-600">Filtrar por:</p>
+      <div role="tablist" aria-label="Qué registros mostrar" className="mb-6 inline-flex w-full rounded-xl bg-gray-100 p-1 sm:w-auto">
+        {([['mios', 'Mis registros'], ['comunidad', 'Comunidad']] as const).map(([valor, etiqueta]) => (
           <button
+            key={valor}
             type="button"
-            aria-pressed={mostrarSoloMios}
-            onClick={() => setMostrarSoloMios((actual) => !actual)}
-            className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-              mostrarSoloMios
-                ? 'border-green-700 bg-green-700 text-white hover:bg-green-800'
-                : 'border-green-200 bg-white text-green-700 hover:bg-green-50'
+            role="tab"
+            aria-selected={vista === valor}
+            onClick={() => setVista(valor)}
+            className={`flex-1 rounded-lg px-5 py-2 text-sm font-semibold transition sm:flex-none ${
+              vista === valor ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'
             }`}
           >
-            <Filter className="h-4 w-4" />
-            {mostrarSoloMios ? 'Mostrar historial comunal' : 'Mostrar mis cambios'}
+            {etiqueta}
           </button>
-        </div>
+        ))}
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm font-medium text-red-700">
+          No se pudo cargar el historial. Revisa tu conexión y recarga la página.
+        </div>
+      )}
+
+      {historialVisible.length > 0 && (
+        <div className={`mb-8 grid grid-cols-2 gap-3 ${estadisticas.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
+          {estadisticas.map((dato) => (
+            <div key={dato.titulo} className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{dato.titulo}</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">{dato.valor}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {historialVisible.length === 0 ? (
         <Card className="bg-gray-50 border-dashed border-2">
           <CardContent className="flex flex-col items-center text-center py-12">
-            <Calendar className="h-12 w-12 text-gray-300 mb-4" />
+            <img src="/planta-tierra.svg" alt="" aria-hidden="true" className="mb-4 h-16 w-16 object-contain opacity-80" />
             <p className="text-lg font-medium text-gray-600">
-              {mostrarSoloMios ? 'Aún no tienes registros en este compostero.' : 'Aún no hay registros en este compostero.'}
+              {vista === 'mios' ? 'Aún no tienes registros.' : 'Aún no hay registros en tu colonia.'}
             </p>
-            <p className="text-gray-400">
-              {mostrarSoloMios ? 'Cambia el filtro para mostrar el historial comunal.' : 'Ve a "Nueva Bitácora" para hacer tu primera actualización.'}
-            </p>
+            <Link to="/dashboard/Nueva-Bitacora" className="mt-4 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-bold text-white no-underline hover:bg-green-700 hover:no-underline">
+              Registrar mi primera visita
+            </Link>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {historialVisible.map((visita) => {
-            const autor = Array.isArray(visita.usuarios) ? visita.usuarios[0] : visita.usuarios;
+        <div className="space-y-10">
+          {Array.from(porMes).map(([mes, visitas]) => (
+            <section key={mes}>
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-[#4A2E18]">{mes}</h2>
+              <div className="space-y-5">
+                {visitas.map((visita) => {
+                  const esMia = visita.usuario_id === usuarioActualId;
+                  const autor = visita.usuarios;
 
-            return (
-            <Card key={visita.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <CardHeader className="border-b border-gray-100 bg-transparent px-5 py-4">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                
-                {/* Columna Izquierda: Fecha, Hora y Etiqueta */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2 text-gray-800 font-semibold text-sm">
-                    <Calendar className="h-4 w-4 text-green-600 shrink-0" />
-                    <span className="capitalize">
-                      {new Date(visita.fecha).toLocaleString('es-MX', {
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </span>
-                  </div>
-                  
-                  <div className="min-w-0">
-                    {autor?.nombre ? (
-                      <span className="inline-flex items-center bg-green-100 text-green-800 px-2.5 py-0.5 rounded-full text-[11px] uppercase font-bold tracking-wider">
-                        Tu registro
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center bg-gray-100 text-gray-500 px-2.5 py-0.5 rounded-full text-[11px] uppercase font-bold tracking-wider">
-                        Aporte de un Eco Guardián
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  return (
+                    <Card key={visita.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                      <CardHeader className="border-b border-gray-100 bg-transparent px-5 py-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                              <Calendar className="h-4 w-4 shrink-0 text-green-600" />
+                              <span className="capitalize">
+                                {new Date(visita.fecha).toLocaleString('es-MX', {
+                                  weekday: 'long',
+                                  day: 'numeric',
+                                  month: 'long',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                              {esMia ? (
+                                <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-green-800">
+                                  Tu registro
+                                </span>
+                              ) : (
+                                <span className="font-semibold text-gray-700">
+                                  {autor ? `${autor.nombre} ${autor.apellido_paterno || ''}`.trim() : 'Eco Guardián'}
+                                </span>
+                              )}
+                              {visita.composteros?.nombre && <span>· {visita.composteros.nombre}</span>}
+                            </div>
+                          </div>
 
-                {/* Columna Derecha: Cantidad Aportada */}
-                <div className="shrink-0 pt-1 sm:pt-0">
-                  <span className="bg-green-50 text-green-700 border border-green-200 text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap">
-                    +{visita.cantidad_material} {visita.unidad_medida === 'litros' ? 'L' : 'kg'}
-                  </span>
-                </div>
+                          <span className="w-fit shrink-0 whitespace-nowrap rounded-full border border-green-200 bg-green-50 px-3 py-1 text-sm font-semibold text-green-700">
+                            +{formatearCantidad(visita.cantidad_material, visita.unidad_medida)}
+                          </span>
+                        </div>
+                      </CardHeader>
 
+                      <CardContent className="pt-4">
+                        <DetalleVisita visita={visita} onVerFoto={setImagenSeleccionada} />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
-              </CardHeader>
-
-              <CardContent className="pt-4">
-              
-                {/* Mostramos el texto que agrupamos antes */}
-                <div className="whitespace-pre-wrap text-gray-700 text-sm mb-4">
-                  {visita.observaciones}
-                </div>
-
-                {/* Si la visita tiene fotos (evidencias), las mostramos */}
-                {visita.evidencias && visita.evidencias.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-xs text-gray-500 font-medium mb-2 uppercase tracking-wider">Evidencias Fotográficas</p>
-                    <div className="flex flex-wrap gap-3">
-                      {visita.evidencias.map((evidencia: any, index: number) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => setImagenSeleccionada(evidencia.url_publica)}
-                          className="group overflow-hidden rounded-lg border shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                          aria-label="Ver evidencia en tamaño completo"
-                        >
-                          <img
-                            src={evidencia.url_publica}
-                            alt="Evidencia del compostero"
-                            className="h-24 w-24 object-cover transition-transform duration-200 group-hover:scale-105"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            );
-          })}
+            </section>
+          ))}
         </div>
       )}
 
