@@ -102,7 +102,13 @@ export function PieCartelera() {
         <Link to="/aviso-privacidad" className={enlacePie}>Aviso de privacidad</Link>
         <Link to="/terminos-condiciones" className={enlacePie}>Términos y condiciones</Link>
       </nav>
-      <p className="mt-4 text-xs text-white/45">© {new Date().getFullYear()} FDMA · Festival del Medio Ambiente</p>
+      <div className="mt-4 flex flex-col gap-1 text-xs text-white/45 sm:flex-row sm:justify-between">
+        <p>© {new Date().getFullYear()} FDMA · Festival del Medio Ambiente</p>
+        <p>
+          Desarrollado por{' '}
+          <a href="https://www.instagram.com/ijessyou/" target="_blank" rel="noreferrer" className="text-white/70 hover:text-white hover:underline">@ijessyou</a>
+        </p>
+      </div>
     </footer>
   );
 }
