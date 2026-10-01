@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Edit, Eye, EyeOff, Loader2, Plus, Save, Tags, Trash2, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, Edit, Eye, EyeOff, Loader2, Plus, Save, Tags, Trash2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatearFecha, formatearHora } from '@/lib/utils';
-import { cargarCategorias, estiloPunto } from '@/components/Calendario/eventos';
+import { cargarCategorias, cargarEventos as cargarEventosPublicos, estiloPunto } from '@/components/Calendario/eventos';
 import type { CategoriaCalendario } from '@/components/Calendario/eventos';
 import { EditorCatalogo } from './EditorCatalogo';
 
@@ -20,7 +21,17 @@ interface Evento {
   descripcion: string | null;
   enlace_url: string | null;
   activo: boolean;
+  origen?: Origen; // Solo en los automáticos: se editan en su propia sección
 }
+
+// Eventos que el calendario arma solo a partir de otras secciones del admin
+const ORIGENES = {
+  taller: { seccion: 'Talleres', ruta: '/admin/talleres' },
+  festival: { seccion: 'Cartelera', ruta: '/admin/cartelera' },
+  convocatoria: { seccion: 'Convocatorias', ruta: '/admin/convocatorias' },
+} as const;
+type Origen = keyof typeof ORIGENES;
+const origenDe = (id: string) => (Object.keys(ORIGENES) as Origen[]).find((origen) => id.startsWith(`${origen}-`));
 
 interface FormularioEvento {
   titulo: string;
@@ -60,16 +71,31 @@ export default function AdminCalendario() {
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [verPasados, setVerPasados] = useState(false);
+  const [diaFiltro, setDiaFiltro] = useState(''); // '' = todos los días, o 'AAAA-MM-DD'
+  const [categoriaFiltro, setCategoriaFiltro] = useState(''); // '' = todas, 'sin' = sin categoría, o el id
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<CategoriaCalendario[]>([]);
   const [editandoCategorias, setEditandoCategorias] = useState(false);
+  const [automaticos, setAutomaticos] = useState<Evento[]>([]);
 
   useEffect(() => {
     cargarEventos();
     recargarCategorias();
+    cargarAutomaticos();
   }, []);
+
+  // Los mismos que ve el público en /calendario (talleres, días del festival, cierres de convocatoria)
+  async function cargarAutomaticos() {
+    const publicos = await cargarEventosPublicos('2000-01-01', '2100-12-31');
+    setAutomaticos(publicos.flatMap((evento) => {
+      const origen = origenDe(evento.id);
+      if (!origen) return [];
+      const { id, titulo, fecha, hora_inicio, hora_fin, lugar, descripcion, enlace_url } = evento;
+      return [{ id, titulo, fecha, hora_inicio, hora_fin, lugar, descripcion, enlace_url, categoria_id: evento.categoria?.id ?? null, activo: true, origen }];
+    }));
+  }
 
   function recargarCategorias() {
     cargarCategorias().then(setCategorias);
@@ -97,14 +123,22 @@ export default function AdminCalendario() {
   }
 
   // Agrupa por mes: { '2026-10': [...] }
+  // Con un día elegido se muestra ese día aunque ya haya pasado
   const eventosPorMes = useMemo(() => {
-    const visibles = verPasados ? eventos : eventos.filter((evento) => evento.fecha >= hoy());
+    const todos = [...eventos, ...automaticos]
+      .sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.hora_inicio || '').localeCompare(b.hora_inicio || ''));
+    const visibles = todos.filter((evento) => {
+      if (diaFiltro ? evento.fecha !== diaFiltro : !verPasados && evento.fecha < hoy()) return false;
+      if (categoriaFiltro === 'sin') return !evento.categoria_id;
+      return !categoriaFiltro || evento.categoria_id === categoriaFiltro;
+    });
     return visibles.reduce<Record<string, Evento[]>>((grupos, evento) => {
       const mes = evento.fecha.slice(0, 7);
       (grupos[mes] ||= []).push(evento);
       return grupos;
     }, {});
-  }, [eventos, verPasados]);
+  }, [eventos, automaticos, verPasados, diaFiltro, categoriaFiltro]);
+  const hayFiltros = diaFiltro !== '' || categoriaFiltro !== '';
 
   function cerrarFormulario() {
     setEditandoId(null);
@@ -300,11 +334,37 @@ export default function AdminCalendario() {
             Ver pasados
           </label>
         </CardHeader>
+        <div className="flex flex-col gap-3 border-b px-6 py-3 sm:flex-row sm:items-center">
+          <input
+            type="date"
+            value={diaFiltro}
+            onChange={(e) => setDiaFiltro(e.target.value)}
+            aria-label="Filtrar por día"
+            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:w-44"
+          />
+          <select
+            value={categoriaFiltro}
+            onChange={(e) => setCategoriaFiltro(e.target.value)}
+            aria-label="Filtrar por categoría"
+            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:w-56"
+          >
+            <option value="">Todas las categorías</option>
+            {categorias.map((categoria) => <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>)}
+            <option value="sin">Sin categoría</option>
+          </select>
+          {hayFiltros && (
+            <button type="button" onClick={() => { setDiaFiltro(''); setCategoriaFiltro(''); }} className="text-sm font-medium text-green-700 hover:underline sm:ml-auto">
+              Quitar filtros
+            </button>
+          )}
+        </div>
         <CardContent className="p-0">
           {cargando ? (
             <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div>
           ) : meses.length === 0 ? (
-            <p className="p-8 text-center text-gray-600">No hay eventos próximos. Agrega uno con "Nuevo evento".</p>
+            <p className="p-8 text-center text-gray-600">
+              {hayFiltros ? 'No hay eventos con esos filtros.' : 'No hay eventos próximos. Agrega uno con "Nuevo evento".'}
+            </p>
           ) : (
             meses.map((mes) => (
               <section key={mes}>
@@ -320,12 +380,26 @@ export default function AdminCalendario() {
                         <p className="truncate text-sm text-gray-500">
                           {formatearFecha(evento.fecha)}{evento.hora_inicio ? ` · ${formatearHora(evento.hora_inicio)}` : ''}{evento.lugar ? ` · ${evento.lugar}` : ''}
                         </p>
+                        {evento.origen && (
+                          <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                            Automático · viene de {ORIGENES[evento.origen].seccion}
+                          </span>
+                        )}
                       </div>
+                      {evento.origen ? (
+                        // Se edita u oculta en su sección para que no quede distinto de su origen
+                        <Link to={ORIGENES[evento.origen].ruta} className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50" title={`Editar o quitar en ${ORIGENES[evento.origen].seccion}`}>
+                          <span className="hidden sm:inline">Editar en {ORIGENES[evento.origen].seccion}</span>
+                          <span className="sm:hidden">Editar</span>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      ) : (
                       <div className="flex gap-1">
                         <button onClick={() => abrirEdicion(evento)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button>
                         <button onClick={() => alternarEstado(evento)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={evento.activo ? 'Ocultar' : 'Mostrar'}>{evento.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                         <button onClick={() => eliminar(evento)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
                       </div>
+                      )}
                     </li>
                   ))}
                 </ul>

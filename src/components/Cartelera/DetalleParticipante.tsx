@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, MapPin } from 'lucide-react';
 import { VisorImagenes } from '@/components/VisorImagenes';
 import { Presentaciones } from './Presentaciones';
@@ -6,17 +6,30 @@ import type { Catalogo, Participante } from './cartelera';
 
 // Como en la referencia de ITCA: de frente la descripción, al voltear las fotos.
 // Las dos caras ocupan la misma celda del grid, así la tarjeta mide lo que la más alta.
-function TarjetaDosCaras({ nombre, descripcion, imagenes, color, onAmpliar }: {
+const SEGUNDOS_POR_FOTO = 4;
+
+function TarjetaDosCaras({ nombre, descripcion, imagenes, color, animar, onAmpliar }: {
   nombre: string;
   descripcion: string | null;
   imagenes: string[];
   color: string;
+  animar: boolean; // Solo la ficha activa pasa sus fotos sola
   onAmpliar: (indice: number) => void;
 }) {
   const hayFotos = imagenes.length > 0;
   // Sin descripción no hay nada que voltear: se muestran las fotos directo
   const [volteada, setVolteada] = useState(!descripcion);
   const [foto, setFoto] = useState(0);
+  const [pausado, setPausado] = useState(false);
+
+  // Carrusel automático: avanza mientras las fotos están a la vista y nadie tiene el cursor encima.
+  // Se respeta "reducir movimiento" del sistema
+  const carrusel = imagenes.length > 1 && volteada && animar && !pausado;
+  useEffect(() => {
+    if (!carrusel || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const temporizador = window.setInterval(() => setFoto((actual) => (actual + 1) % imagenes.length), SEGUNDOS_POR_FOTO * 1000);
+    return () => window.clearInterval(temporizador);
+  }, [carrusel, imagenes.length, foto]);
 
   if (!descripcion && !hayFotos) return null;
 
@@ -39,17 +52,47 @@ function TarjetaDosCaras({ nombre, descripcion, imagenes, color, onAmpliar }: {
         )}
 
         {hayFotos && (
-          <section inert={!volteada} className={`${cara} relative overflow-hidden bg-black/30 ${descripcion ? 'rotate-y-180' : ''}`} style={{ borderColor: `${color}99` }}>
-            <button type="button" onClick={() => onAmpliar(foto)} className="block aspect-[4/3] w-full cursor-zoom-in" aria-label="Ver foto en grande">
-              <img src={imagenes[foto]} alt={`${nombre} — foto ${foto + 1}`} loading="lazy" className="h-full w-full object-cover" />
+          <section
+            inert={!volteada}
+            onMouseEnter={() => setPausado(true)}
+            onMouseLeave={() => setPausado(false)}
+            className={`${cara} relative overflow-hidden bg-black/40 ${descripcion ? 'rotate-y-180' : ''}`}
+            style={{ borderColor: `${color}99` }}
+          >
+            {/* Alto fijo y moderado; la foto se ve completa (sin recortar) sobre una copia difuminada de sí misma */}
+            <button type="button" onClick={() => onAmpliar(foto)} className="relative block h-64 w-full cursor-zoom-in overflow-hidden sm:h-72 lg:h-80" aria-label="Ver foto en grande">
+              <img src={imagenes[foto]} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-xl transition-all duration-700" />
+              {imagenes.map((url, indice) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt={indice === foto ? `${nombre} — foto ${indice + 1}` : ''}
+                  loading={indice === 0 ? 'eager' : 'lazy'}
+                  className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-700 motion-reduce:transition-none ${indice === foto ? 'opacity-100' : 'opacity-0'}`}
+                />
+              ))}
             </button>
 
             {imagenes.length > 1 && (
-              <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg bg-black/50 text-sm text-white">
-                <button type="button" onClick={() => setFoto((actual) => (actual - 1 + imagenes.length) % imagenes.length)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Foto anterior"><ChevronLeft className="h-4 w-4" /></button>
-                <span className="min-w-12 text-center tabular-nums">{foto + 1} de {imagenes.length}</span>
-                <button type="button" onClick={() => setFoto((actual) => (actual + 1) % imagenes.length)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Foto siguiente"><ChevronRight className="h-4 w-4" /></button>
-              </div>
+              <>
+                <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg bg-black/50 text-sm text-white">
+                  <button type="button" onClick={() => setFoto((actual) => (actual - 1 + imagenes.length) % imagenes.length)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Foto anterior"><ChevronLeft className="h-4 w-4" /></button>
+                  <span className="min-w-12 text-center tabular-nums">{foto + 1} de {imagenes.length}</span>
+                  <button type="button" onClick={() => setFoto((actual) => (actual + 1) % imagenes.length)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Foto siguiente"><ChevronRight className="h-4 w-4" /></button>
+                </div>
+                {/* Puntos: cuál foto se ve y acceso directo a cualquiera */}
+                <div className="absolute bottom-3 left-3 flex gap-1.5 rounded-full bg-black/40 px-2 py-1.5">
+                  {imagenes.map((url, indice) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setFoto(indice)}
+                      aria-label={`Ver foto ${indice + 1}`}
+                      className={`h-1.5 rounded-full transition-all ${indice === foto ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}`}
+                    />
+                  ))}
+                </div>
+              </>
             )}
 
             {descripcion && (
@@ -86,7 +129,7 @@ interface FichaProps {
 export function FichaParticipante({ participante, tipo, activa, fecha, onEnfocar }: FichaProps) {
   const color = tipo?.color ?? '#ffffff';
   const [fotoAbierta, setFotoAbierta] = useState<number | null>(null);
-  const caras = { nombre: participante.nombre, imagenes: participante.imagenes, color, onAmpliar: setFotoAbierta };
+  const caras = { nombre: participante.nombre, imagenes: participante.imagenes, color, animar: activa && fotoAbierta === null, onAmpliar: setFotoAbierta };
 
   return (
     <article

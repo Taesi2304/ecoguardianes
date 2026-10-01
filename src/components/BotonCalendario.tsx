@@ -15,10 +15,11 @@ const ESTILOS = {
     opcion: 'flex flex-1 items-center justify-center rounded-xl border border-gray-200 px-3 py-3 text-sm font-bold text-[#4a3728] hover:bg-gray-50',
     cerrar: 'rounded-xl p-3 text-gray-400 hover:bg-gray-100',
   },
+  // Mismo estilo que "Ver en redes" de la cartelera, para que se reconozca como botón
   oscuro: {
-    principal: 'flex items-center gap-2 rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white',
-    opcion: 'flex items-center justify-center rounded-lg bg-white/10 px-3 py-2 text-xs font-medium text-white hover:bg-white/20',
-    cerrar: 'rounded-lg p-2 text-white/50 hover:bg-white/10',
+    principal: 'inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/10',
+    opcion: 'flex flex-1 items-center justify-center rounded-xl bg-white/10 px-3 py-2.5 text-sm font-medium text-white hover:bg-white/20',
+    cerrar: 'rounded-xl p-2.5 text-white/60 hover:bg-white/10',
   },
 };
 
@@ -28,9 +29,9 @@ export function BotonCalendario({ evento, variante = 'claro' }: Props) {
 
   if (!abierto) {
     return (
-      <button type="button" onClick={() => setAbierto(true)} className={estilo.principal} title="Agregar a mi calendario" aria-label="Agregar a mi calendario">
+      <button type="button" onClick={() => setAbierto(true)} className={estilo.principal} title="Agregar a mi calendario">
         <CalendarPlus className={variante === 'claro' ? 'h-5 w-5' : 'h-4 w-4'} />
-        {variante === 'claro' && 'Agregar a mi calendario'}
+        {variante === 'claro' ? 'Agregar a mi calendario' : variante === 'oscuro' && 'Agendar'}
       </button>
     );
   }

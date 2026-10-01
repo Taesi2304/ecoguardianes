@@ -22,6 +22,7 @@ interface Taller {
   lugar_maps_url: string | null;
   whatsapp_url: string | null;
   cupo: number | null;
+  costo: number | null;
   activo: boolean;
   registros_talleres: { count: number }[];
 }
@@ -45,6 +46,8 @@ interface FormularioTaller {
   lugar_maps_url: string;
   whatsapp_url: string;
   cupo: string;
+  conCosto: boolean;
+  costo: string;
   imagen: File | null;
 }
 
@@ -62,6 +65,8 @@ const formularioInicial: FormularioTaller = {
   lugar_maps_url: '',
   whatsapp_url: '',
   cupo: '',
+  conCosto: false,
+  costo: '',
   imagen: null,
 };
 
@@ -99,7 +104,7 @@ export default function AdminTalleres() {
 
     const { data, error: errorConsulta } = await supabase
       .from('talleres')
-      .select('id, titulo, facilitador, descripcion, imagen_url, fecha, hora_inicio, hora_fin, lugar, lugar_maps_url, whatsapp_url, cupo, activo, registros_talleres(count)')
+      .select('id, titulo, facilitador, descripcion, imagen_url, fecha, hora_inicio, hora_fin, lugar, lugar_maps_url, whatsapp_url, cupo, costo, activo, registros_talleres(count)')
       .order('fecha', { ascending: false });
 
     if (errorConsulta) {
@@ -139,6 +144,8 @@ export default function AdminTalleres() {
       lugar_maps_url: taller.lugar_maps_url || '',
       whatsapp_url: taller.whatsapp_url || '',
       cupo: taller.cupo ? String(taller.cupo) : '',
+      conCosto: taller.costo !== null,
+      costo: taller.costo !== null ? String(taller.costo) : '',
       imagen: null,
     });
     setFormularioAbierto(true);
@@ -178,6 +185,10 @@ export default function AdminTalleres() {
       toast.error('La hora de término debe ser después de la hora de inicio.');
       return;
     }
+    if (formulario.conCosto && !(Number(formulario.costo) > 0)) {
+      toast.error('Escribe el monto de la cuota de recuperación.');
+      return;
+    }
 
     setGuardando(true);
     let imagenSubida: { ruta: string; url: string } | null = null;
@@ -202,6 +213,7 @@ export default function AdminTalleres() {
         lugar_maps_url: formulario.lugar_maps_url.trim() || null,
         whatsapp_url: formulario.whatsapp_url.trim() || null,
         cupo: Number(formulario.cupo) > 0 ? Number(formulario.cupo) : null,
+        costo: formulario.conCosto ? Number(formulario.costo) : null,
         imagen_url: imagenUrl,
       };
 
@@ -372,6 +384,29 @@ export default function AdminTalleres() {
                   </label>
                 </div>
                 <p className="-mt-3 text-xs text-gray-500">El enlace de WhatsApp solo se muestra a quien ya se registró.</p>
+                <fieldset>
+                  <legend className="text-sm font-semibold text-gray-700">Costo</legend>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    {[{ valor: false, texto: 'Gratuito' }, { valor: true, texto: 'Cuota de recuperación' }].map(({ valor, texto }) => (
+                      <button
+                        key={texto}
+                        type="button"
+                        onClick={() => setFormulario((actual) => ({ ...actual, conCosto: valor }))}
+                        className={`rounded-lg border px-3 py-2 text-sm font-semibold ${formulario.conCosto === valor ? 'border-green-600 bg-green-50 text-green-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        {texto}
+                      </button>
+                    ))}
+                  </div>
+                  {formulario.conCosto && (
+                    <label className="mt-3 block text-sm font-semibold text-gray-700">Monto (MXN)
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 mt-1 -translate-y-1/2 text-gray-500">$</span>
+                        <input name="costo" type="number" min={1} step="0.01" value={formulario.costo} onChange={manejarCambio} placeholder="100" className={`${claseInput} pl-7`} required />
+                      </div>
+                    </label>
+                  )}
+                </fieldset>
               </div>
               <div className="space-y-4">
                 <label className="block text-sm font-semibold text-gray-700">Descripción (Opcional)
@@ -421,6 +456,7 @@ export default function AdminTalleres() {
                         <span className={`rounded-full px-2 py-0.5 ${lleno ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
                           {inscritos}{taller.cupo ? ` / ${taller.cupo}` : ''} inscritos
                         </span>
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-800">{taller.costo === null ? 'Gratuito' : `$${Number(taller.costo).toLocaleString('es-MX')}`}</span>
                       </div>
                     </div>
                     <div className="flex gap-1">

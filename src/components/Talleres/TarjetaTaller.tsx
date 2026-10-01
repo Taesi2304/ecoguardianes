@@ -1,6 +1,6 @@
-import { CalendarDays, Clock, MapPin, User } from 'lucide-react';
+import { CalendarDays, Clock, HandCoins, MapPin, User } from 'lucide-react';
 import { formatearFecha, formatearHora } from '@/lib/utils';
-import { lugaresDisponibles } from './talleres';
+import { lugaresDisponibles, textoCosto } from './talleres';
 import type { TallerPublico } from './talleres';
 
 
@@ -38,6 +38,7 @@ export function TarjetaTaller({ taller, onRegistrarme }: Props) {
               ? <a href={taller.lugar_maps_url} target="_blank" rel="noreferrer" className="underline decoration-[#2d6a4f]/40 hover:text-[#2d6a4f]">{taller.lugar}</a>
               : taller.lugar}
           </li>
+          <li className="flex items-center gap-2 font-semibold text-[#2d6a4f]"><HandCoins className="h-4 w-4 shrink-0" />{textoCosto(taller.costo)}</li>
         </ul>
 
         <button
