@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ExternalLink, Loader2, Plus } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { cargarCatalogos, cargarEdiciones } from '@/components/Cartelera/cartelera';
@@ -41,7 +41,7 @@ export default function AdminCartelera() {
       if (delEnlace) return delEnlace.id;
       return (lista.find((edicion) => edicion.es_actual) ?? lista[0])?.id ?? null;
     });
-  }, []);
+  }, [anioEnlace]);
 
   useEffect(() => {
     recargarCatalogos();

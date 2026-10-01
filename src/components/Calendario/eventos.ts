@@ -26,40 +26,41 @@ export interface EventoCalendario {
 }
 
 interface HorarioCartelera {
+  id: string;
   fecha: string;
   sede: string;
   hora_inicio: string;
   hora_fin: string | null;
+  participante: { id: string; nombre: string; subtitulo: string | null; descripcion: string | null };
   edicion: { nombre: string; anio: number } | null; // null si aún no se corre 18_ediciones_festival.sql
 }
 
 type Relacion<T> = T | T[] | null;
 const primero = <T,>(valor: Relacion<T>) => (Array.isArray(valor) ? valor[0] : valor) ?? null;
 
-// Horarios de participantes activos con la edición del festival a la que pertenecen
+type ParticipanteConEdicion = HorarioCartelera['participante'] & { festival_ediciones?: Relacion<{ nombre: string; anio: number }> };
+const CAMPOS_HORARIO = 'id, fecha, sede, hora_inicio, hora_fin';
+const CAMPOS_DEL_PARTICIPANTE = 'id, nombre, subtitulo, descripcion, activo';
+
+// Horarios de participantes activos, con quién se presenta y la edición del festival a la que pertenece
 async function cargarHorariosFestival(desde: string, hasta: string): Promise<HorarioCartelera[]> {
-  const conEdicion = await supabase
+  const consultar = (camposParticipante: string) => supabase
     .from('cartelera_horarios')
-    .select('fecha, sede, hora_inicio, hora_fin, cartelera_participantes!inner(activo, festival_ediciones(nombre, anio))')
+    .select(`${CAMPOS_HORARIO}, cartelera_participantes!inner(${camposParticipante})`)
     .eq('cartelera_participantes.activo', true)
     .gte('fecha', desde)
     .lte('fecha', hasta);
 
-  if (!conEdicion.error) {
-    return (conEdicion.data || []).map(({ cartelera_participantes, ...horario }) => ({
-      ...horario,
-      edicion: primero(primero(cartelera_participantes as Relacion<{ festival_ediciones: Relacion<{ nombre: string; anio: number }> }>)?.festival_ediciones ?? null),
-    }));
-  }
+  const conEdicion = await consultar(`${CAMPOS_DEL_PARTICIPANTE}, festival_ediciones(nombre, anio)`);
+  // Sin la tabla de ediciones (18_ediciones_festival.sql sin correr): los mismos datos sin edición
+  const { data } = conEdicion.error ? await consultar(CAMPOS_DEL_PARTICIPANTE) : conEdicion;
 
-  // Sin la tabla de ediciones: todos los horarios con el nombre de Página de inicio
-  const { data } = await supabase
-    .from('cartelera_horarios')
-    .select('fecha, sede, hora_inicio, hora_fin, cartelera_participantes!inner(activo)')
-    .eq('cartelera_participantes.activo', true)
-    .gte('fecha', desde)
-    .lte('fecha', hasta);
-  return (data || []).map(({ fecha, sede, hora_inicio, hora_fin }) => ({ fecha, sede, hora_inicio, hora_fin, edicion: null }));
+  return (data || []).flatMap(({ cartelera_participantes, ...horario }) => {
+    const participante = primero(cartelera_participantes as unknown as Relacion<ParticipanteConEdicion>);
+    if (!participante) return [];
+    const { id, nombre, subtitulo, descripcion } = participante;
+    return [{ ...horario, participante: { id, nombre, subtitulo, descripcion }, edicion: primero(participante.festival_ediciones ?? null) }];
+  });
 }
 
 const COLOR_SIN_CATEGORIA = '#9ca3af';
@@ -83,26 +84,22 @@ export async function cargarCategorias(): Promise<CategoriaCalendario[]> {
   return (data || []) as CategoriaCalendario[];
 }
 
-// Un evento por día del festival, con el nombre de su edición (Festival 2026, 2027…)
-function eventosDelFestival(horarios: HorarioCartelera[], nombrePorDefecto: string, categoria: CategoriaCalendario | null): EventoCalendario[] {
-  const porDia = new Map<string, HorarioCartelera[]>();
-  horarios.forEach((horario) => porDia.set(horario.fecha, [...(porDia.get(horario.fecha) || []), horario]));
-
-  return [...porDia.entries()].map(([fecha, delDia]) => {
-    const inicios = delDia.map((h) => h.hora_inicio).sort();
-    const fines = delDia.map((h) => h.hora_fin || h.hora_inicio).sort();
-    const edicion = delDia.find((h) => h.edicion)?.edicion;
+// Cada presentación de la Cartelera es un evento del calendario: se captura una sola vez, en la Cartelera.
+// El enlace lleva directo a la ficha del participante (y a su edición, si es de otro año)
+function eventosDelFestival(horarios: HorarioCartelera[], categoria: CategoriaCalendario | null): EventoCalendario[] {
+  return horarios.map(({ id, fecha, sede, hora_inicio, hora_fin, participante, edicion }) => {
+    const parametros = new URLSearchParams({ ...(edicion ? { edicion: String(edicion.anio) } : {}), p: participante.id });
     return {
-      id: `festival-${fecha}`,
-      titulo: edicion?.nombre ?? nombrePorDefecto,
+      id: `festival-${id}`,
+      titulo: participante.nombre,
       fecha,
-      hora_inicio: inicios[0],
-      hora_fin: fines[fines.length - 1],
-      lugar: [...new Set(delDia.map((h) => h.sede))].join(' · '),
+      hora_inicio,
+      hora_fin,
+      lugar: sede,
       categoria,
-      descripcion: `${delDia.length} actividad${delDia.length === 1 ? '' : 'es'} en la cartelera de este día.`,
-      enlace_url: edicion ? `/cartelera?edicion=${edicion.anio}` : '/cartelera',
-      texto_enlace: 'Ver cartelera',
+      descripcion: [participante.subtitulo, participante.descripcion, edicion && `Parte del ${edicion.nombre}.`].filter(Boolean).join('\n\n') || null,
+      enlace_url: `/cartelera?${parametros}`,
+      texto_enlace: 'Ver en la cartelera',
     };
   });
 }
@@ -125,7 +122,7 @@ export async function cargarEventos(desde: string, hasta: string, categorias?: C
     cargarHorariosFestival(desde, hasta),
     supabase
       .from('pagina_inicio')
-      .select('mostrar_cartelera, festival_nombre')
+      .select('mostrar_cartelera')
       .eq('id', 1)
       .maybeSingle(),
     supabase
@@ -156,7 +153,7 @@ export async function cargarEventos(desde: string, hasta: string, categorias?: C
 
   // Si la Cartelera está oculta en la página de inicio, el festival tampoco sale
   const deFestival = pagina.data?.mostrar_cartelera
-    ? eventosDelFestival(horarios, pagina.data.festival_nombre, porClave('festival'))
+    ? eventosDelFestival(horarios, porClave('festival'))
     : [];
 
   const deConvocatorias: EventoCalendario[] = (convocatorias.data || []).map((convocatoria) => ({

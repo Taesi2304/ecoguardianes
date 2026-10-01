@@ -293,8 +293,8 @@ export default function CarteleraPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Escritorio: panel fijo con los filtros y los datos de la ficha activa */}
           <div className="hidden lg:col-span-5 lg:block">
-            {/* pb-28: deja libre el alto de la barra de días */}
-            <div className="sticky top-0 flex h-svh items-center pb-28 pt-4">
+            {/* En escritorio la barra de días va bajo la columna derecha, así el panel ocupa todo el alto */}
+            <div className="sticky top-0 flex h-svh items-center pb-4 pt-4">
               <aside className="flex max-h-full w-full flex-col gap-3 overflow-hidden rounded-2xl border border-white/10 bg-[#10241b]/80 p-5 backdrop-blur-md">
                 <div className="flex-none space-y-2">
                   {filtros}
@@ -347,8 +347,9 @@ export default function CarteleraPage() {
 
       {/* Barra inferior de días (sale de las fechas de los horarios) */}
       {dias.length > 1 && (
-        <nav aria-label="Días del festival" className="fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
-          <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-[#f4f1ec]/95 p-1.5 shadow-2xl backdrop-blur">
+        <nav aria-label="Días del festival" className="pointer-events-none fixed inset-x-0 bottom-4 z-20 mx-auto grid max-w-7xl grid-cols-1 gap-8 px-3 lg:grid-cols-12 lg:px-8">
+          <div className="flex min-w-0 justify-center lg:col-span-7 lg:col-start-6">
+          <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-[#f4f1ec]/95 p-1.5 shadow-2xl backdrop-blur">
             {barra.map((dia) => {
               const diaActivo = dia === fecha;
               const color = dia ? COLORES_DIA[dias.indexOf(dia) % COLORES_DIA.length] : null;
@@ -367,6 +368,7 @@ export default function CarteleraPage() {
                 </button>
               );
             })}
+          </div>
           </div>
         </nav>
       )}

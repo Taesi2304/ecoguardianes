@@ -33,8 +33,7 @@ const ORIGENES = {
 type Origen = keyof typeof ORIGENES;
 const origenDe = (id: string) => (Object.keys(ORIGENES) as Origen[]).find((origen) => id.startsWith(`${origen}-`));
 
-// Un día del festival junta los horarios de varios participantes: se abre la Cartelera
-// filtrada en ese día (y en su edición) para editar cada presentación
+// Una presentación del festival se edita en la Cartelera, filtrada en ese día (y en su edición)
 function rutaOrigen(evento: Evento & { origen: Origen }) {
   if (evento.origen !== 'festival') return ORIGENES[evento.origen].ruta;
   const parametros = new URLSearchParams({ fecha: evento.fecha });
@@ -67,6 +66,22 @@ const formularioInicial: FormularioEvento = {
 
 const claseInput = 'mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none';
 const hoy = () => new Date().toLocaleDateString('en-CA');
+
+// Palabras con significado de un título, sin acentos ni mayúsculas ("Recorrido en Bici" → recorrido, bici)
+const palabrasClave = (texto: string) => texto
+  .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  .split(/[^a-z0-9ñ]+/)
+  .filter((palabra) => palabra.length > 3);
+
+// Un evento manual parece duplicado de uno automático si es el mismo día y comparten
+// la mayoría de las palabras del título más corto
+function pareceDuplicado(manual: Evento, automatico: Evento) {
+  if (manual.fecha !== automatico.fecha) return false;
+  const [corto, largo] = [palabrasClave(manual.titulo), palabrasClave(automatico.titulo)].sort((a, b) => a.length - b.length);
+  if (corto.length === 0) return false;
+  const enComun = corto.filter((palabra) => largo.includes(palabra)).length;
+  return enComun / corto.length >= 0.6;
+}
 
 // Categorías con que el Calendario muestra solo lo que viene de otras secciones (ver Calendario/eventos.ts)
 const CATEGORIAS_AUTOMATICAS: Record<string, string> = {
@@ -149,6 +164,12 @@ export default function AdminCalendario() {
     }, {});
   }, [eventos, automaticos, verPasados, diaFiltro, categoriaFiltro]);
   const hayFiltros = diaFiltro !== '' || categoriaFiltro !== '';
+
+  // Eventos manuales que ya salen solos desde otra sección: id del manual → sección de donde viene
+  const duplicados = useMemo(() => new Map(eventos.flatMap((manual) => {
+    const automatico = automaticos.find((candidato) => pareceDuplicado(manual, candidato));
+    return automatico?.origen ? [[manual.id, ORIGENES[automatico.origen].seccion] as const] : [];
+  })), [eventos, automaticos]);
 
   function cerrarFormulario() {
     setEditandoId(null);
@@ -392,7 +413,12 @@ export default function AdminCalendario() {
                         </p>
                         {evento.origen && (
                           <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                            Automático · {evento.origen === 'festival' ? `resume ${evento.descripcion?.replace(' en la cartelera de este día.', '') ?? 'los horarios'} de la Cartelera` : `viene de ${ORIGENES[evento.origen].seccion}`}
+                            Automático · viene de {ORIGENES[evento.origen].seccion}
+                          </span>
+                        )}
+                        {duplicados.has(evento.id) && (
+                          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800" title="Sale dos veces en el calendario público. Si es lo mismo, bórralo de aquí y edítalo solo en su sección.">
+                            <AlertCircle className="h-3.5 w-3.5" /> Posible duplicado: ya está en {duplicados.get(evento.id)}
                           </span>
                         )}
                       </div>

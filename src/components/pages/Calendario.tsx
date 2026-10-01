@@ -32,6 +32,16 @@ export default function Calendario() {
   const claveMes = aClave(mes);
   const cargando = mesCargado !== claveMes;
 
+  // Sube al volver a la pestaña: así se ven los cambios hechos en el admin sin recargar
+  const [recarga, setRecarga] = useState(0);
+  useEffect(() => {
+    const alVolver = () => {
+      if (document.visibilityState === 'visible') setRecarga((actual) => actual + 1);
+    };
+    document.addEventListener('visibilitychange', alVolver);
+    return () => document.removeEventListener('visibilitychange', alVolver);
+  }, []);
+
   useEffect(() => {
     let vigente = true;
     cargarEventos(aClave(dias[0]), aClave(dias[dias.length - 1])).then((resultado) => {
@@ -40,7 +50,7 @@ export default function Calendario() {
       setMesCargado(claveMes);
     });
     return () => { vigente = false; };
-  }, [dias, claveMes]);
+  }, [dias, claveMes, recarga]);
 
   const eventosPorDia = useMemo(() => eventos.reduce<Record<string, EventoCalendario[]>>((grupos, evento) => {
     (grupos[evento.fecha] ||= []).push(evento);
