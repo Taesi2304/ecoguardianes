@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, WheelEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Loader2, Map as MapIcon, Search, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Loader2, Map as MapIcon, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, etiquetaDia } from './cartelera';
 import type { Catalogo, Edicion, Participante } from './cartelera';
@@ -68,6 +68,8 @@ export default function CarteleraPage() {
   const [tipoId, setTipoId] = useState<string | null>(null);
   const [grupoId, setGrupoId] = useState<string | null>(null);
   const [fecha, setFecha] = useState<string | null>(null);
+  // En celular los filtros van plegados para que la lista quede a la vista
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   // ?p=<id> permite compartir el enlace a un participante; ?edicion=2026 muestra una edición anterior
   const [parametros, setParametros] = useSearchParams();
   const seleccionadoId = parametros.get('p');
@@ -143,14 +145,14 @@ export default function CarteleraPage() {
   const barra: (string | null)[] = [...dias.slice(0, mitad), null, ...dias.slice(mitad)];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#12261d] font-sans text-white">
+    <div className="relative min-h-screen overflow-x-clip bg-[#12261d] font-sans text-white">
       {!cargando && (
         <img src={edicion?.cartelera_fondo_url || FONDO_POR_DEFECTO} alt="" aria-hidden="true" className="fixed inset-0 h-full w-full object-cover" />
       )}
       {/* Velo verde bosque: deja ver la foto sin perder legibilidad */}
       <div className="fixed inset-0 bg-gradient-to-br from-[#0c1f16]/80 via-[#0c1f16]/45 to-[#0c1f16]/75" aria-hidden="true" />
 
-      <div className="relative z-10 flex h-screen flex-col px-4 pb-28 pt-4 lg:px-8">
+      <div className="relative z-10 flex min-h-screen flex-col px-4 pb-28 pt-4 lg:h-screen lg:px-8">
         <header className="mb-4 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white">
             <ArrowLeft className="h-4 w-4" /> FDMA
@@ -177,10 +179,24 @@ export default function CarteleraPage() {
           </div>
         )}
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(360px,40%)_1fr]">
+        <div className="grid flex-1 grid-cols-1 gap-6 lg:min-h-0 lg:grid-cols-[minmax(360px,40%)_1fr]">
           {/* Panel izquierdo: búsqueda, filtros y lista */}
           {/* Con la cartelera vacía, en celular se muestra la bienvenida en lugar de una lista vacía */}
-          <section className={`min-h-0 min-w-0 flex-col rounded-2xl bg-[#10241b]/70 p-6 backdrop-blur-md ${carteleraVacia ? 'hidden lg:flex' : 'flex'}`}>
+          <section className={`min-w-0 flex-col rounded-2xl bg-[#10241b]/70 p-6 backdrop-blur-md lg:min-h-0 ${carteleraVacia ? 'hidden lg:flex' : 'flex'}`}>
+            {/* Solo en celular: barra para mostrar u ocultar los filtros; queda fija arriba al bajar */}
+            <button
+              type="button"
+              onClick={() => setFiltrosAbiertos((abiertos) => !abiertos)}
+              aria-expanded={filtrosAbiertos}
+              className="sticky top-2 z-10 -mx-3 -mt-3 mb-3 flex items-center justify-between rounded-xl bg-[#0c1f16]/95 px-4 py-3 text-left shadow-lg backdrop-blur lg:hidden"
+            >
+              <span className="flex items-baseline gap-2 font-medium text-white">
+                Buscar y filtrar <span className="text-sm tabular-nums text-white/50">{filtrados.length}</span>
+              </span>
+              <ChevronDown className={`h-5 w-5 text-white/70 transition-transform ${filtrosAbiertos ? 'rotate-180' : ''}`} />
+            </button>
+
+            <div className={`${filtrosAbiertos ? 'block' : 'hidden'} lg:block`}>
             <label className="mb-5 block">
               <span className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Buscar</span>
               <span className="relative block">
@@ -232,9 +248,11 @@ export default function CarteleraPage() {
               </div>
             )}
 
-            <p className="mb-2 text-sm text-white/50">{filtrados.length} {filtrados.length === 1 ? 'participante' : 'participantes'}</p>
+            </div>
 
-            <div className="-mx-6 min-h-0 flex-1 overflow-y-auto border-t border-white/10 [scrollbar-color:rgba(255,255,255,0.4)_transparent] [scrollbar-width:thin]">
+            <p className="mb-2 hidden text-sm text-white/50 lg:block">{filtrados.length} {filtrados.length === 1 ? 'participante' : 'participantes'}</p>
+
+            <div className="-mx-6 border-t border-white/10 lg:min-h-0 lg:flex-1 lg:overflow-y-auto [scrollbar-color:rgba(255,255,255,0.4)_transparent] [scrollbar-width:thin]">
               {cargando ? (
                 <div className="flex justify-center p-10"><Loader2 className="h-7 w-7 animate-spin text-white/60" /></div>
               ) : filtrados.length === 0 ? (
@@ -257,7 +275,7 @@ export default function CarteleraPage() {
           </section>
 
           {/* Panel derecho (escritorio) */}
-          <div className={`min-h-0 min-w-0 lg:block ${carteleraVacia ? 'block' : 'hidden'}`}>
+          <div className={`min-w-0 lg:block lg:min-h-0 ${carteleraVacia ? 'block' : 'hidden'}`}>
             {enEscritorio ? (
               <DetalleParticipante key={enEscritorio.id} participante={enEscritorio} tipo={enEscritorio.tipo_id ? tiposPorId[enEscritorio.tipo_id] : undefined} />
             ) : !cargando && (
