@@ -111,11 +111,11 @@ export default function CarteleraPage() {
 
   const filtrados = useMemo(() => {
     const termino = normalizar(busqueda.trim());
-    // Primera hora del participante en el día elegido, para ordenar como programa del día
-    const horaDelDia = (participante: Participante) => participante.cartelera_horarios
-      .filter((horario) => horario.fecha === fecha)
-      .map((horario) => horario.hora_inicio)
-      .sort()[0] ?? '';
+    // Primer horario (fecha + hora) del participante; con un día elegido, solo los de ese día
+    const primerHorario = (participante: Participante) => participante.cartelera_horarios
+      .filter((horario) => !fecha || horario.fecha === fecha)
+      .map((horario) => `${horario.fecha} ${horario.hora_inicio}`)
+      .sort()[0];
 
     const resultado = participantes.filter((participante) => {
       if (tipoId && participante.tipo_id !== tipoId) return false;
@@ -127,7 +127,14 @@ export default function CarteleraPage() {
         .join(' ');
       return normalizar(texto).includes(termino);
     });
-    return fecha ? resultado.sort((a, b) => horaDelDia(a).localeCompare(horaDelDia(b))) : resultado;
+    // Como programa: primero lo que pasa antes; sin horario, al final. Los empates
+    // quedan por nombre porque la consulta ya llega así y sort no los mueve
+    return resultado.sort((a, b) => {
+      const claveA = primerHorario(a);
+      const claveB = primerHorario(b);
+      if (!claveA || !claveB) return claveA ? -1 : claveB ? 1 : 0;
+      return claveA.localeCompare(claveB);
+    });
   }, [participantes, busqueda, tipoId, grupoId, fecha]);
 
   const carteleraVacia = !cargando && participantes.length === 0;

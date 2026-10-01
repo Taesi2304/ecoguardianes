@@ -8,7 +8,7 @@ import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
 import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { formatearFecha, formatearHora } from '@/lib/utils';
-import { BUCKET_IMAGENES, CAMPOS_PARTICIPANTE, ordenarHorarios } from '@/components/Cartelera/cartelera';
+import { BUCKET_IMAGENES, CAMPOS_PARTICIPANTE, etiquetaDia, ordenarHorarios } from '@/components/Cartelera/cartelera';
 import type { Catalogo, Participante } from '@/components/Cartelera/cartelera';
 
 interface HorarioFormulario {
@@ -84,6 +84,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState(''); // '' = todos, 'sin' = sin tipo, o el id del tipo
+  const [fechaFiltro, setFechaFiltro] = useState(''); // '' = todas, 'sin' = sin horarios, o 'AAAA-MM-DD'
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -292,11 +293,22 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   }
 
   const termino = busqueda.trim().toLowerCase();
+  // Días con al menos una presentación, para el filtro por fecha
+  const dias = [...new Set(participantes.flatMap((participante) => participante.cartelera_horarios.map((horario) => horario.fecha)))].sort();
+  const diaElegido = fechaFiltro && fechaFiltro !== 'sin' ? fechaFiltro : null;
+  // Horarios que se muestran en la lista: con un día elegido, solo los de ese día
+  const horariosVisibles = (participante: Participante) => ordenarHorarios(participante.cartelera_horarios)
+    .filter((horario) => !diaElegido || horario.fecha === diaElegido);
+
   const filtrados = participantes.filter((participante) => {
     if (tipoFiltro === 'sin' ? participante.tipo_id : tipoFiltro && participante.tipo_id !== tipoFiltro) return false;
+    if (fechaFiltro === 'sin' && participante.cartelera_horarios.length > 0) return false;
+    if (diaElegido && horariosVisibles(participante).length === 0) return false;
     return !termino || `${participante.nombre} ${participante.subtitulo || ''}`.toLowerCase().includes(termino);
   });
-  const hayFiltros = termino !== '' || tipoFiltro !== '';
+  // Con un día elegido, la lista va como programa de ese día: por hora (empates por nombre)
+  if (diaElegido) filtrados.sort((a, b) => horariosVisibles(a)[0].hora_inicio.localeCompare(horariosVisibles(b)[0].hora_inicio));
+  const hayFiltros = termino !== '' || tipoFiltro !== '' || fechaFiltro !== '';
   const totalImagenes = formulario.imagenes.length + formulario.nuevasImagenes.length;
 
   return (
@@ -308,6 +320,11 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
             <option value="">Todos los tipos</option>
             {tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}
             <option value="sin">Sin tipo</option>
+          </select>
+          <select value={fechaFiltro} onChange={(e) => setFechaFiltro(e.target.value)} aria-label="Filtrar por fecha" className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 focus:border-green-500 focus:outline-none sm:w-48">
+            <option value="">Todas las fechas</option>
+            {dias.map((dia) => <option key={dia} value={dia}>{etiquetaDia(dia)} · {formatearFecha(dia)}</option>)}
+            <option value="sin">Sin horario</option>
           </select>
         </div>
         <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
@@ -429,7 +446,8 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
               {filtrados.map((participante) => {
                 const tipo = nombreCatalogo(tipos, participante.tipo_id);
                 const gruposDelParticipante = grupos.filter((grupo) => participante.grupo_ids.includes(grupo.id));
-                const primerHorario = ordenarHorarios(participante.cartelera_horarios)[0];
+                const visibles = horariosVisibles(participante);
+                const primerHorario = visibles[0];
                 return (
                   <li key={participante.id} className={`flex items-center gap-4 px-6 py-3 ${participante.activo ? '' : 'opacity-50'}`}>
                     {participante.imagenes[0]
@@ -444,9 +462,9 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                           <span key={grupo.id} className="flex items-center gap-1 text-gray-600"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />{grupo.nombre}</span>
                         ))}
                         <span className="text-gray-500">
-                          {participante.cartelera_horarios.length === 0
+                          {!primerHorario
                             ? 'Sin horarios'
-                            : `${formatearFecha(primerHorario.fecha)} ${formatearHora(primerHorario.hora_inicio)}${participante.cartelera_horarios.length > 1 ? ` (+${participante.cartelera_horarios.length - 1})` : ''}`}
+                            : `${formatearFecha(primerHorario.fecha)} ${formatearHora(primerHorario.hora_inicio)}${visibles.length > 1 ? ` (+${visibles.length - 1})` : ''}`}
                         </span>
                       </div>
                     </div>

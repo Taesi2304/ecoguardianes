@@ -12,6 +12,7 @@ export const Registro = () => {
   const [codigo, setCodigo] = useState('');
   const [coloniaId, setColoniaId] = useState<string | null>(null);
   const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -32,12 +33,8 @@ export const Registro = () => {
     setError(null);
 
     try {
-      const { data, error: dbError } = await supabase
-        .from('colonias')
-        .select('id, nombre')
-        .eq('codigo_acceso_colonia', codigo.trim())
-        .eq('activo', true)
-        .single();
+      // La base valida el código sin dejar ver los códigos de las demás colonias
+      const { data, error: dbError } = await supabase.rpc('validar_codigo_colonia', { p_codigo: codigo.trim() });
 
       if (dbError || !data) {
         throw new Error('Código inválido o inactivo. Verifica con tu administrador.');
@@ -60,6 +57,9 @@ export const Registro = () => {
     try {
       if (!coloniaId) {
         throw new Error('Primero valida el código de tu colonia.');
+      }
+      if (!aceptaTerminos) {
+        throw new Error('Para crear tu cuenta debes aceptar los Términos y Condiciones y el Aviso de Privacidad.');
       }
 
       // --- VALIDACIÓN DE CONTRASEÑA ---
@@ -92,6 +92,8 @@ export const Registro = () => {
             auth_user_id: authData.user.id,
             rol_id: rolData.id,
             colonia_id: coloniaId,
+            // La base vuelve a revisar que el código corresponda a la colonia
+            codigo_acceso: codigo.trim(),
             nombre: formData.nombre,
             apellido_paterno: formData.apellido_paterno,
             apellido_materno: formData.apellido_materno,
@@ -233,10 +235,26 @@ export const Registro = () => {
               </div>
             </label>
 
+            <label className="flex items-start gap-3 pt-2 text-sm text-[#4A2E18]/80">
+              <input
+                type="checkbox"
+                checked={aceptaTerminos}
+                onChange={(e) => setAceptaTerminos(e.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#2D7A3E]"
+              />
+              <span>
+                He leído y acepto los{' '}
+                <Link to="/terminos-condiciones" target="_blank" className="font-bold text-[#2D7A3E] hover:underline">Términos y Condiciones</Link>
+                {' '}y el{' '}
+                <Link to="/aviso-privacidad" target="_blank" className="font-bold text-[#2D7A3E] hover:underline">Aviso de Privacidad</Link>.
+              </span>
+            </label>
+
             <div className="pt-4">
-              <button 
-                type="submit" 
-                disabled={loading}
+              <button
+                type="submit"
+                disabled={loading || !aceptaTerminos}
                 className="w-full bg-[#2D7A3E] text-white py-3 px-6 rounded-full font-bold shadow-lg hover:bg-[#235E30] transition-colors disabled:opacity-70"
               >
                 <span>{loading ? 'Registrando...' : 'Completar Registro'}</span>
