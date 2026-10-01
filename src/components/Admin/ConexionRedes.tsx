@@ -78,8 +78,12 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
       console.error(error);
       toast.error('No se pudo sincronizar.');
     } else {
-      const nuevas = (data as { nuevas?: number })?.nuevas ?? 0;
-      toast.success(nuevas === 0 ? 'Todo al día: no hay publicaciones nuevas.' : `${nuevas} publicación(es) nueva(s).`);
+      const { nuevas = 0, repetidas = 0 } = (data as { nuevas?: number; repetidas?: number }) ?? {};
+      const partes = [
+        nuevas === 0 ? 'Todo al día: no hay publicaciones nuevas.' : `${nuevas} publicación(es) nueva(s).`,
+        repetidas > 0 ? `Se ocultaron ${repetidas} de Facebook que ya estaban en Instagram.` : '',
+      ];
+      toast.success(partes.filter(Boolean).join(' '));
       onSincronizado();
     }
     await cargarEstado();
@@ -145,7 +149,7 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
                     {estado?.ig_usuario && <> y a @{estado.ig_usuario}</>}
                   </p>
                   <p className="mt-1 text-green-800">
-                    Las publicaciones nuevas llegan solas cada 6 horas.
+                    Las publicaciones nuevas llegan solas cada hora. Si algo se publicó igual en Facebook e Instagram, se muestra solo la de Instagram.
                     {estado?.ultima_sincronizacion && <> Última revisión: {formatearFechaHora(estado.ultima_sincronizacion).replace(/\.?$/, '.')}</>}
                   </p>
                   {!estado?.ig_usuario && (
