@@ -83,6 +83,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
+  const [tipoFiltro, setTipoFiltro] = useState(''); // '' = todos, 'sin' = sin tipo, o el id del tipo
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -291,15 +292,24 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   }
 
   const termino = busqueda.trim().toLowerCase();
-  const filtrados = termino
-    ? participantes.filter((participante) => `${participante.nombre} ${participante.subtitulo || ''}`.toLowerCase().includes(termino))
-    : participantes;
+  const filtrados = participantes.filter((participante) => {
+    if (tipoFiltro === 'sin' ? participante.tipo_id : tipoFiltro && participante.tipo_id !== tipoFiltro) return false;
+    return !termino || `${participante.nombre} ${participante.subtitulo || ''}`.toLowerCase().includes(termino);
+  });
+  const hayFiltros = termino !== '' || tipoFiltro !== '';
   const totalImagenes = formulario.imagenes.length + formulario.nuevasImagenes.length;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar participante..." className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none sm:max-w-xs" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar participante..." className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none sm:w-64" />
+          <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} aria-label="Filtrar por tipo de actividad" className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 focus:border-green-500 focus:outline-none sm:w-52">
+            <option value="">Todos los tipos</option>
+            {tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}
+            <option value="sin">Sin tipo</option>
+          </select>
+        </div>
         <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
           <Plus className="h-5 w-5" /> Nuevo participante
         </button>
@@ -410,7 +420,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
       )}
 
       <Card className="overflow-hidden border-transparent bg-white shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Participantes ({participantes.length})</CardTitle></CardHeader>
+        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Participantes ({hayFiltros ? `${filtrados.length} de ${participantes.length}` : participantes.length})</CardTitle></CardHeader>
         <CardContent className="p-0">
           {cargando ? (
             <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div>

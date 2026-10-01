@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode, WheelEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Download, Loader2, Map as MapIcon, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +14,47 @@ const FONDO_POR_DEFECTO = '/galeria/foto3.jpeg';
 
 // Colores de los días del cartel del festival (15, 16, 17, 18); si hay más días se repiten
 const COLORES_DIA = ['#3fb6c9', '#f2c14e', '#8bc34a', '#e07b39'];
+
+// Fila de botones que se desliza de lado sin barra de desplazamiento visible.
+// La orilla se desvanece solo del lado donde hay más botones escondidos.
+function FilaDeslizable({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [mas, setMas] = useState({ izquierda: false, derecha: false });
+
+  const medir = useCallback(() => {
+    const fila = ref.current;
+    if (!fila) return;
+    const izquierda = fila.scrollLeft > 2;
+    const derecha = fila.scrollLeft + fila.clientWidth < fila.scrollWidth - 2;
+    setMas((actual) => actual.izquierda === izquierda && actual.derecha === derecha ? actual : { izquierda, derecha });
+  }, []);
+
+  // Se vuelve a medir en cada render (cambian los botones) y al cambiar el tamaño de la ventana
+  useEffect(medir);
+  useEffect(() => {
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [medir]);
+
+  // Con mouse, la rueda vertical también desliza la fila
+  function manejarRueda(e: WheelEvent<HTMLDivElement>) {
+    if (ref.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) ref.current.scrollLeft += e.deltaY;
+  }
+
+  const mascara = `linear-gradient(to right, ${mas.izquierda ? 'transparent, black 40px' : 'black'}, ${mas.derecha ? 'black calc(100% - 40px), transparent' : 'black'})`;
+
+  return (
+    <div
+      ref={ref}
+      onScroll={medir}
+      onWheel={manejarRueda}
+      className="-mx-1 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      style={{ maskImage: mascara, WebkitMaskImage: mascara }}
+    >
+      {children}
+    </div>
+  );
+}
 
 const normalizar =(texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -158,7 +200,7 @@ export default function CarteleraPage() {
             {tiposConParticipantes.length > 0 && (
               <div className="mb-3 border-t border-white/10 pt-5">
                 <span className="mb-3 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Actividad</span>
-                <div className="-mx-1 flex gap-1 overflow-x-auto pb-1">
+                <FilaDeslizable>
                   {[{ id: null, nombre: 'Todas' }, ...tiposConParticipantes].map((tipo) => (
                     <button
                       key={tipo.id ?? 'todas'}
@@ -168,14 +210,14 @@ export default function CarteleraPage() {
                       {tipo.nombre}
                     </button>
                   ))}
-                </div>
+                </FilaDeslizable>
               </div>
             )}
 
             {gruposConParticipantes.length > 0 && (
               <div className="mb-3">
                 <span className="mb-3 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Grupo</span>
-                <div className="-mx-1 flex gap-1 overflow-x-auto pb-1">
+                <FilaDeslizable>
                   {[{ id: null, nombre: 'Todos', color: null }, ...gruposConParticipantes].map((grupo) => (
                     <button
                       key={grupo.id ?? 'todos'}
@@ -186,7 +228,7 @@ export default function CarteleraPage() {
                       {grupo.nombre}
                     </button>
                   ))}
-                </div>
+                </FilaDeslizable>
               </div>
             )}
 
@@ -238,7 +280,7 @@ export default function CarteleraPage() {
       {/* Barra inferior de días (sale de las fechas de los horarios) */}
       {dias.length > 1 && (
         <nav aria-label="Días del festival" className="fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
-          <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-[#f4f1ec]/95 p-1.5 shadow-2xl backdrop-blur">
+          <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-[#f4f1ec]/95 p-1.5 shadow-2xl backdrop-blur">
             {barra.map((dia) => {
               const activo = dia === fecha;
               const color = dia ? COLORES_DIA[dias.indexOf(dia) % COLORES_DIA.length] : null;
