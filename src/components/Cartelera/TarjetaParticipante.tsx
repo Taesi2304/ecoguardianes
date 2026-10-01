@@ -12,11 +12,12 @@ interface Props {
   tipo?: Catalogo;
   seleccionado: boolean;
   onSeleccionar: () => void;
+  fecha?: string | null; // Día elegido en la barra: se abre en su primer horario de ese día
 }
 
-export function TarjetaParticipante({ participante, tipo, seleccionado, onSeleccionar }: Props) {
+export function TarjetaParticipante({ participante, tipo, seleccionado, onSeleccionar, fecha }: Props) {
   const horarios = ordenarHorarios(participante.cartelera_horarios);
-  const [pagina, setPagina] = useState(0);
+  const [pagina, setPagina] = useState(() => Math.max(horarios.findIndex((horario) => horario.fecha === fecha), 0));
   const horario = horarios[pagina];
 
   return (

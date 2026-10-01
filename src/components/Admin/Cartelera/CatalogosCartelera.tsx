@@ -20,7 +20,7 @@ export function CatalogosCartelera({ tipos, grupos, onCambio }: Props) {
       />
       <EditorCatalogo
         titulo="Grupos"
-        descripcion="Barra inferior (Colectivos, Ponentes...). El orden de la lista es el de la barra."
+        descripcion="Filtro «Grupo» (Colectivos, Ponentes...). Un participante puede estar en varios. El orden de la lista es el de los botones."
         tabla="cartelera_grupos"
         items={grupos}
         avisoEliminar="Los participantes que lo usan quedarán sin grupo."

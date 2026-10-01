@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Download, Loader2, Map as MapIcon, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion } from './cartelera';
+import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, etiquetaDia } from './cartelera';
 import type { Catalogo, Edicion, Participante } from './cartelera';
 import { TarjetaParticipante } from './TarjetaParticipante';
 import { DetalleParticipante } from './DetalleParticipante';
@@ -11,7 +11,10 @@ import { Bienvenida } from './Bienvenida';
 // Mientras FDMA no suba su propia foto en Admin → Cartelera → Ajustes
 const FONDO_POR_DEFECTO = '/galeria/foto3.jpeg';
 
-const normalizar = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Colores de los días del cartel del festival (15, 16, 17, 18); si hay más días se repiten
+const COLORES_DIA = ['#3fb6c9', '#f2c14e', '#8bc34a', '#e07b39'];
+
+const normalizar =(texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export default function CarteleraPage() {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
@@ -22,6 +25,7 @@ export default function CarteleraPage() {
   const [busqueda, setBusqueda] = useState('');
   const [tipoId, setTipoId] = useState<string | null>(null);
   const [grupoId, setGrupoId] = useState<string | null>(null);
+  const [fecha, setFecha] = useState<string | null>(null);
   // ?p=<id> permite compartir el enlace a un participante; ?edicion=2026 muestra una edición anterior
   const [parametros, setParametros] = useSearchParams();
   const seleccionadoId = parametros.get('p');
@@ -54,19 +58,34 @@ export default function CarteleraPage() {
 
   // Solo se muestran como filtro los tipos que tienen participantes
   const tiposConParticipantes = tipos.filter((tipo) => participantes.some((participante) => participante.tipo_id === tipo.id));
+  const gruposConParticipantes = grupos.filter((grupo) => participantes.some((participante) => participante.grupo_ids.includes(grupo.id)));
+
+  // Los días salen solos de los horarios: una actividad de dos días aparece en ambos
+  const dias = useMemo(
+    () => [...new Set(participantes.flatMap((participante) => participante.cartelera_horarios.map((horario) => horario.fecha)))].sort(),
+    [participantes],
+  );
 
   const filtrados = useMemo(() => {
     const termino = normalizar(busqueda.trim());
-    return participantes.filter((participante) => {
+    // Primera hora del participante en el día elegido, para ordenar como programa del día
+    const horaDelDia = (participante: Participante) => participante.cartelera_horarios
+      .filter((horario) => horario.fecha === fecha)
+      .map((horario) => horario.hora_inicio)
+      .sort()[0] ?? '';
+
+    const resultado = participantes.filter((participante) => {
       if (tipoId && participante.tipo_id !== tipoId) return false;
-      if (grupoId && participante.grupo_id !== grupoId) return false;
+      if (grupoId && !participante.grupo_ids.includes(grupoId)) return false;
+      if (fecha && !participante.cartelera_horarios.some((horario) => horario.fecha === fecha)) return false;
       if (!termino) return true;
       const texto = [participante.nombre, participante.subtitulo, participante.procedencia, ...participante.cartelera_horarios.map((horario) => horario.sede)]
         .filter(Boolean)
         .join(' ');
       return normalizar(texto).includes(termino);
     });
-  }, [participantes, busqueda, tipoId, grupoId]);
+    return fecha ? resultado.sort((a, b) => horaDelDia(a).localeCompare(horaDelDia(b))) : resultado;
+  }, [participantes, busqueda, tipoId, grupoId, fecha]);
 
   const carteleraVacia = !cargando && participantes.length === 0;
   const seleccionado = participantes.find((participante) => participante.id === seleccionadoId);
@@ -77,10 +96,9 @@ export default function CarteleraPage() {
     setParametros({ ...(anioEdicion ? { edicion: String(anioEdicion) } : {}), ...(id ? { p: id } : {}) }, { replace: true });
   }
 
-  // La barra inferior pone "Todos" al centro, como "Inicio" en la referencia; solo grupos con participantes
-  const gruposConParticipantes = grupos.filter((grupo) => participantes.some((participante) => participante.grupo_id === grupo.id));
-  const mitad = Math.ceil(gruposConParticipantes.length / 2);
-  const barra: (Catalogo | null)[] = [...gruposConParticipantes.slice(0, mitad), null, ...gruposConParticipantes.slice(mitad)];
+  // La barra inferior pone "Todos" al centro, como "Inicio" en la referencia
+  const mitad = Math.ceil(dias.length / 2);
+  const barra: (string | null)[] = [...dias.slice(0, mitad), null, ...dias.slice(mitad)];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#12261d] font-sans text-white">
@@ -154,6 +172,24 @@ export default function CarteleraPage() {
               </div>
             )}
 
+            {gruposConParticipantes.length > 0 && (
+              <div className="mb-3">
+                <span className="mb-3 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Grupo</span>
+                <div className="-mx-1 flex gap-1 overflow-x-auto pb-1">
+                  {[{ id: null, nombre: 'Todos', color: null }, ...gruposConParticipantes].map((grupo) => (
+                    <button
+                      key={grupo.id ?? 'todos'}
+                      onClick={() => setGrupoId(grupo.id)}
+                      className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm transition ${grupoId === grupo.id ? 'bg-white/90 text-[#1a1716]' : 'text-white/80 hover:bg-white/10'}`}
+                    >
+                      {grupo.color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />}
+                      {grupo.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <p className="mb-2 text-sm text-white/50">{filtrados.length} {filtrados.length === 1 ? 'participante' : 'participantes'}</p>
 
             <div className="-mx-6 min-h-0 flex-1 overflow-y-auto border-t border-white/10 [scrollbar-color:rgba(255,255,255,0.4)_transparent] [scrollbar-width:thin]">
@@ -165,8 +201,9 @@ export default function CarteleraPage() {
                 <div className="pl-2">
                   {filtrados.map((participante) => (
                     <TarjetaParticipante
-                      key={participante.id}
+                      key={`${participante.id}-${fecha ?? 'todos'}`}
                       participante={participante}
+                      fecha={fecha}
                       tipo={participante.tipo_id ? tiposPorId[participante.tipo_id] : undefined}
                       seleccionado={participante.id === enEscritorio?.id}
                       onSeleccionar={() => seleccionar(participante.id)}
@@ -198,23 +235,25 @@ export default function CarteleraPage() {
         </div>
       )}
 
-      {/* Barra inferior de grupos */}
-      {gruposConParticipantes.length > 0 && (
-        <nav aria-label="Grupos de participantes" className="fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
+      {/* Barra inferior de días (sale de las fechas de los horarios) */}
+      {dias.length > 1 && (
+        <nav aria-label="Días del festival" className="fixed inset-x-0 bottom-4 z-20 flex justify-center px-3">
           <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-[#f4f1ec]/95 p-1.5 shadow-2xl backdrop-blur">
-            {barra.map((grupo) => {
-              const activo = (grupo?.id ?? null) === grupoId;
+            {barra.map((dia) => {
+              const activo = dia === fecha;
+              const color = dia ? COLORES_DIA[dias.indexOf(dia) % COLORES_DIA.length] : null;
               return (
                 <button
-                  key={grupo?.id ?? 'todos'}
-                  onClick={() => setGrupoId(grupo?.id ?? null)}
+                  key={dia ?? 'todos'}
+                  onClick={() => setFecha(dia)}
+                  aria-pressed={activo}
                   className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition sm:px-5 sm:text-base ${
                     activo ? 'text-[#1a1716] shadow-[0_0_0_3px_#1a1716]' : 'text-[#1a1716]/80 hover:bg-black/5'
                   }`}
-                  style={activo && grupo ? { backgroundColor: grupo.color } : activo ? { backgroundColor: '#ffffff' } : undefined}
+                  style={activo ? { backgroundColor: color ?? '#ffffff' } : undefined}
                 >
-                  {grupo && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: activo ? '#1a1716' : grupo.color }} />}
-                  {grupo?.nombre ?? 'Todos'}
+                  {color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: activo ? '#1a1716' : color }} />}
+                  {dia ? etiquetaDia(dia) : 'Todos'}
                 </button>
               );
             })}

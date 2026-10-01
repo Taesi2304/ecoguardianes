@@ -21,7 +21,7 @@ export interface Participante {
   subtitulo: string | null;
   descripcion: string | null;
   tipo_id: string | null;
-  grupo_id: string | null;
+  grupo_ids: string[];
   procedencia: string | null;
   imagenes: string[];
   enlace_url: string | null;
@@ -59,7 +59,13 @@ export async function cargarEdicion(anio?: number): Promise<Edicion | null> {
 export const BUCKET_IMAGENES = 'imagenes_cartelera';
 export const BUCKET_PDF = 'archivos_festival';
 
-export const CAMPOS_PARTICIPANTE = 'id, nombre, subtitulo, descripcion, tipo_id, grupo_id, procedencia, imagenes, enlace_url, activo, cartelera_horarios(id, sede, fecha, hora_inicio, hora_fin)';
+export const CAMPOS_PARTICIPANTE = 'id, nombre, subtitulo, descripcion, tipo_id, grupo_ids, procedencia, imagenes, enlace_url, activo, cartelera_horarios(id, sede, fecha, hora_inicio, hora_fin)';
+
+// '2026-10-17' → 'Sáb 17' (se lee como fecha local para que no se recorra un día)
+export function etiquetaDia(fecha: string) {
+  const texto = new Date(`${fecha}T00:00`).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }).replace('.', '').replace(',', '');
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 
 export const ordenarHorarios = (horarios: Horario[]) =>
   [...horarios].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio));

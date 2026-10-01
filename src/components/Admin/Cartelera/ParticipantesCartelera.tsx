@@ -24,7 +24,7 @@ interface FormularioParticipante {
   subtitulo: string;
   descripcion: string;
   tipo_id: string;
-  grupo_id: string;
+  grupo_ids: string[];
   procedencia: string;
   enlace_url: string;
   imagenes: string[];
@@ -43,7 +43,7 @@ const formularioInicial = (): FormularioParticipante => ({
   subtitulo: '',
   descripcion: '',
   tipo_id: '',
-  grupo_id: '',
+  grupo_ids: [],
   procedencia: '',
   enlace_url: '',
   imagenes: [],
@@ -133,7 +133,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
       subtitulo: participante.subtitulo || '',
       descripcion: participante.descripcion || '',
       tipo_id: participante.tipo_id || '',
-      grupo_id: participante.grupo_id || '',
+      grupo_ids: participante.grupo_ids,
       procedencia: participante.procedencia || '',
       enlace_url: participante.enlace_url || '',
       imagenes: participante.imagenes,
@@ -155,6 +155,13 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setFormulario((actual) => ({ ...actual, [name]: value }));
+  }
+
+  function alternarGrupo(id: string) {
+    setFormulario((actual) => ({
+      ...actual,
+      grupo_ids: actual.grupo_ids.includes(id) ? actual.grupo_ids.filter((item) => item !== id) : [...actual.grupo_ids, id],
+    }));
   }
 
   function cambiarHorario(clave: string, campo: keyof Omit<HorarioFormulario, 'clave'>, valor: string) {
@@ -206,7 +213,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
         subtitulo: formulario.subtitulo.trim() || null,
         descripcion: formulario.descripcion.trim() || null,
         tipo_id: formulario.tipo_id || null,
-        grupo_id: formulario.grupo_id || null,
+        grupo_ids: formulario.grupo_ids,
         procedencia: formulario.procedencia.trim() || null,
         enlace_url: formulario.enlace_url.trim() || null,
         imagenes: [...formulario.imagenes, ...subidas],
@@ -324,13 +331,20 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                       </select>
                       <span className={claseAyuda}>Qué hace: Taller, Ponencia, Música… Se usa en el filtro «Actividad» y en la etiqueta de color.</span>
                     </label>
-                    <label className="block text-sm font-semibold text-gray-700">Grupo
-                      <select name="grupo_id" value={formulario.grupo_id} onChange={manejarCambio} className={`${claseInput} bg-white`}>
-                        <option value="">Sin grupo</option>
-                        {grupos.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
-                      </select>
-                      <span className={claseAyuda}>A qué sección pertenece: Talleristas, Infantil, Feria… Aparece en la barra de abajo de la cartelera.</span>
-                    </label>
+                    <fieldset className="text-sm font-semibold text-gray-700">
+                      <legend>Grupos</legend>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 rounded-lg border border-gray-300 px-3 py-2">
+                        {grupos.length === 0 && <span className="font-normal text-gray-500">Aún no hay grupos.</span>}
+                        {grupos.map((grupo) => (
+                          <label key={grupo.id} className="flex cursor-pointer items-center gap-2 font-normal">
+                            <input type="checkbox" checked={formulario.grupo_ids.includes(grupo.id)} onChange={() => alternarGrupo(grupo.id)} className="h-4 w-4 accent-green-600" />
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />
+                            {grupo.nombre}
+                          </label>
+                        ))}
+                      </div>
+                      <span className={claseAyuda}>Puede estar en varios: Talleristas, Colectivos… Se usa en el filtro «Grupo» de la cartelera. Los días salen solos de los horarios.</span>
+                    </fieldset>
                   </div>
                   <label className="block text-sm font-semibold text-gray-700">Procedencia
                     <input name="procedencia" value={formulario.procedencia} onChange={manejarCambio} maxLength={100} placeholder="Tampico" className={claseInput} />
@@ -406,7 +420,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
             <ul className="divide-y divide-gray-100">
               {filtrados.map((participante) => {
                 const tipo = nombreCatalogo(tipos, participante.tipo_id);
-                const grupo = nombreCatalogo(grupos, participante.grupo_id);
+                const gruposDelParticipante = grupos.filter((grupo) => participante.grupo_ids.includes(grupo.id));
                 const primerHorario = ordenarHorarios(participante.cartelera_horarios)[0];
                 return (
                   <li key={participante.id} className={`flex items-center gap-4 px-6 py-3 ${participante.activo ? '' : 'opacity-50'}`}>
@@ -418,7 +432,9 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                       {participante.subtitulo && <p className="truncate text-sm text-gray-500">{participante.subtitulo}</p>}
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                         {tipo && <span className="rounded-full px-2 py-0.5 font-semibold text-white" style={{ backgroundColor: tipo.color }}>{tipo.nombre}</span>}
-                        {grupo && <span className="flex items-center gap-1 text-gray-600"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />{grupo.nombre}</span>}
+                        {gruposDelParticipante.map((grupo) => (
+                          <span key={grupo.id} className="flex items-center gap-1 text-gray-600"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: grupo.color }} />{grupo.nombre}</span>
+                        ))}
                         <span className="text-gray-500">
                           {participante.cartelera_horarios.length === 0
                             ? 'Sin horarios'
