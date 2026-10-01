@@ -29,7 +29,7 @@ export function DetalleParticipante({ participante, tipo }: Props) {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {participante.imagenes.length > 0 && (
-          // Galería horizontal: cada foto conserva su proporción
+          // Galería horizontal: todas las fotos en un marco del mismo tamaño (3:4)
           <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 [scrollbar-width:thin]">
             {participante.imagenes.map((url, indice) => (
               <img
@@ -37,7 +37,7 @@ export function DetalleParticipante({ participante, tipo }: Props) {
                 src={url}
                 alt={`${participante.nombre} — foto ${indice + 1}`}
                 loading={indice === 0 ? 'eager' : 'lazy'}
-                className={`w-auto shrink-0 snap-start rounded-xl object-cover ${indice % 2 === 1 ? 'h-80 md:h-[26rem]' : 'mt-6 h-72 md:h-96'}`}
+                className="aspect-[3/4] w-[75%] shrink-0 snap-start rounded-xl bg-black/20 object-cover sm:w-64 md:w-72"
               />
             ))}
           </div>
