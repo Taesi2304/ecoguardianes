@@ -15,15 +15,15 @@ export function CatalogosCartelera({ tipos, grupos, onCambio }: Props) {
         descripcion="Filtros de arriba (Taller, Ponencia...). El color se usa en la etiqueta."
         tabla="cartelera_tipos"
         items={tipos}
-        avisoEliminar="Los participantes que lo usan quedarán sin tipo."
+        avisoEliminar="Las actividades que lo usan quedarán sin tipo."
         onCambio={onCambio}
       />
       <EditorCatalogo
         titulo="Grupos"
-        descripcion="Filtro «Grupo» (Colectivos, Ponentes...). Un participante puede estar en varios. El orden de la lista es el de los botones."
+        descripcion="Filtro «Grupo» (Colectivos, Ponentes...). Una actividad puede estar en varios. El orden de la lista es el de los botones."
         tabla="cartelera_grupos"
         items={grupos}
-        avisoEliminar="Los participantes que lo usan quedarán sin grupo."
+        avisoEliminar="Las actividades que lo usan quedarán sin grupo."
         onCambio={onCambio}
       />
     </div>

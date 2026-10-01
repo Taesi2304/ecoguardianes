@@ -70,7 +70,7 @@ export function AjustesCartelera({ edicion, onCambio, onEliminada }: Props) {
 
   async function eliminarEdicion() {
     const confirmacion = window.prompt(
-      `Se eliminará la edición ${edicion.anio} con TODOS sus participantes y horarios. Esta acción no se puede deshacer.\n\nEscribe ${edicion.anio} para confirmar:`,
+      `Se eliminará la edición ${edicion.anio} con TODAS sus actividades y horarios. Esta acción no se puede deshacer.\n\nEscribe ${edicion.anio} para confirmar:`,
     );
     if (confirmacion !== String(edicion.anio)) return;
 
@@ -182,7 +182,7 @@ export function AjustesCartelera({ edicion, onCambio, onEliminada }: Props) {
 
       {!edicion.es_actual && (
         <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50/60 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between">
-          <span>Eliminar esta edición borra también sus participantes y horarios.</span>
+          <span>Eliminar esta edición borra también sus actividades y horarios.</span>
           <button onClick={eliminarEdicion} className="flex shrink-0 items-center justify-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2 font-semibold text-red-700 hover:bg-red-100">
             <Trash2 className="h-4 w-4" /> Eliminar edición {edicion.anio}
           </button>

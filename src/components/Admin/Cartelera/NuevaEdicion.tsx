@@ -49,7 +49,7 @@ export function NuevaEdicion({ ediciones, onCerrar, onCreada }: Props) {
       if (copiarDe) {
         const { data: copiados, error: errorCopia } = await supabase.rpc('copiar_participantes_edicion', { p_origen: copiarDe, p_destino: data.id });
         if (errorCopia) throw errorCopia;
-        toast.success(`Se copiaron ${copiados} participante(s). Agrega sus horarios de este año.`);
+        toast.success(`Se copiaron ${copiados} actividad(es). Agrega sus horarios de este año.`);
       }
 
       if (marcarActual) {
@@ -86,7 +86,7 @@ export function NuevaEdicion({ ediciones, onCerrar, onCreada }: Props) {
           </div>
 
           {ediciones.length > 0 && (
-            <label className="block text-sm font-semibold text-gray-700">Copiar participantes de
+            <label className="block text-sm font-semibold text-gray-700">Copiar actividades de
               <select value={copiarDe} onChange={(e) => setCopiarDe(e.target.value)} className={`${claseInput} bg-white`}>
                 <option value="">No copiar (empezar vacía)</option>
                 {ediciones.map((edicion) => <option key={edicion.id} value={edicion.id}>Edición {edicion.anio}</option>)}

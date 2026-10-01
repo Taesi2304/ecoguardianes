@@ -117,7 +117,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
     const { data, error: errorConsulta } = await consulta;
 
     if (errorConsulta) {
-      setError('No se pudieron cargar los participantes.');
+      setError('No se pudieron cargar las actividades.');
       console.error(errorConsulta);
     } else {
       setError(null);
@@ -205,7 +205,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
     e.target.value = '';
     setFormulario((actual) => {
       const espacio = MAX_IMAGENES - actual.imagenes.length - actual.nuevasImagenes.length;
-      if (archivos.length > espacio) toast.error(`Máximo ${MAX_IMAGENES} fotos por participante.`);
+      if (archivos.length > espacio) toast.error(`Máximo ${MAX_IMAGENES} fotos por actividad.`);
       return { ...actual, nuevasImagenes: [...actual.nuevasImagenes, ...archivos.slice(0, Math.max(espacio, 0))] };
     });
   }
@@ -280,13 +280,13 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
         await borrarImagenesSinUso(anterior.imagenes.filter((url) => !formulario.imagenes.includes(url)), anterior.id);
       }
 
-      toast.success(editandoId ? 'Participante actualizado.' : 'Participante agregado.');
+      toast.success(editandoId ? 'Actividad actualizada.' : 'Actividad agregada.');
       cerrarFormulario();
       await cargarParticipantes();
     } catch (err) {
       await borrarArchivos(BUCKET_IMAGENES, subidas);
       console.error(err);
-      toast.error('No se pudo guardar el participante.');
+      toast.error('No se pudo guardar la actividad.');
     } finally {
       setGuardando(false);
     }
@@ -306,16 +306,16 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   }
 
   async function eliminar(participante: Participante) {
-    if (!window.confirm(`¿Eliminar a "${participante.nombre}" y sus horarios? Esta acción no se puede deshacer.`)) return;
+    if (!window.confirm(`¿Eliminar "${participante.nombre}" y sus horarios? Esta acción no se puede deshacer.`)) return;
 
     const { error: errorEliminacion } = await supabase.from('cartelera_participantes').delete().eq('id', participante.id);
     if (errorEliminacion) {
-      toast.error('No se pudo eliminar el participante.');
+      toast.error('No se pudo eliminar la actividad.');
       return;
     }
     await borrarImagenesSinUso(participante.imagenes, participante.id);
     setParticipantes((actuales) => actuales.filter((item) => item.id !== participante.id));
-    toast.success('Participante eliminado.');
+    toast.success('Actividad eliminada.');
   }
 
   const termino = busqueda.trim().toLowerCase();
@@ -341,7 +341,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar participante..." className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none sm:w-64" />
+          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar actividad..." className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none sm:w-64" />
           <select value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} aria-label="Filtrar por tipo de actividad" className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 focus:border-green-500 focus:outline-none sm:w-52">
             <option value="">Todos los tipos</option>
             {tipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}
@@ -354,7 +354,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
           </select>
         </div>
         <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
-          <Plus className="h-5 w-5" /> Nuevo participante
+          <Plus className="h-5 w-5" /> Nueva actividad
         </button>
       </div>
 
@@ -363,18 +363,19 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
       {formularioAbierto && (
         <Card className="border-transparent bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
-            <CardTitle className="text-lg text-gray-800">{editandoId ? 'Editar participante' : 'Nuevo participante'}</CardTitle>
+            <CardTitle className="text-lg text-gray-800">{editandoId ? 'Editar actividad' : 'Nueva actividad'}</CardTitle>
             <button onClick={cerrarFormulario} className="rounded-lg p-2 text-gray-500 hover:bg-gray-200" title="Cerrar formulario"><X className="h-5 w-5" /></button>
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={guardar} className="space-y-6">
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-5">
-                  <label className="block text-sm font-semibold text-gray-700">Nombre del participante
-                    <input name="nombre" value={formulario.nombre} onChange={manejarCambio} maxLength={150} placeholder="Colectivo Semillas Vivas" className={claseInput} required />
+                  {/* En la base es "nombre" y "subtitulo"; en la cartelera el nombre es el título grande */}
+                  <label className="block text-sm font-semibold text-gray-700">Nombre de la actividad
+                    <input name="nombre" value={formulario.nombre} onChange={manejarCambio} maxLength={150} placeholder="Taller de bombas de semillas" className={claseInput} required />
                   </label>
-                  <label className="block text-sm font-semibold text-gray-700">Actividad u obra (subtítulo)
-                    <input name="subtitulo" value={formulario.subtitulo} onChange={manejarCambio} maxLength={200} placeholder="Taller de bombas de semillas" className={claseInput} />
+                  <label className="block text-sm font-semibold text-gray-700">Quién la imparte (subtítulo)
+                    <input name="subtitulo" value={formulario.subtitulo} onChange={manejarCambio} maxLength={200} placeholder="Colectivo Semillas Vivas" className={claseInput} />
                   </label>
                   <div className="grid items-start gap-3 sm:grid-cols-2">
                     <label className="block text-sm font-semibold text-gray-700">Tipo de actividad
@@ -441,7 +442,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                 <div className="flex flex-wrap gap-3">
                   {formulario.imagenes.map((url) => (
                     <div key={url} className="relative">
-                      <ImagenAmpliable src={url} alt="Foto del participante" className="h-24 w-24 rounded-lg" onQuitar={() => setFormulario((actual) => ({ ...actual, imagenes: actual.imagenes.filter((item) => item !== url) }))} />
+                      <ImagenAmpliable src={url} alt="Foto de la actividad" className="h-24 w-24 rounded-lg" onQuitar={() => setFormulario((actual) => ({ ...actual, imagenes: actual.imagenes.filter((item) => item !== url) }))} />
                     </div>
                   ))}
                   {formulario.nuevasImagenes.map((archivo, indice) => (
@@ -476,7 +477,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
               </fieldset>
 
               <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
-                {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Save className="h-5 w-5" /> Guardar participante</>}
+                {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Save className="h-5 w-5" /> Guardar actividad</>}
               </button>
             </form>
           </CardContent>
@@ -484,12 +485,12 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
       )}
 
       <Card className="overflow-hidden border-transparent bg-white shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Participantes ({hayFiltros ? `${filtrados.length} de ${participantes.length}` : participantes.length})</CardTitle></CardHeader>
+        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Actividades ({hayFiltros ? `${filtrados.length} de ${participantes.length}` : participantes.length})</CardTitle></CardHeader>
         <CardContent className="p-0">
           {cargando ? (
             <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div>
           ) : filtrados.length === 0 ? (
-            <p className="p-8 text-center text-gray-600">{participantes.length === 0 ? 'Aún no hay participantes en la cartelera.' : 'Sin resultados.'}</p>
+            <p className="p-8 text-center text-gray-600">{participantes.length === 0 ? 'Aún no hay actividades en la cartelera.' : 'Sin resultados.'}</p>
           ) : (
             <ul className="divide-y divide-gray-100">
               {filtrados.map((participante) => {

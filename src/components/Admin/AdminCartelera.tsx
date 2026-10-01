@@ -11,7 +11,7 @@ import { NuevaEdicion } from './Cartelera/NuevaEdicion';
 type Pestana = 'participantes' | 'catalogos' | 'ajustes';
 
 const PESTANAS: { clave: Pestana; nombre: string }[] = [
-  { clave: 'participantes', nombre: 'Participantes' },
+  { clave: 'participantes', nombre: 'Actividades' },
   { clave: 'catalogos', nombre: 'Tipos y grupos' },
   { clave: 'ajustes', nombre: 'Edición' },
 ];
@@ -55,7 +55,7 @@ export default function AdminCartelera() {
       <div className="flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Cartelera del festival</h1>
-          <p className="mt-1 font-medium text-green-700">Participantes, horarios y archivos de cada edición del festival</p>
+          <p className="mt-1 font-medium text-green-700">Actividades, horarios y archivos de cada edición del festival</p>
         </div>
         <a href={edicion && !edicion.es_actual ? `/cartelera?edicion=${edicion.anio}` : '/cartelera'} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
           <ExternalLink className="h-4 w-4" /> Ver cartelera

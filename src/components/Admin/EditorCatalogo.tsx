@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Lock, Plus, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Lock, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,23 @@ export function EditorCatalogo({ titulo, descripcion, tabla, items, avisoElimina
   function cambiar(id: string, campo: 'nombre' | 'color', valor: string) {
     setFilas((actuales) => actuales.map((fila) => fila.id === id ? { ...fila, [campo]: valor } : fila));
   }
+
+  // Sube (-1) o baja (+1) una fila; el orden se guarda al dar "Guardar"
+  function mover(indice: number, direccion: -1 | 1) {
+    setFilas((actuales) => {
+      const destino = indice + direccion;
+      if (destino < 0 || destino >= actuales.length) return actuales;
+      const copia = [...actuales];
+      [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
+      return copia;
+    });
+  }
+
+  // Avisa que hay cambios sin guardar (orden, nombres, colores o filas nuevas)
+  const hayCambios = filas.length !== items.length || filas.some((fila, indice) => {
+    const original = items[indice];
+    return !original || original.id !== fila.id || original.nombre !== fila.nombre || original.color !== fila.color;
+  });
 
   function agregar() {
     setFilas((actuales) => [...actuales, { id: `nuevo-${crypto.randomUUID()}`, nombre: '', color: '#2d6a4f', orden: actuales.length + 1 }]);
@@ -95,8 +112,13 @@ export function EditorCatalogo({ titulo, descripcion, tabla, items, avisoElimina
         <p className="text-sm text-gray-500">{descripcion}</p>
       </CardHeader>
       <CardContent className="space-y-3 p-6">
-        {filas.map((fila) => (
+        {filas.length > 1 && <p className="text-xs text-gray-500">Se muestran en este orden. Usa las flechas para acomodarlos y da «Guardar».</p>}
+        {filas.map((fila, indice) => (
           <div key={fila.id} className="flex items-center gap-2">
+            <div className="flex shrink-0 flex-col">
+              <button type="button" onClick={() => mover(indice, -1)} disabled={indice === 0} className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-green-700 disabled:opacity-25 disabled:hover:bg-transparent" title="Subir" aria-label={`Subir ${fila.nombre || 'elemento'}`}><ChevronUp className="h-4 w-4" /></button>
+              <button type="button" onClick={() => mover(indice, 1)} disabled={indice === filas.length - 1} className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-green-700 disabled:opacity-25 disabled:hover:bg-transparent" title="Bajar" aria-label={`Bajar ${fila.nombre || 'elemento'}`}><ChevronDown className="h-4 w-4" /></button>
+            </div>
             <input type="color" value={fila.color} onChange={(e) => cambiar(fila.id, 'color', e.target.value)} className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-gray-300 p-1" aria-label="Color" />
             <input value={fila.nombre} onChange={(e) => cambiar(fila.id, 'nombre', e.target.value)} maxLength={maxLongitud} placeholder="Nombre" aria-label="Nombre" className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" />
             {protegidos[fila.id] ? (
@@ -108,9 +130,12 @@ export function EditorCatalogo({ titulo, descripcion, tabla, items, avisoElimina
         ))}
         <div className="flex items-center justify-between pt-2">
           <button onClick={agregar} className="flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:underline"><Plus className="h-4 w-4" /> Agregar</button>
-          <button onClick={guardar} disabled={guardando} className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60">
-            {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Guardar
-          </button>
+          <div className="flex items-center gap-3">
+            {hayCambios && <span className="text-xs font-medium text-amber-700">Sin guardar</span>}
+            <button onClick={guardar} disabled={guardando} className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60">
+              {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Guardar
+            </button>
+          </div>
         </div>
       </CardContent>
     </Card>
