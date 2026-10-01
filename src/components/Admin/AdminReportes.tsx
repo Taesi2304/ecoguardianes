@@ -55,6 +55,32 @@ const nombreAutor = (v: VisitaReporte) =>
 
 const fechaCorta = (fecha: string) => new Date(fecha).toLocaleDateString('es-MX');
 
+// Reporte_EcoGuardianes_2026-09-30_14-35.pdf — Windows no permite ":" en nombres de archivo
+const nombreArchivo = (extension: 'xlsx' | 'pdf') =>
+  `Reporte_EcoGuardianes_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${extension}`;
+
+// Descarga una foto y la reduce (máx. 800 px) para que el PDF se genere rápido y pese poco.
+// null si no se pudo cargar: en el PDF sale "Imagen no disponible".
+const LADO_MAXIMO_FOTO = 800;
+function cargarFotoParaPdf(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const escala = Math.min(1, LADO_MAXIMO_FOTO / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(null);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
 interface ComposteroFiltro {
   id: string;
   nombre: string;
@@ -71,6 +97,8 @@ export default function AdminReportes() {
   const [filtroFechaInicio, setFiltroFechaInicio] = useState('');
   const [filtroFechaFin, setFiltroFechaFin] = useState('');
   const [filtroComposteroId, setFiltroComposteroId] = useState('todos');
+  // Evita descargas repetidas: el PDF tarda unos segundos si hay muchas fotos
+  const [exportando, setExportando] = useState<'excel' | 'pdf' | null>(null);
 
   useEffect(() => {
     cargarDatosReporte();
@@ -186,8 +214,29 @@ export default function AdminReportes() {
   ];
   const COLORES_PASTEL = ['#16a34a', '#dc2626', '#f97316'];
 
+  const hayDatosParaExportar = () => {
+    if (visitasFiltradas.length > 0) return true;
+    toast.error('No hay bitácoras con los filtros seleccionados.');
+    return false;
+  };
+
   // Exportar a Excel
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
+    if (exportando || !hayDatosParaExportar()) return;
+    setExportando('excel');
+    // Deja que el botón se pinte como "Generando…" antes de armar el archivo
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    try {
+      generarExcel();
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo generar el Excel.');
+    } finally {
+      setExportando(null);
+    }
+  };
+
+  const generarExcel = () => {
     const datosExcel = visitasFiltradas.map(v => ({
       Fecha: new Date(v.fecha).toLocaleString('es-MX'),
       Compostero: `${v.composteros.nombre} (${v.composteros.codigo})`,
@@ -209,12 +258,27 @@ export default function AdminReportes() {
     const worksheet = XLSX.utils.json_to_sheet(datosExcel);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte Visitas");
-    XLSX.writeFile(workbook, "Reporte_EcoGuardianes.xlsx");
+    XLSX.writeFile(workbook, nombreArchivo('xlsx'));
     toast.success("Archivo Excel descargado con éxito.");
   };
 
   // Exportar a PDF Ejecutivo con Desglose y Evidencias Fotográficas Reales
   const exportarPDF = async () => {
+    if (exportando || !hayDatosParaExportar()) return;
+    setExportando('pdf');
+    const aviso = toast.loading('Generando PDF… puede tardar unos segundos si hay muchas fotos.');
+    try {
+      await generarPDF();
+      toast.success('PDF con desglose e imágenes generado con éxito.', { id: aviso });
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo generar el PDF.', { id: aviso });
+    } finally {
+      setExportando(null);
+    }
+  };
+
+  const generarPDF = async () => {
     const doc = new jsPDF();
     
     // Encabezado institucional
@@ -344,8 +408,11 @@ export default function AdminReportes() {
       const margenY = 15;
       let contadorColumna = 0;
 
-      for (let i = 0; i < urlsEvidencias.length; i++) {
-        const url = urlsEvidencias[i];
+      // Todas las fotos se descargan a la vez (antes era una por una)
+      const fotos = await Promise.all(urlsEvidencias.map(cargarFotoParaPdf));
+
+      for (let i = 0; i < fotos.length; i++) {
+        const foto = fotos[i];
 
         if (posY + altoImg > 270) {
           doc.addPage();
@@ -354,34 +421,13 @@ export default function AdminReportes() {
           posX = 14;
         }
 
-        try {
-          const imgData = await new Promise<{ dataUrl: string, format: string }>((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = img.width;
-              canvas.height = img.height;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) {
-                reject(new Error('No se pudo crear el contexto del canvas'));
-                return;
-              }
-              ctx.drawImage(img, 0, 0);
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-              resolve({ dataUrl, format: 'JPEG' });
-            };
-            img.onerror = (err) => reject(err);
-            img.src = url;
-          });
-
+        if (foto) {
           doc.setDrawColor(220, 220, 220);
           doc.setFillColor(255, 255, 255);
           doc.roundedRect(posX, posY, anchoImg, altoImg, 2, 2, 'FD');
-          doc.addImage(imgData.dataUrl, imgData.format, posX + 2, posY + 2, anchoImg - 4, altoImg - 4);
-
-        } catch (error) {
-          console.error("No se pudo incrustar la imagen en el PDF:", error);
+          doc.addImage(foto, 'JPEG', posX + 2, posY + 2, anchoImg - 4, altoImg - 4);
+        } else {
+          console.error('No se pudo incrustar la imagen en el PDF:', urlsEvidencias[i]);
           doc.setDrawColor(200, 200, 200);
           doc.setFillColor(245, 245, 245);
           doc.roundedRect(posX, posY, anchoImg, altoImg, 2, 2, 'FD');
@@ -402,8 +448,7 @@ export default function AdminReportes() {
       }
     }
 
-    doc.save("Reporte_EcoGuardianes.pdf");
-    toast.success("PDF con desglose e imágenes generado con éxito.");
+    doc.save(nombreArchivo('pdf'));
   };
 
   if (cargando) {
@@ -422,17 +467,21 @@ export default function AdminReportes() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button 
-            onClick={exportarExcel} 
-            className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-sm font-semibold text-green-700 shadow-sm transition-colors hover:bg-green-100"
+          <button
+            onClick={exportarExcel}
+            disabled={exportando !== null}
+            className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-sm font-semibold text-green-700 shadow-sm transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <FileSpreadsheet className="h-4 w-4" /> Excel
+            {exportando === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+            {exportando === 'excel' ? 'Generando…' : 'Excel'}
           </button>
-          <button 
-            onClick={exportarPDF} 
-            className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-100"
+          <button
+            onClick={exportarPDF}
+            disabled={exportando !== null}
+            className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <FileDown className="h-4 w-4" /> PDF
+            {exportando === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {exportando === 'pdf' ? 'Generando…' : 'PDF'}
           </button>
         </div>
       </div>
