@@ -49,6 +49,18 @@ interface Convocatoria {
   descripcion: string;
   imagen_url: string;
   enlace_url?: string;
+  fecha_cierre?: string | null;
+}
+
+// "Cierra hoy", "Cierra en 3 días"… o la fecha si falta más de una semana
+function textoCierre(fechaCierre: string) {
+  const hoy = new Date(`${new Date().toLocaleDateString('en-CA')}T12:00:00`);
+  const cierre = new Date(`${fechaCierre}T12:00:00`);
+  const dias = Math.round((cierre.getTime() - hoy.getTime()) / 86400000);
+  if (dias === 0) return 'Cierra hoy';
+  if (dias === 1) return 'Cierra mañana';
+  if (dias <= 7) return `Cierra en ${dias} días`;
+  return `Cierra el ${cierre.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`;
 }
 
 interface Publicacion {
@@ -110,12 +122,15 @@ export const LandingFDMA = () => {
     const cargarConvocatorias = async () => {
       const { data, error } = await supabase
         .from('convocatorias')
-        .select('id, titulo, descripcion, imagen_url, enlace_url')
+        .select('*')
         .eq('activo', true)
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(12);
 
-      if (!error) setConvocatorias((data || []) as Convocatoria[]);
+      // Las vencidas se ocultan solas (fecha_cierre se edita en Admin → Convocatorias)
+      const hoy = new Date().toLocaleDateString('en-CA');
+      const vigentes = ((data || []) as Convocatoria[]).filter((c) => !c.fecha_cierre || c.fecha_cierre >= hoy);
+      if (!error) setConvocatorias(vigentes.slice(0, 3));
       setCargandoConvocatorias(false);
     };
 
@@ -293,6 +308,11 @@ export const LandingFDMA = () => {
                           </div>
                           
                           <div className="flex flex-grow flex-col p-5">
+                            {convocatoria.fecha_cierre && (
+                              <span className="mb-2 inline-flex w-fit items-center rounded-full bg-[#db2777]/10 px-2.5 py-1 text-xs font-bold text-[#be185d]">
+                                {textoCierre(convocatoria.fecha_cierre)}
+                              </span>
+                            )}
                             <h3 className="mb-2 text-xl font-bold text-[#4a3728]">{convocatoria.titulo}</h3>
                             <p className="mb-5 text-base leading-relaxed text-[#4a3728]/75">
                               {convocatoria.descripcion}

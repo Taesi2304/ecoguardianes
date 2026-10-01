@@ -8,17 +8,20 @@ const pasosCuenta = [
 ];
 
 const pasosVisita = [
-  'Inicie sesión y entre a Registrar Visita.',
-  'Seleccione el compostero que visitó.',
-  'Indique qué materiales agregó y cómo observó el compostero.',
-  'Agregue una fotografía si la tiene. Esto ayuda a documentar el avance.',
-  'Revise los datos y presione Guardar visita.',
+  'Inicie sesión y entre a "Registrar Visita".',
+  'Elija el compostero que visitó. Si su colonia tiene uno solo, ya aparece seleccionado.',
+  'Escriba cuánto aportó, elija si fue en kilos o en litros y toque los tipos de residuos que agregó.',
+  'Revise la composta y toque la opción que mejor describa su temperatura, su humedad y su olor.',
+  'Marque los animalitos u hongos que vio. Si hay plagas o escurre líquido, márquelo en "¿Algún problema?".',
+  'Lea la recomendación que aparece: le indica si el compostero va bien o qué conviene ajustar.',
+  'Tome o adjunte al menos una fotografía (es obligatoria) y presione "Guardar bitácora".',
 ];
 
 const pasosHistorial = [
-  'Abra el menú y seleccione Historial.',
-  'Verá sus visitas ordenadas de la más reciente a la más antigua.',
-  'Seleccione una visita para consultar sus detalles y fotografías.',
+  'Abra el menú y seleccione "Historial".',
+  'En "Mis registros" verá sus visitas. En "Comunidad" verá las de todos los composteros de su colonia.',
+  'Arriba encontrará cuántos kilos o litros ha aportado y cuándo fue su última visita.',
+  'Las visitas están agrupadas por mes. Toque una fotografía para verla en grande.',
 ];
 
 function ListaPasos({ pasos }: { pasos: string[] }) {
@@ -115,7 +118,7 @@ export default function Manuales() {
     <div className="flex flex-1 items-start gap-3 rounded-xl bg-[#fff8df] p-4 text-base leading-relaxed text-[#4a3728]">
       <Leaf className="mt-1 h-5 w-5 shrink-0 text-[#2d6a4f]" aria-hidden="true" />
       <p>
-        <strong>Consejo:</strong> Registre la visita el mismo día para recordar mejor lo que observó.
+        <strong>Consejo:</strong> Registre la visita el mismo día para recordar mejor lo que observó. Si la recomendación aparece en rojo, avise al equipo de su colonia.
       </p>
     </div>
         

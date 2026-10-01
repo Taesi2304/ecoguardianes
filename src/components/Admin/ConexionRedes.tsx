@@ -128,9 +128,17 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-gray-600">
-                Aún no está conectado. Genera un enlace y mándaselo a la persona que administra el Facebook de FDMA: lo abre, autoriza con su Facebook y listo. No necesita darte su contraseña.
-              </p>
+              <div className="space-y-2 text-sm text-gray-600">
+                <p>
+                  Aún no está conectado. Genera un enlace y mándaselo a la persona que administra las redes de FDMA: lo abre, autoriza y listo. No necesita darte su contraseña.
+                </p>
+                <p className="flex items-start gap-2 rounded-lg bg-gray-50 p-3 text-xs">
+                  <img src="/ig-icon.svg" alt="" className="h-4 w-4 shrink-0" />
+                  <span>
+                    Con una sola autorización se conectan <strong>Facebook e Instagram</strong>: Meta entrega el Instagram a través de la Página de Facebook a la que está vinculado. Por eso el botón dice "Conectar con Facebook".
+                  </span>
+                </p>
+              </div>
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row">

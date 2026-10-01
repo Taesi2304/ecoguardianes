@@ -43,6 +43,7 @@ import Talleres from './components/pages/Talleres';
 import Calendario from './components/pages/Calendario';
 import CarteleraPage from './components/Cartelera/CarteleraPage';
 import ScrollToTop from './components/ScrollToTop';
+import TituloPagina from './components/TituloPagina';
 
 // 1. Plantilla para las páginas públicas (Mantiene el Header y Footer)
 const PublicLayout = () => {
@@ -61,6 +62,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <TituloPagina />
       <Toaster position="top-right" />
       <Routes>
         

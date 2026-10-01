@@ -126,7 +126,9 @@ export default function ConectarRedes() {
             >
               Conectar con Facebook
             </button>
-            <p className="mt-3 text-xs text-[#4A2E18]/60">Inicia sesión con la cuenta que administra la Página de FDMA.</p>
+            <p className="mt-3 text-xs text-[#4A2E18]/60">
+              Inicia sesión con la cuenta que administra la Página de FDMA. El Instagram se conecta en el mismo paso, porque está vinculado a esa Página.
+            </p>
           </>
         )}
 

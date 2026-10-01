@@ -47,6 +47,13 @@ const formularioInicial: FormularioEvento = {
 const claseInput = 'mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none';
 const hoy = () => new Date().toLocaleDateString('en-CA');
 
+// Categorías con que el Calendario muestra solo lo que viene de otras secciones (ver Calendario/eventos.ts)
+const CATEGORIAS_AUTOMATICAS: Record<string, string> = {
+  taller: 'Los talleres extraordinarios se muestran con esta categoría',
+  festival: 'Los días del festival (horarios de la Cartelera) se muestran con esta categoría',
+  convocatoria: 'Las fechas de cierre de las convocatorias se muestran con esta categoría',
+};
+
 export default function AdminCalendario() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [formulario, setFormulario] = useState(formularioInicial);
@@ -225,7 +232,9 @@ export default function AdminCalendario() {
             items={categorias}
             maxLongitud={80}
             avisoEliminar="Los eventos que la usan quedarán sin categoría (en gris)."
-            protegidos={Object.fromEntries(categorias.filter((categoria) => categoria.clave === 'taller').map((categoria) => [categoria.id, 'Los talleres extraordinarios se muestran con esta categoría; puedes renombrarla o cambiar su color, pero no borrarla.']))}
+            protegidos={Object.fromEntries(categorias
+              .filter((categoria) => categoria.clave && CATEGORIAS_AUTOMATICAS[categoria.clave])
+              .map((categoria) => [categoria.id, `${CATEGORIAS_AUTOMATICAS[categoria.clave!]}; puedes renombrarla o cambiar su color, pero no borrarla.`]))}
             onCambio={recargarCategorias}
           />
         </div>

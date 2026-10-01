@@ -171,7 +171,7 @@ export default function Calendario() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 {seleccionado.enlace_url && (
                   <a href={seleccionado.enlace_url} target={seleccionado.enlace_url.startsWith('/') ? undefined : '_blank'} rel="noreferrer" className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-green-700">
-                    <ExternalLink className="h-4 w-4" /> {seleccionado.es_taller ? 'Registrarme' : 'Más información'}
+                    <ExternalLink className="h-4 w-4" /> {seleccionado.texto_enlace ?? 'Más información'}
                   </a>
                 )}
                 {seleccionado.hora_inicio && (

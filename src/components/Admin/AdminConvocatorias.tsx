@@ -11,6 +11,7 @@ interface Convocatoria {
   descripcion: string;
   imagen_url: string;
   enlace_url?: string;
+  fecha_cierre?: string | null; // Fecha límite opcional: sale en el Calendario y la oculta de la landing al pasar
   activo: boolean;
   created_at: string;
 }
@@ -19,6 +20,7 @@ interface FormularioConvocatoria {
   titulo: string;
   descripcion: string;
   enlace_url: string;
+  fecha_cierre: string;
   imagen: File | null;
 }
 
@@ -28,8 +30,14 @@ const formularioInicial: FormularioConvocatoria = {
   titulo: '',
   descripcion: '',
   enlace_url: '',
+  fecha_cierre: '',
   imagen: null,
 };
+
+const hoy = () => new Date().toLocaleDateString('en-CA');
+
+const formatearCierre = (fecha: string) =>
+  new Date(`${fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function obtenerRutaImagen(url: string) {
   const marcador = `/storage/v1/object/public/${BUCKET}/`;
@@ -74,7 +82,7 @@ export default function AdminConvocatorias() {
 
     const { data, error: errorConsulta } = await supabase
       .from('convocatorias')
-      .select('id, titulo, descripcion, imagen_url, enlace_url, activo, created_at')
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (errorConsulta) {
@@ -97,7 +105,7 @@ export default function AdminConvocatorias() {
     setEditandoId(convocatoria.id);
     setFormularioAbierto(true);
     setImagenActual(convocatoria.imagen_url);
-    setFormulario({ titulo: convocatoria.titulo, descripcion: convocatoria.descripcion, enlace_url: convocatoria.enlace_url || '', imagen: null });
+    setFormulario({ titulo: convocatoria.titulo, descripcion: convocatoria.descripcion, enlace_url: convocatoria.enlace_url || '', fecha_cierre: convocatoria.fecha_cierre || '', imagen: null });
   }
 
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -150,6 +158,7 @@ export default function AdminConvocatorias() {
         titulo: formulario.titulo.trim(),
         descripcion: formulario.descripcion.trim(),
         enlace_url: formulario.enlace_url.trim() || null,
+        fecha_cierre: formulario.fecha_cierre || null,
         imagen_url: imagenUrl,
         ...(editandoId ? {} : { activo: true }),
       };
@@ -243,6 +252,10 @@ export default function AdminConvocatorias() {
               <div className="space-y-5">
                 <label className="block text-sm font-semibold text-gray-700">Título<input name="titulo" value={formulario.titulo} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" required /></label>
                 <label className="block text-sm font-semibold text-gray-700">Enlace de redirección (Opcional)<input name="enlace_url" type="url" placeholder="https://forms.gle/..." value={formulario.enlace_url} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" /></label>
+                <label className="block text-sm font-semibold text-gray-700">Fecha límite (Opcional)
+                  <input name="fecha_cierre" type="date" value={formulario.fecha_cierre} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" />
+                  <span className="mt-1 block text-xs font-normal text-gray-500">Aparece en el Calendario y la convocatoria se oculta sola de la página al pasar esta fecha.</span>
+                </label>
                 <label className="block text-sm font-semibold text-gray-700">
   Descripción
   <textarea 
@@ -278,7 +291,7 @@ export default function AdminConvocatorias() {
       <Card className="overflow-hidden border-transparent bg-white shadow-sm">
         <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Convocatorias registradas</CardTitle></CardHeader>
         <CardContent className="p-0">
-          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatorias.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><img src={convocatoria.imagen_url} alt="" className="h-14 w-20 rounded-md object-cover" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-2">{convocatoria.titulo}</span></td><td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
+          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[860px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cierre</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatorias.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><img src={convocatoria.imagen_url} alt="" className="h-14 w-20 rounded-md object-cover" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-2">{convocatoria.titulo}</span></td><td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td className="px-6 py-4 text-gray-600">{convocatoria.fecha_cierre ? <div className="flex flex-col items-start gap-1"><span>{formatearCierre(convocatoria.fecha_cierre)}</span>{convocatoria.fecha_cierre < hoy() && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Vencida</span>}</div> : <span className="text-gray-400">Sin fecha</span>}</td><td className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
         </CardContent>
       </Card>
     </div>
