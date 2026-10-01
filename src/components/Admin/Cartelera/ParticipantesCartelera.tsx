@@ -53,9 +53,22 @@ const formularioInicial = (): FormularioParticipante => ({
 interface Props {
   tipos: Catalogo[];
   grupos: Catalogo[];
+  edicionId: string | null; // null si aún no se corre 18_ediciones_festival.sql
 }
 
-export function ParticipantesCartelera({ tipos, grupos }: Props) {
+// Las fotos se comparten entre ediciones al copiar participantes:
+// solo se borran del Storage las que ya no usa ningún otro participante
+async function borrarImagenesSinUso(urls: string[], participanteId: string | null) {
+  if (urls.length === 0) return;
+  let consulta = supabase.from('cartelera_participantes').select('imagenes').overlaps('imagenes', urls);
+  if (participanteId) consulta = consulta.neq('id', participanteId);
+  const { data, error } = await consulta;
+  if (error) return; // Ante la duda no se borra nada
+  const enUso = new Set((data || []).flatMap((fila) => fila.imagenes as string[]));
+  await borrarArchivos(BUCKET_IMAGENES, urls.filter((url) => !enUso.has(url)));
+}
+
+export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [formulario, setFormulario] = useState(formularioInicial);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
@@ -67,15 +80,17 @@ export function ParticipantesCartelera({ tipos, grupos }: Props) {
 
   useEffect(() => {
     cargarParticipantes();
-  }, []);
+  }, [edicionId]);
 
   async function cargarParticipantes() {
     setCargando(true);
-    const { data, error: errorConsulta } = await supabase
+    let consulta = supabase
       .from('cartelera_participantes')
       .select(CAMPOS_PARTICIPANTE)
       .order('orden', { ascending: true })
       .order('nombre', { ascending: true });
+    if (edicionId) consulta = consulta.eq('edicion_id', edicionId);
+    const { data, error: errorConsulta } = await consulta;
 
     if (errorConsulta) {
       setError('No se pudieron cargar los participantes.');
@@ -198,7 +213,7 @@ export function ParticipantesCartelera({ tipos, grupos }: Props) {
       } else {
         const { data, error: errorInsercion } = await supabase
           .from('cartelera_participantes')
-          .insert({ ...datos, activo: true })
+          .insert({ ...datos, activo: true, ...(edicionId ? { edicion_id: edicionId } : {}) })
           .select('id')
           .single();
         if (errorInsercion) throw errorInsercion;
@@ -221,7 +236,7 @@ export function ParticipantesCartelera({ tipos, grupos }: Props) {
 
       const anterior = participantes.find((participante) => participante.id === editandoId);
       if (anterior) {
-        await borrarArchivos(BUCKET_IMAGENES, anterior.imagenes.filter((url) => !formulario.imagenes.includes(url)));
+        await borrarImagenesSinUso(anterior.imagenes.filter((url) => !formulario.imagenes.includes(url)), anterior.id);
       }
 
       toast.success(editandoId ? 'Participante actualizado.' : 'Participante agregado.');
@@ -257,7 +272,7 @@ export function ParticipantesCartelera({ tipos, grupos }: Props) {
       toast.error('No se pudo eliminar el participante.');
       return;
     }
-    await borrarArchivos(BUCKET_IMAGENES, participante.imagenes);
+    await borrarImagenesSinUso(participante.imagenes, participante.id);
     setParticipantes((actuales) => actuales.filter((item) => item.id !== participante.id));
     toast.success('Participante eliminado.');
   }

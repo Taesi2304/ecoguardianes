@@ -8,6 +8,7 @@ import { CAMPOS_TALLER_PUBLICO } from '../Talleres/talleres';
 import type { TallerPublico } from '../Talleres/talleres';
 import { cargarEventos, estiloPunto } from '../Calendario/eventos';
 import type { EventoCalendario } from '../Calendario/eventos';
+import { cargarEdicion } from '../Cartelera/cartelera';
 
 const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=100091930835447';
 const INSTAGRAM_URL = 'https://www.instagram.com/fdma.mx';
@@ -78,6 +79,8 @@ export const LandingFDMA = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [cargandoPublicaciones, setCargandoPublicaciones] = useState(true);
   const [pagina, setPagina] = useState<PaginaInicio>(PAGINA_POR_DEFECTO);
+  // Nombre de la edición actual del festival (Admin → Cartelera → Ediciones)
+  const [nombreFestival, setNombreFestival] = useState<string | null>(null);
   const [aliados, setAliados] = useState<Aliado[]>([]);
   const [talleres, setTalleres] = useState<TallerPublico[]>([]);
   const [tallerSeleccionado, setTallerSeleccionado] = useState<TallerPublico | null>(null);
@@ -148,6 +151,7 @@ export const LandingFDMA = () => {
     };
 
     cargarPagina();
+    cargarEdicion().then((edicion) => setNombreFestival(edicion?.nombre ?? null));
     cargarAliados();
     cargarConvocatorias();
     cargarPublicaciones();
@@ -232,7 +236,7 @@ export const LandingFDMA = () => {
           <Link to="/cartelera" className="group flex flex-col items-start justify-between gap-4 overflow-hidden rounded-2xl bg-[#1a1716] p-6 text-white shadow-md sm:flex-row sm:items-center md:p-8">
             <div>
               <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-white/60">Cartelera oficial</p>
-              <p className="text-2xl font-semibold md:text-3xl">{pagina.festival_nombre || 'Festival del Medio Ambiente'}</p>
+              <p className="text-2xl font-semibold md:text-3xl">{nombreFestival || pagina.festival_nombre || 'Festival del Medio Ambiente'}</p>
               <p className="mt-1 text-white/70">Horarios, sedes y participantes del día del festival.</p>
             </div>
             <span className="shrink-0 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1a1716] transition group-hover:scale-105">Ver cartelera →</span>

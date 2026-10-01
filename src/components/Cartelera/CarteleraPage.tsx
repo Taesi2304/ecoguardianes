@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Download, Loader2, Map as MapIcon, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { CAMPOS_PARTICIPANTE, cargarCatalogos } from './cartelera';
-import type { AjustesCartelera, Catalogo, Participante } from './cartelera';
+import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion } from './cartelera';
+import type { Catalogo, Edicion, Participante } from './cartelera';
 import { TarjetaParticipante } from './TarjetaParticipante';
 import { DetalleParticipante } from './DetalleParticipante';
 import { Bienvenida } from './Bienvenida';
@@ -17,37 +17,39 @@ export default function CarteleraPage() {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [tipos, setTipos] = useState<Catalogo[]>([]);
   const [grupos, setGrupos] = useState<Catalogo[]>([]);
-  const [ajustes, setAjustes] = useState<AjustesCartelera | null>(null);
+  const [edicion, setEdicion] = useState<Edicion | null>(null);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [tipoId, setTipoId] = useState<string | null>(null);
   const [grupoId, setGrupoId] = useState<string | null>(null);
-  // ?p=<id> permite compartir el enlace a un participante
+  // ?p=<id> permite compartir el enlace a un participante; ?edicion=2026 muestra una edición anterior
   const [parametros, setParametros] = useSearchParams();
   const seleccionadoId = parametros.get('p');
+  const anioEdicion = Number(parametros.get('edicion')) || undefined;
 
   useEffect(() => {
-    Promise.all([
-      supabase
+    const cargar = async () => {
+      setCargando(true);
+      const [edicionCargada, catalogos] = await Promise.all([cargarEdicion(anioEdicion), cargarCatalogos()]);
+
+      let consulta = supabase
         .from('cartelera_participantes')
         .select(CAMPOS_PARTICIPANTE)
         .eq('activo', true)
         .order('orden', { ascending: true })
-        .order('nombre', { ascending: true }),
-      cargarCatalogos(),
-      supabase
-        .from('pagina_inicio')
-        .select('festival_nombre, cartelera_fondo_url, cartelera_pdf_url, croquis_pdf_url')
-        .eq('id', 1)
-        .single(),
-    ]).then(([resultadoParticipantes, catalogos, resultadoAjustes]) => {
-      setParticipantes((resultadoParticipantes.data || []) as Participante[]);
+        .order('nombre', { ascending: true });
+      if (edicionCargada) consulta = consulta.eq('edicion_id', edicionCargada.id);
+
+      const { data } = await consulta;
+      setParticipantes((data || []) as Participante[]);
       setTipos(catalogos.tipos);
       setGrupos(catalogos.grupos);
-      if (resultadoAjustes.data) setAjustes(resultadoAjustes.data as AjustesCartelera);
+      setEdicion(edicionCargada);
       setCargando(false);
-    });
-  }, []);
+    };
+
+    cargar();
+  }, [anioEdicion]);
 
   const tiposPorId = useMemo(() => Object.fromEntries(tipos.map((tipo) => [tipo.id, tipo])), [tipos]);
 
@@ -73,7 +75,7 @@ export default function CarteleraPage() {
   const enEscritorio = seleccionado ?? filtrados[0];
 
   function seleccionar(id: string | null) {
-    setParametros(id ? { p: id } : {}, { replace: true });
+    setParametros({ ...(anioEdicion ? { edicion: String(anioEdicion) } : {}), ...(id ? { p: id } : {}) }, { replace: true });
   }
 
   // La barra inferior pone "Todos" al centro, como "Inicio" en la referencia; solo grupos con participantes
@@ -84,7 +86,7 @@ export default function CarteleraPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#12261d] font-sans text-white">
       {!cargando && (
-        <img src={ajustes?.cartelera_fondo_url || FONDO_POR_DEFECTO} alt="" aria-hidden="true" className="fixed inset-0 h-full w-full object-cover" />
+        <img src={edicion?.cartelera_fondo_url || FONDO_POR_DEFECTO} alt="" aria-hidden="true" className="fixed inset-0 h-full w-full object-cover" />
       )}
       {/* Velo verde bosque: deja ver la foto sin perder legibilidad */}
       <div className="fixed inset-0 bg-gradient-to-br from-[#0c1f16]/80 via-[#0c1f16]/45 to-[#0c1f16]/75" aria-hidden="true" />
@@ -94,20 +96,27 @@ export default function CarteleraPage() {
           <Link to="/" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white">
             <ArrowLeft className="h-4 w-4" /> FDMA
           </Link>
-          <h1 className="min-w-0 flex-1 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{ajustes?.festival_nombre ?? 'Cartelera'}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{edicion?.nombre ?? 'Cartelera'}</h1>
           <div className="flex gap-2">
-            {ajustes?.cartelera_pdf_url && (
-              <a href={ajustes.cartelera_pdf_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white" title="Descargar cartelera en PDF">
+            {edicion?.cartelera_pdf_url && (
+              <a href={edicion.cartelera_pdf_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white" title="Descargar cartelera en PDF">
                 <Download className="h-4 w-4" /><span className="hidden sm:inline">Cartelera PDF</span>
               </a>
             )}
-            {ajustes?.croquis_pdf_url && (
-              <a href={ajustes.croquis_pdf_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white" title="Croquis de stands">
+            {edicion?.croquis_pdf_url && (
+              <a href={edicion.croquis_pdf_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white" title="Croquis de stands">
                 <MapIcon className="h-4 w-4" /><span className="hidden sm:inline">Croquis</span>
               </a>
             )}
           </div>
         </header>
+
+        {edicion && !edicion.es_actual && (
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl bg-black/40 px-4 py-2 text-center text-sm text-white/85 backdrop-blur">
+            <span>Estás viendo la edición {edicion.anio} del festival.</span>
+            <Link to="/cartelera" className="font-semibold text-white underline hover:no-underline">Ver la edición actual</Link>
+          </div>
+        )}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(360px,40%)_1fr]">
           {/* Panel izquierdo: búsqueda, filtros y lista */}
@@ -174,7 +183,7 @@ export default function CarteleraPage() {
             {enEscritorio ? (
               <DetalleParticipante key={enEscritorio.id} participante={enEscritorio} tipo={enEscritorio.tipo_id ? tiposPorId[enEscritorio.tipo_id] : undefined} />
             ) : !cargando && (
-              <Bienvenida festival={ajustes?.festival_nombre} sinParticipantes={participantes.length === 0} />
+              <Bienvenida festival={edicion?.nombre} sinParticipantes={participantes.length === 0} />
             )}
           </div>
         </div>

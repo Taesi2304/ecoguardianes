@@ -30,11 +30,31 @@ export interface Participante {
   cartelera_horarios: Horario[];
 }
 
-export interface AjustesCartelera {
-  festival_nombre: string;
+// Una edición por año (Festival 2026, 2027…): nombre, archivos y sus propios participantes.
+// La edición actual es la que se ve en /cartelera; las anteriores en /cartelera?edicion=AÑO.
+export interface Edicion {
+  id: string;
+  nombre: string;
+  anio: number;
+  es_actual: boolean;
   cartelera_fondo_url: string | null;
   cartelera_pdf_url: string | null;
   croquis_pdf_url: string | null;
+}
+
+export const CAMPOS_EDICION = 'id, nombre, anio, es_actual, cartelera_fondo_url, cartelera_pdf_url, croquis_pdf_url';
+
+// Más reciente primero
+export async function cargarEdiciones(): Promise<Edicion[]> {
+  const { data } = await supabase.from('festival_ediciones').select(CAMPOS_EDICION).order('anio', { ascending: false });
+  return (data || []) as Edicion[];
+}
+
+// La de ese año si se indica; si no, la actual
+export async function cargarEdicion(anio?: number): Promise<Edicion | null> {
+  const consulta = supabase.from('festival_ediciones').select(CAMPOS_EDICION);
+  const { data } = await (anio ? consulta.eq('anio', anio) : consulta.eq('es_actual', true)).maybeSingle();
+  return (data as Edicion | null) ?? null;
 }
 
 export const BUCKET_IMAGENES = 'imagenes_cartelera';

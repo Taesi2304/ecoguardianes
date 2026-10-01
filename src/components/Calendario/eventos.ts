@@ -30,6 +30,36 @@ interface HorarioCartelera {
   sede: string;
   hora_inicio: string;
   hora_fin: string | null;
+  edicion: { nombre: string; anio: number } | null; // null si aún no se corre 18_ediciones_festival.sql
+}
+
+type Relacion<T> = T | T[] | null;
+const primero = <T,>(valor: Relacion<T>) => (Array.isArray(valor) ? valor[0] : valor) ?? null;
+
+// Horarios de participantes activos con la edición del festival a la que pertenecen
+async function cargarHorariosFestival(desde: string, hasta: string): Promise<HorarioCartelera[]> {
+  const conEdicion = await supabase
+    .from('cartelera_horarios')
+    .select('fecha, sede, hora_inicio, hora_fin, cartelera_participantes!inner(activo, festival_ediciones(nombre, anio))')
+    .eq('cartelera_participantes.activo', true)
+    .gte('fecha', desde)
+    .lte('fecha', hasta);
+
+  if (!conEdicion.error) {
+    return (conEdicion.data || []).map(({ cartelera_participantes, ...horario }) => ({
+      ...horario,
+      edicion: primero(primero(cartelera_participantes as Relacion<{ festival_ediciones: Relacion<{ nombre: string; anio: number }> }>)?.festival_ediciones ?? null),
+    }));
+  }
+
+  // Sin la tabla de ediciones: todos los horarios con el nombre de Página de inicio
+  const { data } = await supabase
+    .from('cartelera_horarios')
+    .select('fecha, sede, hora_inicio, hora_fin, cartelera_participantes!inner(activo)')
+    .eq('cartelera_participantes.activo', true)
+    .gte('fecha', desde)
+    .lte('fecha', hasta);
+  return (data || []).map(({ fecha, sede, hora_inicio, hora_fin }) => ({ fecha, sede, hora_inicio, hora_fin, edicion: null }));
 }
 
 const COLOR_SIN_CATEGORIA = '#9ca3af';
@@ -53,24 +83,25 @@ export async function cargarCategorias(): Promise<CategoriaCalendario[]> {
   return (data || []) as CategoriaCalendario[];
 }
 
-// Un evento por día del festival, a partir de los horarios de la Cartelera
-function eventosDelFestival(horarios: HorarioCartelera[], nombre: string, categoria: CategoriaCalendario | null): EventoCalendario[] {
+// Un evento por día del festival, con el nombre de su edición (Festival 2026, 2027…)
+function eventosDelFestival(horarios: HorarioCartelera[], nombrePorDefecto: string, categoria: CategoriaCalendario | null): EventoCalendario[] {
   const porDia = new Map<string, HorarioCartelera[]>();
   horarios.forEach((horario) => porDia.set(horario.fecha, [...(porDia.get(horario.fecha) || []), horario]));
 
   return [...porDia.entries()].map(([fecha, delDia]) => {
     const inicios = delDia.map((h) => h.hora_inicio).sort();
     const fines = delDia.map((h) => h.hora_fin || h.hora_inicio).sort();
+    const edicion = delDia.find((h) => h.edicion)?.edicion;
     return {
       id: `festival-${fecha}`,
-      titulo: nombre,
+      titulo: edicion?.nombre ?? nombrePorDefecto,
       fecha,
       hora_inicio: inicios[0],
       hora_fin: fines[fines.length - 1],
       lugar: [...new Set(delDia.map((h) => h.sede))].join(' · '),
       categoria,
       descripcion: `${delDia.length} actividad${delDia.length === 1 ? '' : 'es'} en la cartelera de este día.`,
-      enlace_url: '/cartelera',
+      enlace_url: edicion ? `/cartelera?edicion=${edicion.anio}` : '/cartelera',
       texto_enlace: 'Ver cartelera',
     };
   });
@@ -91,13 +122,7 @@ export async function cargarEventos(desde: string, hasta: string, categorias?: C
       .select('id, titulo, fecha, hora_inicio, hora_fin, lugar, descripcion')
       .gte('fecha', desde)
       .lte('fecha', hasta),
-    // Solo horarios de participantes activos
-    supabase
-      .from('cartelera_horarios')
-      .select('fecha, sede, hora_inicio, hora_fin, cartelera_participantes!inner(activo)')
-      .eq('cartelera_participantes.activo', true)
-      .gte('fecha', desde)
-      .lte('fecha', hasta),
+    cargarHorariosFestival(desde, hasta),
     supabase
       .from('pagina_inicio')
       .select('mostrar_cartelera, festival_nombre')
@@ -131,7 +156,7 @@ export async function cargarEventos(desde: string, hasta: string, categorias?: C
 
   // Si la Cartelera está oculta en la página de inicio, el festival tampoco sale
   const deFestival = pagina.data?.mostrar_cartelera
-    ? eventosDelFestival((horarios.data || []) as HorarioCartelera[], pagina.data.festival_nombre, porClave('festival'))
+    ? eventosDelFestival(horarios, pagina.data.festival_nombre, porClave('festival'))
     : [];
 
   const deConvocatorias: EventoCalendario[] = (convocatorias.data || []).map((convocatoria) => ({
