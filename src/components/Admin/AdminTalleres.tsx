@@ -456,7 +456,7 @@ export default function AdminTalleres() {
               ) : registros.length === 0 ? (
                 <p className="p-8 text-center text-gray-600">Nadie se ha inscrito todavía.</p>
               ) : (
-                <table className="w-full text-left text-sm">
+                <table className="tabla-tarjetas w-full text-left text-sm">
                   <thead className="sticky top-0 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                     <tr><th className="px-4 py-3">#</th><th className="px-4 py-3">Nombre</th><th className="px-4 py-3">WhatsApp</th><th className="px-4 py-3">Correo</th><th className="px-4 py-3" /></tr>
                   </thead>
@@ -465,9 +465,9 @@ export default function AdminTalleres() {
                       <tr key={registro.id}>
                         <td className="px-4 py-3 text-gray-400">{indice + 1}</td>
                         <td className="px-4 py-3 font-medium text-gray-900">{registro.nombre}</td>
-                        <td className="px-4 py-3"><a href={`https://wa.me/52${registro.whatsapp.slice(-10)}`} target="_blank" rel="noreferrer" className="text-green-700 hover:underline">{registro.whatsapp}</a></td>
-                        <td className="px-4 py-3 text-gray-600">{registro.correo || '—'}</td>
-                        <td className="px-4 py-3 text-right"><button onClick={() => eliminarRegistro(registro)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-600" title="Quitar inscripción"><Trash2 className="h-4 w-4" /></button></td>
+                        <td data-label="WhatsApp" className="px-4 py-3"><a href={`https://wa.me/52${registro.whatsapp.slice(-10)}`} target="_blank" rel="noreferrer" className="text-green-700 hover:underline">{registro.whatsapp}</a></td>
+                        <td data-label="Correo" className="px-4 py-3 text-gray-600">{registro.correo || '—'}</td>
+                        <td data-acciones className="px-4 py-3 text-right"><button onClick={() => eliminarRegistro(registro)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-600" title="Quitar inscripción"><Trash2 className="h-4 w-4" /></button></td>
                       </tr>
                     ))}
                   </tbody>

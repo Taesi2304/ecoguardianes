@@ -8,6 +8,7 @@ import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
 import { formatearFecha } from '@/lib/utils';
 import ConexionRedes from './ConexionRedes';
+import SugerenciasIA from './SugerenciasIA';
 
 type RedSocial = 'instagram' | 'facebook';
 
@@ -103,6 +104,8 @@ export default function AdminPublicaciones() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Sube al sincronizar para que la bandeja de sugerencias se recargue
+  const [versionSugerencias, setVersionSugerencias] = useState(0);
   const [filtroRed, setFiltroRed] = useState<FiltroRed>('todas');
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('todas');
   const [filtroOrigen, setFiltroOrigen] = useState<FiltroOrigen>('todas');
@@ -300,7 +303,9 @@ export default function AdminPublicaciones() {
 
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}
 
-      <ConexionRedes onSincronizado={cargarPublicaciones} />
+      <ConexionRedes onSincronizado={() => { cargarPublicaciones(); setVersionSugerencias((actual) => actual + 1); }} />
+
+      <SugerenciasIA version={versionSugerencias} />
 
       {formularioAbierto && (
         <Card className="border-transparent bg-white shadow-sm">

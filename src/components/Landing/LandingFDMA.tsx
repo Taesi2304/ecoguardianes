@@ -268,17 +268,18 @@ export const LandingFDMA = () => {
             <h3 className="text-2xl font-bold text-[#4a3728] md:text-3xl">Esta semana</h3>
             <Link to="/calendario" className="font-semibold text-[#2d6a4f] hover:underline">Ver calendario →</Link>
           </div>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* grid-cols-1 y min-w-0: sin ellos un título largo estira la columna más allá de la pantalla */}
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {eventosSemana.slice(0, 6).map((evento) => (
-              <li key={evento.id} className="flex items-center gap-4 rounded-2xl border border-[#4a3728]/10 bg-white p-4 shadow-sm">
+              <li key={evento.id} className="flex min-w-0 items-center gap-4 rounded-2xl border border-[#4a3728]/10 bg-white p-4 shadow-sm">
                 <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-[#f8f5f2]">
                   <span className="text-xs font-bold uppercase text-[#4a3728]/60">{new Date(`${evento.fecha}T12:00:00`).toLocaleDateString('es-MX', { weekday: 'short' })}</span>
                   <span className="text-xl font-bold text-[#4a3728]">{Number(evento.fecha.slice(8))}</span>
                 </div>
-                <div className="min-w-0">
-                  <p className="flex items-center gap-2 font-semibold text-[#4a3728]">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={estiloPunto(evento.categoria)} />
-                    <span className="truncate">{evento.titulo}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-start gap-2 font-semibold leading-snug text-[#4a3728]">
+                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={estiloPunto(evento.categoria)} />
+                    <span className="line-clamp-2 break-words">{evento.titulo}</span>
                   </p>
                   <p className="truncate text-sm text-[#4a3728]/60">{[formatearHora(evento.hora_inicio), evento.lugar].filter(Boolean).join(' · ')}</p>
                 </div>

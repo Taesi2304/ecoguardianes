@@ -264,7 +264,7 @@ export default function AdminComposteros() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="tabla-tarjetas w-full min-w-[720px] text-left text-sm">
               <thead className="bg-white text-xs uppercase tracking-wider text-gray-500 border-b">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Código</th>
@@ -279,28 +279,28 @@ export default function AdminComposteros() {
               <tbody className="divide-y divide-gray-100 bg-white">
                 {composterosFiltrados.map((compostero) => (
                   <tr key={compostero.id} className={`transition-colors hover:bg-green-50/30 ${!compostero.activo ? 'opacity-60' : ''}`}>
-                    <td className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td data-label="Código" className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
+                    <td data-label="Compostero" className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
+                    <td data-label="Colonia" className="px-6 py-4 text-gray-600">
                       <span className="inline-flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-gray-400" />
                         {compostero.colonias?.nombre || 'Sin colonia'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">
+                    <td data-label="Dirección" className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
+                    <td data-label="Registro" className="px-6 py-4 text-gray-500 text-sm">
                       {new Date(compostero.created_at).toLocaleDateString('es-MX', {
                         day: '2-digit', month: 'short', year: 'numeric'
                       })}
                     </td>
-                    <td className="px-6 py-4">
+                    <td data-label="Estado" className="px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         compostero.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {compostero.activo ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td data-acciones className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={() => abrirModalEditar(compostero)} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600" title="Editar">
                           <Edit className="h-4 w-4" />

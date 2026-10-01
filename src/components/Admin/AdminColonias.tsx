@@ -199,7 +199,7 @@ export default function AdminColonias() {
       <Card className="overflow-hidden shadow-sm border-transparent bg-white">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="tabla-tarjetas w-full min-w-[720px] text-left text-sm">
               <thead className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 border-b">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Colonia</th>
@@ -213,7 +213,7 @@ export default function AdminColonias() {
               <tbody className="divide-y divide-gray-100 bg-white">
                 {coloniasFiltradas.map((c) => (
                   <tr key={c.id} className={`transition-colors hover:bg-green-50/30 ${!c.activo ? 'opacity-60' : ''}`}>
-                    <td className="px-6 py-4">
+                    <td data-completa className="px-6 py-4">
                       <p className="font-bold text-gray-900 text-base">{c.nombre}</p>
                       {c.whatsapp_url ? (
                         <a href={c.whatsapp_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline">
@@ -225,26 +225,26 @@ export default function AdminColonias() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td data-label="Ubicación" className="px-6 py-4 text-gray-600">
                       <div className="flex flex-col gap-0.5">
                         <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gray-400" /> {c.municipio}, {c.estado}</span>
                         {c.codigo_postal && <span className="text-xs text-gray-400 ml-5">C.P. {c.codigo_postal}</span>}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-sm font-bold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
+                    <td data-label="Código de acceso" className="px-6 py-4">
+                      <span className="inline-block font-mono text-sm font-bold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
                         {c.codigo_acceso_colonia}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">
+                    <td data-label="Registro" className="px-6 py-4 text-gray-500 font-medium">
                       {new Date(c.created_at).toLocaleDateString('es-MX')}
                     </td>
-                    <td className="px-6 py-4">
+                    <td data-label="Estado" className="px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                         {c.activo ? 'Activa' : 'Inactiva'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td data-acciones className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={() => abrirModalEditar(c)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-green-600" title="Editar">
                           <Edit className="h-4 w-4" />

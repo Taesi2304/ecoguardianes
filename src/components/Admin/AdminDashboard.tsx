@@ -235,7 +235,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="tabla-tarjetas w-full min-w-[720px] text-left text-sm">
                 <thead className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500">
                   <tr>
                     <th className="px-6 py-4 font-semibold">Código</th>
@@ -249,22 +249,22 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-gray-100 bg-white">
                   {composteros.map((compostero) => (
                     <tr key={compostero.id} className="transition-colors hover:bg-green-50/30">
-                      <td className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
-                      <td className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
-                      <td className="px-6 py-4 text-gray-600">
+                      <td data-label="Código" className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
+                      <td data-label="Compostero" className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
+                      <td data-label="Colonia" className="px-6 py-4 text-gray-600">
                         <span className="inline-flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5 text-gray-400" />
                           {/* Corregido para leer correctamente el objeto desde Supabase */}
                           {compostero.colonias?.nombre || 'Sin colonia'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
-                      <td className="px-6 py-4 text-gray-500 text-sm"> {/* <-- Nuevo dato formatado */}
+                      <td data-label="Ubicación" className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
+                      <td data-label="Registro" className="px-6 py-4 text-gray-500 text-sm">
                         {new Date(compostero.created_at).toLocaleDateString('es-MX', {
                           day: '2-digit', month: 'short', year: 'numeric'
                         })}
                       </td>
-                      <td className="px-6 py-4">
+                      <td data-label="Estado" className="px-6 py-4">
                         <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
                           {compostero.estado || 'Activo'}
                         </span>

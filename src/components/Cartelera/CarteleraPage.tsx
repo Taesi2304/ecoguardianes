@@ -169,9 +169,8 @@ export default function CarteleraPage() {
     requestAnimationFrame(() => fichas.current.get(enlaceId)?.scrollIntoView({ block: 'center' }));
   }, [cargando, enlaceId]);
 
-  // La barra inferior pone "Todos" al centro, como "Inicio" en la referencia
-  const mitad = Math.ceil(dias.length / 2);
-  const barra: (string | null)[] = [...dias.slice(0, mitad), null, ...dias.slice(mitad)];
+  // La barra inferior empieza con "Todos" y sigue con los días en orden
+  const barra: (string | null)[] = [null, ...dias];
 
   const contador = <p className="text-sm text-white/50">{filtrados.length} {filtrados.length === 1 ? 'participante' : 'participantes'}</p>;
 

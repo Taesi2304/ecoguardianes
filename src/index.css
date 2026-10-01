@@ -65,6 +65,71 @@
   }
 }
 
+/* Tablas del admin en celular: cada fila se vuelve una tarjeta, sin deslizar de lado.
+   En la tabla: class="tabla-tarjetas". En cada celda: data-label="Etiqueta" (dato con su
+   título), data-completa (ocupa todo el ancho, sin título) o data-acciones (botones, al final). */
+@media (max-width: 767px) {
+  .tabla-tarjetas,
+  .tabla-tarjetas tbody {
+    display: block;
+    min-width: 0;
+  }
+  .tabla-tarjetas thead {
+    display: none;
+  }
+  .tabla-tarjetas tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1rem;
+    padding: 1rem 1.25rem;
+  }
+  .tabla-tarjetas td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .tabla-tarjetas td[data-completa],
+  .tabla-tarjetas td[data-acciones],
+  .tabla-tarjetas td[colspan] {
+    grid-column: 1 / -1;
+  }
+  .tabla-tarjetas td[colspan] {
+    padding: 2rem 0;
+    text-align: center;
+  }
+  .tabla-tarjetas td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+  }
+  .tabla-tarjetas td[data-acciones] {
+    border-top: 1px solid var(--color-gray-100);
+    padding-top: 0.5rem;
+  }
+  .tabla-tarjetas td[data-acciones] > div {
+    justify-content: flex-end;
+  }
+}
+
+/* Lo mismo para los campos que heredan letra chica de su etiqueta (por ejemplo, un <label class="text-sm">).
+   En la capa base, para que una clase de tamaño más grande en el propio campo siga mandando */
+@layer base {
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1em);
+    }
+  }
+}
+
 /* Grises cálidos: mantienen el tono café del sitio sin perder la jerarquía entre tonos */
 @theme {
   --color-gray-50: #faf8f5;

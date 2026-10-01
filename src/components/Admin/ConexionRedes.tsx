@@ -78,10 +78,11 @@ export default function ConexionRedes({ onSincronizado }: { onSincronizado: () =
       console.error(error);
       toast.error('No se pudo sincronizar.');
     } else {
-      const { nuevas = 0, repetidas = 0 } = (data as { nuevas?: number; repetidas?: number }) ?? {};
+      const { nuevas = 0, repetidas = 0, sugerencias = 0 } = (data as { nuevas?: number; repetidas?: number; sugerencias?: number }) ?? {};
       const partes = [
         nuevas === 0 ? 'Todo al día: no hay publicaciones nuevas.' : `${nuevas} publicación(es) nueva(s).`,
         repetidas > 0 ? `Se ocultaron ${repetidas} de Facebook que ya estaban en Instagram.` : '',
+        sugerencias > 0 ? `La IA dejó ${sugerencias} sugerencia(s) para revisar.` : '',
       ];
       toast.success(partes.filter(Boolean).join(' '));
       onSincronizado();
