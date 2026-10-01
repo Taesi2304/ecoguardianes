@@ -10,9 +10,7 @@ import { cargarEventos, estiloPunto } from '../Calendario/eventos';
 import type { EventoCalendario } from '../Calendario/eventos';
 import { cargarEdicion } from '../Cartelera/cartelera';
 import { VisorImagenes } from '../VisorImagenes';
-
-const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=100091930835447';
-const INSTAGRAM_URL = 'https://www.instagram.com/fdma.mx';
+import { FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/redes';
 
 // Textos y secciones se editan en /admin/pagina; estos valores se usan mientras cargan
 const PAGINA_POR_DEFECTO: PaginaInicio = {

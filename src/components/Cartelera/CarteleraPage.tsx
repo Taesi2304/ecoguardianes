@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, WheelEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, Download, Loader2, Map as MapIcon, Search, X } from 'lucide-react';
+import { ChevronDown, Loader2, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, claveHora, etiquetaDia } from './cartelera';
 import type { Catalogo, Edicion, Participante } from './cartelera';
 import { DetalleActivo, FichaParticipante } from './DetalleParticipante';
+import { NavCartelera, PieCartelera } from './MarcoCartelera';
 import { Bienvenida } from './Bienvenida';
 
 // Mientras FDMA no suba su propia foto en Admin → Cartelera → Ajustes
@@ -241,24 +242,8 @@ export default function CarteleraPage() {
 
       {/* Toda la página se desplaza con la barra del navegador; solo el panel izquierdo queda fijo */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 pt-4 lg:px-8">
-        <header className="mb-4 flex items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white">
-            <ArrowLeft className="h-4 w-4" /> FDMA
-          </Link>
-          <h1 className="min-w-0 flex-1 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{edicion?.nombre ?? 'Cartelera'}</h1>
-          <div className="flex gap-2">
-            {edicion?.cartelera_pdf_url && (
-              <a href={edicion.cartelera_pdf_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white" title="Descargar cartelera en PDF">
-                <Download className="h-4 w-4" /><span className="hidden sm:inline">Cartelera PDF</span>
-              </a>
-            )}
-            {edicion?.croquis_pdf_url && (
-              <a href={edicion.croquis_pdf_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 text-sm text-white/80 backdrop-blur hover:text-white" title="Croquis de stands">
-                <MapIcon className="h-4 w-4" /><span className="hidden sm:inline">Croquis</span>
-              </a>
-            )}
-          </div>
-        </header>
+        <NavCartelera edicion={edicion} />
+        <h1 className="mb-4 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{edicion?.nombre ?? 'Cartelera'}</h1>
 
         {edicion && !edicion.es_actual && (
           <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl bg-black/40 px-4 py-2 text-center text-sm text-white/85 backdrop-blur">
@@ -319,7 +304,7 @@ export default function CarteleraPage() {
             ) : filtrados.length === 0 ? (
               <p className="rounded-2xl bg-[#10241b]/70 p-8 text-center text-white/70 backdrop-blur-md lg:mt-[16svh]">No hay resultados con esos filtros.</p>
             ) : (
-              <ol className="pb-32 lg:pb-0">
+              <ol>
                 {filtrados.map((participante) => (
                   <li
                     key={participante.id}
@@ -342,6 +327,11 @@ export default function CarteleraPage() {
               </ol>
             )}
           </div>
+        </div>
+
+        {/* pb-28: que la barra de días no tape el pie */}
+        <div className="pb-28">
+          <PieCartelera />
         </div>
       </div>
 
