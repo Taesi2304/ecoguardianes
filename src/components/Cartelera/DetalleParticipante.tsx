@@ -6,7 +6,7 @@ import type { Catalogo, Participante } from './cartelera';
 
 // Como en la referencia de ITCA: de frente la descripción, al voltear las fotos.
 // Las dos caras ocupan la misma celda del grid, así la tarjeta mide lo que la más alta.
-const SEGUNDOS_POR_FOTO = 4;
+const SEGUNDOS_POR_FOTO = 1;
 
 function TarjetaDosCaras({ nombre, descripcion, imagenes, color, animar, onAmpliar }: {
   nombre: string;
@@ -61,14 +61,14 @@ function TarjetaDosCaras({ nombre, descripcion, imagenes, color, animar, onAmpli
           >
             {/* Alto fijo y moderado; la foto se ve completa (sin recortar) sobre una copia difuminada de sí misma */}
             <button type="button" onClick={() => onAmpliar(foto)} className="relative block h-64 w-full cursor-zoom-in overflow-hidden sm:h-72 lg:h-80" aria-label="Ver foto en grande">
-              <img src={imagenes[foto]} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-xl transition-all duration-700" />
+              <img src={imagenes[foto]} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-xl transition-all duration-500" />
               {imagenes.map((url, indice) => (
                 <img
                   key={url}
                   src={url}
                   alt={indice === foto ? `${nombre} — foto ${indice + 1}` : ''}
                   loading={indice === 0 ? 'eager' : 'lazy'}
-                  className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-700 motion-reduce:transition-none ${indice === foto ? 'opacity-100' : 'opacity-0'}`}
+                  className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-500 motion-reduce:transition-none ${indice === foto ? 'opacity-100' : 'opacity-0'}`}
                 />
               ))}
             </button>
