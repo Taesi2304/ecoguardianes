@@ -68,6 +68,19 @@ async function borrarImagenesSinUso(urls: string[], participanteId: string | nul
   await borrarArchivos(BUCKET_IMAGENES, urls.filter((url) => !enUso.has(url)));
 }
 
+// Miniatura de una foto aún no subida: URL local temporal que se libera al quitarla
+function VistaPreviaArchivo({ archivo }: { archivo: File }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const local = URL.createObjectURL(archivo);
+    setUrl(local);
+    return () => URL.revokeObjectURL(local);
+  }, [archivo]);
+  return url
+    ? <img src={url} alt={archivo.name} title={archivo.name} className="h-24 w-24 rounded-lg border-2 border-dashed border-green-400 object-cover" />
+    : <div className="h-24 w-24 rounded-lg bg-green-50" />;
+}
+
 export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [formulario, setFormulario] = useState(formularioInicial);
@@ -354,7 +367,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                   ))}
                   {formulario.nuevasImagenes.map((archivo, indice) => (
                     <div key={`${archivo.name}-${indice}`} className="relative">
-                      <div className="flex h-24 w-24 items-center justify-center rounded-lg border-2 border-dashed border-green-300 bg-green-50 p-1 text-center text-[10px] text-green-800">{archivo.name}</div>
+                      <VistaPreviaArchivo archivo={archivo} />
                       <button type="button" onClick={() => setFormulario((actual) => ({ ...actual, nuevasImagenes: actual.nuevasImagenes.filter((_, i) => i !== indice) }))} className="absolute -right-2 -top-2 rounded-full bg-white p-1 text-red-600 shadow" title="Quitar foto"><X className="h-4 w-4" /></button>
                     </div>
                   ))}

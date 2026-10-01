@@ -24,9 +24,19 @@ export function TarjetaParticipante({ participante, tipo, seleccionado, onSelecc
       className={`border-b border-white/10 py-5 pl-4 transition-colors ${seleccionado ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}`}
       style={{ borderLeft: `3px solid ${seleccionado ? tipo?.color ?? '#fff' : 'transparent'}` }}
     >
-      <button onClick={onSeleccionar} className="block w-full pr-4 text-left" aria-pressed={seleccionado}>
-        <h3 className="text-2xl font-semibold tracking-tight text-white">{participante.nombre}</h3>
-        {participante.subtitulo && <p className="mt-0.5 text-sm text-white/60">{participante.subtitulo}</p>}
+      <button onClick={onSeleccionar} className="flex w-full items-center gap-4 pr-4 text-left" aria-pressed={seleccionado}>
+        {participante.imagenes[0] && (
+          <img src={participante.imagenes[0]} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+        )}
+        <span className="min-w-0 flex-1">
+          <h3 className="text-2xl font-semibold tracking-tight text-white">{participante.nombre}</h3>
+          {participante.subtitulo && <p className="mt-0.5 text-sm text-white/60">{participante.subtitulo}</p>}
+          {/* En celular el detalle (fotos, descripción) solo se abre al tocar la tarjeta */}
+          <span className="mt-1 inline-flex items-center gap-0.5 text-sm font-medium text-white/80 lg:hidden">
+            Ver detalles{participante.imagenes.length > 0 ? ` y ${participante.imagenes.length} ${participante.imagenes.length === 1 ? 'foto' : 'fotos'}` : ''}
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        </span>
       </button>
 
       {horario && (
