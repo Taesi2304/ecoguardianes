@@ -41,9 +41,8 @@ export default function DetalleVisita({ visita, onVerFoto }: { visita: VisitaBit
 
   return (
     <div className="space-y-4">
-      {(diagnostico || visita.plagas || visita.lixiviados) && (
+      {(visita.plagas || visita.lixiviados) && (
         <div className="flex flex-wrap gap-2">
-          {diagnostico && <DiagnosticoCompostero diagnostico={diagnostico} compacto />}
           {visita.plagas && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">
               <Bug className="h-3.5 w-3.5" aria-hidden="true" /> Plagas
@@ -56,6 +55,8 @@ export default function DetalleVisita({ visita, onVerFoto }: { visita: VisitaBit
           )}
         </div>
       )}
+
+      {diagnostico && <DiagnosticoCompostero diagnostico={diagnostico} />}
 
       {estado.length > 0 && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">

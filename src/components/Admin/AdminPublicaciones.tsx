@@ -15,7 +15,8 @@ type RedSocial = 'instagram' | 'facebook';
 interface Publicacion {
   id: string;
   texto: string | null;
-  imagen_url: string;
+  imagen_url: string | null; // null: solo texto
+  es_video: boolean;
   red_social: RedSocial;
   enlace_url: string | null;
   fecha_publicacion: string;
@@ -28,6 +29,7 @@ interface FormularioPublicacion {
   red_social: RedSocial;
   enlace_url: string;
   fecha_publicacion: string;
+  es_video: boolean;
   imagen: File | null;
 }
 
@@ -85,6 +87,7 @@ const crearFormularioInicial = (): FormularioPublicacion => ({
   red_social: 'instagram',
   enlace_url: '',
   fecha_publicacion: hoy(),
+  es_video: false,
   imagen: null,
 });
 
@@ -171,12 +174,13 @@ export default function AdminPublicaciones() {
 
   function abrirEdicion(publicacion: Publicacion) {
     setEditandoId(publicacion.id);
-    setImagenActual(publicacion.imagen_url);
+    setImagenActual(publicacion.imagen_url ?? '');
     setFormulario({
       texto: publicacion.texto || '',
       red_social: publicacion.red_social,
       enlace_url: publicacion.enlace_url || '',
       fecha_publicacion: publicacion.fecha_publicacion,
+      es_video: publicacion.es_video,
       imagen: null,
     });
     setFormularioAbierto(true);
@@ -207,8 +211,9 @@ export default function AdminPublicaciones() {
 
   async function guardar(e: FormEvent) {
     e.preventDefault();
-    if (!formulario.imagen && !imagenActual) {
-      toast.error('Selecciona la imagen de la publicación.');
+    // Sin imagen se muestra como tarjeta de texto, así que necesita texto
+    if (!formulario.imagen && !imagenActual && !formulario.texto.trim()) {
+      toast.error('Selecciona una imagen o escribe el texto de la publicación.');
       return;
     }
 
@@ -217,7 +222,7 @@ export default function AdminPublicaciones() {
 
     try {
       const publicacionActual = publicaciones.find((item) => item.id === editandoId);
-      let imagenUrl = publicacionActual?.imagen_url || '';
+      let imagenUrl = imagenActual || null; // Vacía si se quitó con ✕
 
       if (formulario.imagen) {
         imagenSubida = await subirImagen(formulario.imagen);
@@ -229,6 +234,7 @@ export default function AdminPublicaciones() {
         red_social: formulario.red_social,
         enlace_url: formulario.enlace_url.trim() || null,
         fecha_publicacion: formulario.fecha_publicacion || hoy(),
+        es_video: formulario.es_video,
         imagen_url: imagenUrl,
       };
 
@@ -238,7 +244,7 @@ export default function AdminPublicaciones() {
 
       if (respuesta.error) throw respuesta.error;
 
-      if (editandoId && formulario.imagen && publicacionActual?.imagen_url) {
+      if (editandoId && publicacionActual?.imagen_url && imagenUrl !== publicacionActual.imagen_url) {
         const rutaAnterior = obtenerRutaImagen(publicacionActual.imagen_url);
         if (rutaAnterior) await supabase.storage.from(BUCKET).remove([rutaAnterior]);
       }
@@ -283,7 +289,7 @@ export default function AdminPublicaciones() {
       return;
     }
 
-    const ruta = obtenerRutaImagen(publicacion.imagen_url);
+    const ruta = publicacion.imagen_url && obtenerRutaImagen(publicacion.imagen_url);
     if (ruta) await supabase.storage.from(BUCKET).remove([ruta]);
     setPublicaciones((actuales) => actuales.filter((item) => item.id !== publicacion.id));
     toast.success('Publicación eliminada.');
@@ -339,13 +345,17 @@ export default function AdminPublicaciones() {
                 </label>
               </div>
               <div className="space-y-4">
-                <label className="block text-sm font-semibold text-gray-700">Imagen{!(urlImagenNueva || imagenActual) && <input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required />}</label>
+                <label className="block text-sm font-semibold text-gray-700">Imagen{formulario.texto.trim() && ' (Opcional: sin imagen se muestra solo el texto)'}{!(urlImagenNueva || imagenActual) && <input type="file" accept="image/jpeg,image/png,image/webp" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!formulario.texto.trim()} />}</label>
                 {(urlImagenNueva || imagenActual) && (
                   <div>
                     <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la publicación" className="aspect-square w-full max-w-xs rounded-lg" onQuitar={() => (formulario.imagen ? setFormulario((actual) => ({ ...actual, imagen: null })) : setImagenActual(''))} />
                     <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para verla en grande, ✕ para quitarla</p>
                   </div>
                 )}
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <input type="checkbox" checked={formulario.es_video} onChange={(e) => setFormulario((actual) => ({ ...actual, es_video: e.target.checked }))} className="h-4 w-4 accent-green-600" />
+                  Es un video o reel (muestra ▶ sobre la imagen)
+                </label>
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
                   {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Image className="h-5 w-5" /> Guardar publicación</>}
                 </button>
@@ -393,7 +403,10 @@ export default function AdminPublicaciones() {
               {filtradas.slice(0, mostrando).map((publicacion) => (
                 <article key={publicacion.id} className={`overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm ${publicacion.activo ? '' : 'opacity-50'}`}>
                   <div className="relative aspect-square bg-[#f8f5f2]">
-                    <ImagenAmpliable src={publicacion.imagen_url} alt="Publicación" className="h-full w-full" />
+                    {publicacion.imagen_url
+                      ? <ImagenAmpliable src={publicacion.imagen_url} alt="Publicación" className="h-full w-full" />
+                      : <p className="flex h-full w-full items-center bg-[#2d6a4f] p-3 pt-11 text-xs leading-snug text-white"><span className="line-clamp-[7]">{publicacion.texto}</span></p>}
+                    {publicacion.es_video && <span aria-label="Video" className="pointer-events-none absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white"><span className="ml-0.5">▶</span></span>}
                     <img src={publicacion.red_social === 'facebook' ? '/fb-icon.svg' : '/ig-icon.svg'} alt={publicacion.red_social} className="absolute left-2 top-2 h-7 w-7 rounded-full bg-white p-1 shadow" />
                     {!publicacion.activo && <span className="absolute right-2 top-2 rounded-full bg-gray-800 px-2 py-0.5 text-xs font-semibold text-white">Oculta</span>}
                     {publicacion.origen === 'automatico' && <span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-green-700 shadow">Automática</span>}

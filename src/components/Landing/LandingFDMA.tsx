@@ -67,7 +67,8 @@ function textoCierre(fechaCierre: string) {
 interface Publicacion {
   id: string;
   texto: string | null;
-  imagen_url: string;
+  imagen_url: string | null; // null: post de Facebook solo de texto
+  es_video: boolean;
   red_social: 'instagram' | 'facebook';
   enlace_url: string | null;
   fecha_publicacion: string;
@@ -142,7 +143,7 @@ export const LandingFDMA = () => {
     const cargarPublicaciones = async () => {
       const { data, error } = await supabase
         .from('publicaciones')
-        .select('id, texto, imagen_url, red_social, enlace_url, fecha_publicacion')
+        .select('id, texto, imagen_url, es_video, red_social, enlace_url, fecha_publicacion')
         .eq('activo', true)
         .order('fecha_publicacion', { ascending: false })
         .order('created_at', { ascending: false })
@@ -379,11 +380,24 @@ export const LandingFDMA = () => {
                 className="group flex flex-col overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
                 <div className="relative aspect-square overflow-hidden bg-[#f8f5f2]">
-                  <img src={publicacion.imagen_url} alt={publicacion.texto || 'Publicación de FDMA'} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  {publicacion.imagen_url ? (
+                    <img src={publicacion.imagen_url} alt={publicacion.texto || 'Publicación de FDMA'} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  ) : (
+                    // Post solo de texto: el texto ocupa el cuadro, con el logo de FDMA de fondo
+                    <div className="flex h-full w-full items-center bg-gradient-to-br from-[#2d6a4f] to-[#1b4332] p-4 pt-11">
+                      <img src="/logo_fdma.svg" alt="" className="absolute bottom-2 right-2 h-14 w-14 opacity-20" />
+                      <p className="relative line-clamp-6 text-sm font-medium leading-snug text-white md:text-base">{publicacion.texto}</p>
+                    </div>
+                  )}
                   <img src={publicacion.red_social === 'facebook' ? '/fb-icon.svg' : '/ig-icon.svg'} alt="" className="absolute left-2 top-2 h-7 w-7 rounded-full bg-white p-1 shadow" />
+                  {publicacion.es_video && (
+                    <span aria-label="Video" className="absolute inset-0 m-auto flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-xl text-white shadow-lg transition group-hover:bg-black/70">
+                      <span className="ml-1">▶</span>
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-grow flex-col p-3">
-                  {publicacion.texto && <p className="mb-2 line-clamp-3 text-sm leading-snug text-[#4a3728]/80">{publicacion.texto}</p>}
+                  {publicacion.texto && publicacion.imagen_url && <p className="mb-2 line-clamp-3 text-sm leading-snug text-[#4a3728]/80">{publicacion.texto}</p>}
                   <span className="mt-auto text-xs font-medium text-[#2d6a4f]">{formatearFecha(publicacion.fecha_publicacion)}</span>
                 </div>
               </a>

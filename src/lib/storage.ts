@@ -14,6 +14,22 @@ export async function subirArchivo(bucket: string, carpeta: string, archivo: Fil
   return { ruta, url: data.publicUrl };
 }
 
+// Copia una imagen pública (p. ej. la de una publicación de FB/IG) a otro bucket, para que no
+// dependa de la original si después se borra. Si la copia falla, devuelve la URL original.
+export async function copiarImagen(url: string, bucket: string, carpeta: string) {
+  try {
+    const respuesta = await fetch(url);
+    if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
+    const blob = await respuesta.blob();
+    const extension = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+    const archivo = new File([blob], `imagen.${extension}`, { type: blob.type || 'image/jpeg' });
+    return (await subirArchivo(bucket, carpeta, archivo)).url;
+  } catch (error) {
+    console.error('No se pudo copiar la imagen; se usa la original:', error);
+    return url;
+  }
+}
+
 // null si la URL no pertenece al bucket (p. ej. imágenes en /public)
 export function rutaDesdeUrl(bucket: string, url: string) {
   const marcador = `/storage/v1/object/public/${bucket}/`;
