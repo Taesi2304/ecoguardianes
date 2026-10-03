@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { FACEBOOK_URL, INSTAGRAM_URL } from '../../lib/redes';
 
 import './Footer.css';
 
@@ -9,9 +10,6 @@ interface Aliado {
   nombre: string;
   enlace_url: string;
 }
-
-const INSTAGRAM_FDMA = 'https://www.instagram.com/fdma.mx';
-const FACEBOOK_COMUNIDAD = 'https://www.facebook.com/share/1DKWiUtHvb/?mibextid=wwXIfr';
 
 const enlacesExplora = [
   { to: '/cartelera', texto: 'Cartelera' },
@@ -68,10 +66,10 @@ export const Footer = () => {
             Un espacio dedicado a la educación y la acción ambiental. Hogar del proyecto de composta comunitaria Eco Guardianes.
           </p>
           <div className="footer-social">
-            <a href={INSTAGRAM_FDMA} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="Instagram de FDMA">
+            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="Instagram de FDMA">
               <IconoInstagram />
             </a>
-            <a href={FACEBOOK_COMUNIDAD} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="Comunidad en Facebook de Parque Casa Blanca 3">
+            <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="Facebook de FDMA">
               <IconoFacebook />
             </a>
           </div>
