@@ -2,24 +2,23 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2, Search, Sprout } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { agruparPorArea, CAMPOS_INTEGRANTE, crearSlug, FotoIntegrante, RedesIntegrante } from '@/components/Equipo/equipo';
+import { agruparPorArea, CAMPOS_INTEGRANTE, crearSlug } from '@/components/Equipo/equipo';
+import { FotoIntegrante, RedesIntegrante } from '@/components/Equipo/EquipoUi';
 import type { Integrante } from '@/components/Equipo/equipo';
 
 const TODAS = 'Todas';
 
 function TarjetaIntegrante({ integrante }: { integrante: Integrante }) {
   return (
-    <Link
-      to={`/equipo/${integrante.slug}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-[#4a3728]/10 bg-white shadow-sm transition duration-300 motion-safe:hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-[#2d6a4f]/40"
-    >
+    // Toda la tarjeta abre el perfil (el enlace del nombre la cubre); las redes quedan encima con z-10
+    <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-[#4a3728]/10 bg-white shadow-sm transition duration-300 focus-within:ring-4 focus-within:ring-[#2d6a4f]/40 motion-safe:hover:-translate-y-1 hover:shadow-xl">
       {/* La foto se acerca y deja ver la semblanza corta al pasar el cursor */}
       <div className="relative aspect-[4/5] overflow-hidden bg-[#d8ece1]">
         <FotoIntegrante integrante={integrante} className="h-full w-full transition duration-500 motion-safe:group-hover:scale-105" />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#1b4332]/90 via-[#1b4332]/50 to-transparent px-5 pb-4 pt-16 text-white">
           <p className="text-xs font-bold uppercase tracking-widest text-[#b7e4c7]">{integrante.area}</p>
           {integrante.resumen && (
-            <p className="mt-2 line-clamp-3 max-h-0 text-sm leading-snug opacity-0 transition-all duration-500 group-hover:max-h-24 group-hover:opacity-100 group-focus-visible:max-h-24 group-focus-visible:opacity-100">
+            <p className="mt-2 line-clamp-3 max-h-0 text-sm leading-snug opacity-0 transition-all duration-500 group-hover:max-h-24 group-hover:opacity-100 group-focus-within:max-h-24 group-focus-within:opacity-100">
               {integrante.resumen}
             </p>
           )}
@@ -28,20 +27,24 @@ function TarjetaIntegrante({ integrante }: { integrante: Integrante }) {
 
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
-          <h3 className="text-lg font-extrabold leading-tight text-[#4a3728]">{integrante.nombre}</h3>
+          <h3 className="text-lg font-extrabold leading-tight text-[#4a3728]">
+            <Link to={`/equipo/${integrante.slug}`} className="after:absolute after:inset-0 focus:outline-none">{integrante.nombre}</Link>
+          </h3>
           <p className="mt-1 text-sm font-semibold text-[#2d6a4f]">{integrante.cargo}</p>
           {integrante.emprendimiento && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600"><Sprout className="h-4 w-4 shrink-0 text-[#2d6a4f]" />{integrante.emprendimiento}</p>
           )}
         </div>
         <div className="mt-auto flex items-end justify-between gap-3">
-          <RedesIntegrante redes={integrante.redes} nombre={integrante.nombre} />
-          <span className="ml-auto flex shrink-0 items-center gap-1 text-sm font-bold text-[#2d6a4f]">
+          <div className="relative z-10">
+            <RedesIntegrante redes={integrante.redes} nombre={integrante.nombre} />
+          </div>
+          <span className="ml-auto flex shrink-0 items-center gap-1 text-sm font-bold text-[#2d6a4f]" aria-hidden="true">
             Ver perfil <ArrowRight className="h-4 w-4 transition-transform motion-safe:group-hover:translate-x-1" />
           </span>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }
 

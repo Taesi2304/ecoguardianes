@@ -7,8 +7,9 @@ import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
-import { BUCKET_EQUIPO, CAMPOS_INTEGRANTE, crearSlug, FotoIntegrante, REDES } from '@/components/Equipo/equipo';
+import { BUCKET_EQUIPO, CAMPOS_INTEGRANTE, crearSlug, NOMBRES_RED } from '@/components/Equipo/equipo';
 import type { Integrante, RedIntegrante, TipoRed } from '@/components/Equipo/equipo';
+import { FotoIntegrante } from '@/components/Equipo/EquipoUi';
 
 interface FormularioIntegrante {
   nombre: string;
@@ -285,7 +286,7 @@ export default function AdminEquipo() {
                     {formulario.redes.map((red, indice) => (
                       <div key={indice} className="flex gap-2">
                         <select value={red.tipo} onChange={(e) => cambiarRed(indice, { tipo: e.target.value as TipoRed })} className="rounded-lg border border-gray-300 px-2 py-2 font-normal focus:border-green-500 focus:outline-none" aria-label="Red social">
-                          {(Object.keys(REDES) as TipoRed[]).map((tipo) => <option key={tipo} value={tipo}>{REDES[tipo].nombre}</option>)}
+                          {(Object.keys(NOMBRES_RED) as TipoRed[]).map((tipo) => <option key={tipo} value={tipo}>{NOMBRES_RED[tipo]}</option>)}
                         </select>
                         <input type="url" placeholder="https://..." value={red.url} onChange={(e) => cambiarRed(indice, { url: e.target.value })} className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 font-normal focus:border-green-500 focus:outline-none" aria-label="Enlace" />
                         <button type="button" onClick={() => setFormulario((actual) => ({ ...actual, redes: actual.redes.filter((_, i) => i !== indice) }))} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Quitar"><X className="h-4 w-4" /></button>

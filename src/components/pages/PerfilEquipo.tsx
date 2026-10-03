@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Sprout } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { CAMPOS_INTEGRANTE, FotoIntegrante, RedesIntegrante } from '@/components/Equipo/equipo';
+import { CAMPOS_INTEGRANTE } from '@/components/Equipo/equipo';
 import type { Integrante } from '@/components/Equipo/equipo';
+import { FotoIntegrante, RedesIntegrante } from '@/components/Equipo/EquipoUi';
 
 export default function PerfilEquipo() {
   const { slug } = useParams();
   const [integrante, setIntegrante] = useState<Integrante | null>(null);
   const [companeros, setCompaneros] = useState<Integrante[]>([]);
-  const [cargando, setCargando] = useState(true);
+  // Slug del perfil ya cargado: al pasar a otra persona vuelve a mostrar el indicador de carga
+  const [slugCargado, setSlugCargado] = useState<string | null>(null);
+  const cargando = slugCargado !== slug;
 
   useEffect(() => {
     let vigente = true;
-    setCargando(true);
 
     (async () => {
       const { data } = await supabase
@@ -40,7 +42,7 @@ export default function PerfilEquipo() {
       setIntegrante(encontrado);
       setCompaneros((mismaArea || []) as Integrante[]);
       if (encontrado) document.title = `FDMA | ${encontrado.nombre}`;
-      setCargando(false);
+      setSlugCargado(slug ?? null);
     })();
 
     return () => { vigente = false; };
