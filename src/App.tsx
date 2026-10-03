@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { Header } from './components/Header/Header';
 import { Landing } from './components/Landing/Landing';
 import { LandingFDMA } from './components/Landing/LandingFDMA';
@@ -62,11 +62,6 @@ const PublicLayout = () => {
   );
 };
 
-const RedireccionPerfilEquipo = () => {
-  const { slug } = useParams();
-  return <Navigate to={`/directorio/${slug}`} replace />;
-};
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -92,9 +87,6 @@ export default function App() {
           <Route path="/calendario" element={<Calendario />} />
           <Route path="/directorio" element={<Equipo />} />
           <Route path="/directorio/:slug" element={<PerfilEquipo />} />
-          {/* Enlaces viejos de /equipo */}
-          <Route path="/equipo" element={<Navigate to="/directorio" replace />} />
-          <Route path="/equipo/:slug" element={<RedireccionPerfilEquipo />} />
         </Route>
 
         {/* Cartelera a pantalla completa, con su propio diseño oscuro */}
@@ -140,7 +132,6 @@ export default function App() {
               <Route path="publicaciones" element={<AdminPublicaciones />} />
               <Route path="aliados" element={<AdminAliados />} />
               <Route path="directorio" element={<AdminEquipo />} />
-              <Route path="equipo" element={<Navigate to="/admin/directorio" replace />} />
               <Route path="talleres" element={<AdminTalleres />} />
               <Route path="calendario" element={<AdminCalendario />} />
               <Route path="cartelera" element={<AdminCartelera />} />

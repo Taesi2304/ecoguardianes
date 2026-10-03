@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 import './Header.css';
 
 interface Enlace {
@@ -44,6 +45,15 @@ export const Header = () => {
   const [seccionesMovil, setSeccionesMovil] = useState<Record<string, boolean>>({});
   const navRef = useRef<HTMLElement>(null);
   const location = useLocation();
+  const [conSesion, setConSesion] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setConSesion(Boolean(session)));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evento, session) => {
+      setConSesion(Boolean(session));
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const isItemActive = (href: string) => location.pathname === href.split('#')[0];
   const seccionActiva = (seccion: Seccion) =>
@@ -138,13 +148,21 @@ export const Header = () => {
         </nav>
 
         <div className="header-actions">
-          <Link to="/login" className="header-link-btn header-link-btn--ghost" aria-label="Iniciar sesión">
-            Iniciar sesión
-          </Link>
+          {conSesion ? (
+            <Link to="/login" className="header-link-btn header-link-btn--primary">
+              Mi panel
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" className="header-link-btn header-link-btn--ghost" aria-label="Iniciar sesión">
+                Iniciar sesión
+              </Link>
 
-          <Link to="/registro" className="header-link-btn header-link-btn--primary" aria-label="Registrarse">
-            Registro
-          </Link>
+              <Link to="/registro" className="header-link-btn header-link-btn--primary" aria-label="Registrarse">
+                Registro
+              </Link>
+            </>
+          )}
 
           <button
             type="button"
@@ -205,21 +223,33 @@ export const Header = () => {
               );
             })}
 
-            <Link
-              to="/login"
-              className="mobile-nav-link mobile-nav-link--action"
-              onClick={cerrarTodo}
-            >
-              Iniciar sesión
-            </Link>
+            {conSesion ? (
+              <Link
+                to="/login"
+                className="mobile-nav-link mobile-nav-link--action mobile-nav-link--primary"
+                onClick={cerrarTodo}
+              >
+                Mi panel
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="mobile-nav-link mobile-nav-link--action"
+                  onClick={cerrarTodo}
+                >
+                  Iniciar sesión
+                </Link>
 
-            <Link
-              to="/registro"
-              className="mobile-nav-link mobile-nav-link--action mobile-nav-link--primary"
-              onClick={cerrarTodo}
-            >
-              Registro
-            </Link>
+                <Link
+                  to="/registro"
+                  className="mobile-nav-link mobile-nav-link--action mobile-nav-link--primary"
+                  onClick={cerrarTodo}
+                >
+                  Registro
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

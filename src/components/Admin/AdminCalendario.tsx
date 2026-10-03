@@ -4,6 +4,7 @@ import { AlertCircle, ArrowRight, Edit, Eye, EyeOff, Loader2, Plus, Save, Tags, 
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import { useScrollAlFormulario } from '@/lib/useScrollAlFormulario';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatearFecha, formatearHora } from '@/lib/utils';
 import { cargarCategorias, cargarEventos as cargarEventosPublicos, estiloPunto } from '@/components/Calendario/eventos';
@@ -95,6 +96,7 @@ export default function AdminCalendario() {
   const [formulario, setFormulario] = useState(formularioInicial);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const formularioRef = useScrollAlFormulario(formularioAbierto, editandoId);
   const [verPasados, setVerPasados] = useState(false);
   const [diaFiltro, setDiaFiltro] = useState(''); // '' = todos los días, o 'AAAA-MM-DD'
   const [categoriaFiltro, setCategoriaFiltro] = useState(''); // '' = todas, 'sin' = sin categoría, o el id
@@ -196,7 +198,6 @@ export default function AdminCalendario() {
       enlace_url: evento.enlace_url || '',
     });
     setFormularioAbierto(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
@@ -306,7 +307,7 @@ export default function AdminCalendario() {
       )}
 
       {formularioAbierto && (
-        <Card className="border-transparent bg-white shadow-sm">
+        <Card ref={formularioRef} className="scroll-mt-24 border-transparent bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
             <CardTitle className="text-lg text-gray-800">{editandoId ? 'Editar evento' : 'Nuevo evento'}</CardTitle>
             <button onClick={cerrarFormulario} className="rounded-lg p-2 text-gray-500 hover:bg-gray-200" title="Cerrar formulario"><X className="h-5 w-5" /></button>

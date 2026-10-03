@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { rutaInicioDe } from '../../lib/sesion';
 import '../Landing/Landing.css';
 
 export const Login = () => {
@@ -11,6 +12,17 @@ export const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [mostrarPassword, setMostrarPassword] = useState(false);
+
+  // Si ya hay sesión, no vuelve a pedir correo y contraseña
+  useEffect(() => {
+    let cancelado = false;
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session || cancelado) return;
+      const ruta = await rutaInicioDe(session.user.id).catch(() => null);
+      if (ruta && !cancelado) navigate(ruta, { replace: true });
+    });
+    return () => { cancelado = true; };
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,22 +42,15 @@ export const Login = () => {
       if (authError) throw authError;
 
      if (data.user) {
-        const { data: usuario, error: usuarioError } = await supabase
-          .from('usuarios')
-          .select('roles(nombre)')
-          .eq('auth_user_id', data.user.id)
-          .maybeSingle(); // <-- Cambiamos .single() por .maybeSingle()
-
-        if (usuarioError) throw usuarioError;
+        const ruta = await rutaInicioDe(data.user.id);
 
         // Si el usuario se autenticó pero no está en la tabla usuarios:
-        if (!usuario) {
+        if (!ruta) {
           throw new Error("Tu cuenta está incompleta. Contacta al administrador o borra tu cuenta para registrarte de nuevo.");
         }
 
         // Cada rol recibe su pantalla inicial correspondiente.
-        const rol = ((usuario?.roles as any)?.[0] || usuario?.roles as any)?.nombre;
-        navigate(rol === 'Super Admin' ? '/admin/pagina' : rol === 'Administrador' ? '/admin' : '/dashboard');
+        navigate(ruta);
       }
     } catch (err: any) {
       // Ahora verás si el error es de la contraseña o si falta el registro en tu tabla

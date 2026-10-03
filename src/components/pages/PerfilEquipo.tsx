@@ -19,7 +19,7 @@ export default function PerfilEquipo() {
 
     (async () => {
       const { data } = await supabase
-        .from('equipo')
+        .from('directorio')
         .select(CAMPOS_INTEGRANTE)
         .eq('slug', slug ?? '')
         .eq('activo', true)
@@ -29,7 +29,7 @@ export default function PerfilEquipo() {
       // Otras personas de la misma área, para seguir navegando
       const { data: mismaArea } = encontrado
         ? await supabase
-          .from('equipo')
+          .from('directorio')
           .select(CAMPOS_INTEGRANTE)
           .eq('area', encontrado.area)
           .eq('activo', true)

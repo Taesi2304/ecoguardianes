@@ -3,11 +3,12 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { AlertCircle, Edit, ExternalLink, Eye, EyeOff, Image, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import { useScrollAlFormulario } from '@/lib/useScrollAlFormulario';
 import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
-import { BUCKET_EQUIPO, CAMPOS_INTEGRANTE, crearSlug, NOMBRES_RED } from '@/components/Equipo/equipo';
+import { BUCKET_DIRECTORIO, CAMPOS_INTEGRANTE, crearSlug, NOMBRES_RED } from '@/components/Equipo/equipo';
 import type { Integrante, RedIntegrante, TipoRed } from '@/components/Equipo/equipo';
 import { FotoIntegrante } from '@/components/Equipo/EquipoUi';
 
@@ -46,6 +47,7 @@ export default function AdminEquipo() {
   const [formulario, setFormulario] = useState(formularioInicial);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const formularioRef = useScrollAlFormulario(formularioAbierto, editandoId);
   const [fotoActual, setFotoActual] = useState('');
   const urlFotoNueva = useUrlLocal(formulario.foto);
   const [logoActual, setLogoActual] = useState('');
@@ -66,7 +68,7 @@ export default function AdminEquipo() {
     setError(null);
 
     const { data, error: errorConsulta } = await supabase
-      .from('equipo')
+      .from('directorio')
       .select(CAMPOS_INTEGRANTE)
       .order('orden', { ascending: true })
       .order('nombre', { ascending: true });
@@ -114,7 +116,6 @@ export default function AdminEquipo() {
       logo: null,
     });
     setFormularioAbierto(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -169,11 +170,11 @@ export default function AdminEquipo() {
       let logoUrl = emprendimiento ? logoActual || null : null;
 
       if (formulario.foto) {
-        fotoSubida = await subirArchivo(BUCKET_EQUIPO, 'equipo', formulario.foto);
+        fotoSubida = await subirArchivo(BUCKET_DIRECTORIO, 'integrantes', formulario.foto);
         fotoUrl = fotoSubida.url;
       }
       if (emprendimiento && formulario.logo) {
-        logoSubido = await subirArchivo(BUCKET_EQUIPO, 'emprendimientos', formulario.logo);
+        logoSubido = await subirArchivo(BUCKET_DIRECTORIO, 'emprendimientos', formulario.logo);
         logoUrl = logoSubido.url;
       }
 
@@ -195,13 +196,13 @@ export default function AdminEquipo() {
       };
 
       const respuesta = editandoId
-        ? await supabase.from('equipo').update(datos).eq('id', editandoId)
-        : await supabase.from('equipo').insert({ ...datos, activo: true });
+        ? await supabase.from('directorio').update(datos).eq('id', editandoId)
+        : await supabase.from('directorio').insert({ ...datos, activo: true });
 
       if (respuesta.error) throw respuesta.error;
 
       // La foto y el logo anteriores se borran si se reemplazaron o se quitaron
-      await borrarArchivos(BUCKET_EQUIPO, [
+      await borrarArchivos(BUCKET_DIRECTORIO, [
         actual?.foto_url !== fotoUrl ? actual?.foto_url : null,
         actual?.emprendimiento_logo_url !== logoUrl ? actual?.emprendimiento_logo_url : null,
       ]);
@@ -211,7 +212,7 @@ export default function AdminEquipo() {
       await cargarIntegrantes();
     } catch (err) {
       const subidas = [fotoSubida, logoSubido].filter((archivo) => archivo !== null).map((archivo) => archivo.ruta);
-      if (subidas.length) await supabase.storage.from(BUCKET_EQUIPO).remove(subidas);
+      if (subidas.length) await supabase.storage.from(BUCKET_DIRECTORIO).remove(subidas);
       console.error(err);
       toast.error('No se pudo guardar.');
     } finally {
@@ -221,7 +222,7 @@ export default function AdminEquipo() {
 
   async function alternarEstado(integrante: Integrante) {
     const { error: errorActualizacion } = await supabase
-      .from('equipo')
+      .from('directorio')
       .update({ activo: !integrante.activo })
       .eq('id', integrante.id);
 
@@ -237,13 +238,13 @@ export default function AdminEquipo() {
   async function eliminar(integrante: Integrante) {
     if (!window.confirm(`¿Eliminar a "${integrante.nombre}" del equipo? Esta acción no se puede deshacer.`)) return;
 
-    const { error: errorEliminacion } = await supabase.from('equipo').delete().eq('id', integrante.id);
+    const { error: errorEliminacion } = await supabase.from('directorio').delete().eq('id', integrante.id);
     if (errorEliminacion) {
       toast.error('No se pudo eliminar.');
       return;
     }
 
-    await borrarArchivos(BUCKET_EQUIPO, [integrante.foto_url, integrante.emprendimiento_logo_url]);
+    await borrarArchivos(BUCKET_DIRECTORIO, [integrante.foto_url, integrante.emprendimiento_logo_url]);
     setIntegrantes((actuales) => actuales.filter((item) => item.id !== integrante.id));
     toast.success('Integrante eliminado.');
   }
@@ -265,7 +266,7 @@ export default function AdminEquipo() {
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}
 
       {formularioAbierto && (
-        <Card className="border-transparent bg-white shadow-sm">
+        <Card ref={formularioRef} className="scroll-mt-24 border-transparent bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
             <CardTitle className="text-lg text-gray-800">{editandoId ? 'Editar integrante' : 'Nuevo integrante'}</CardTitle>
             <button onClick={cerrarFormulario} className="rounded-lg p-2 text-gray-500 hover:bg-gray-200" title="Cerrar formulario"><X className="h-5 w-5" /></button>

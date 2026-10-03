@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import { useScrollAlFormulario } from '@/lib/useScrollAlFormulario';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
@@ -102,6 +103,7 @@ export default function AdminPublicaciones() {
   const [formulario, setFormulario] = useState(crearFormularioInicial);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const formularioRef = useScrollAlFormulario(formularioAbierto, editandoId);
   const [imagenActual, setImagenActual] = useState('');
   const urlImagenNueva = useUrlLocal(formulario.imagen);
   const [cargando, setCargando] = useState(true);
@@ -314,7 +316,7 @@ export default function AdminPublicaciones() {
       <SugerenciasIA version={versionSugerencias} />
 
       {formularioAbierto && (
-        <Card className="border-transparent bg-white shadow-sm">
+        <Card ref={formularioRef} className="scroll-mt-24 border-transparent bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
             <CardTitle className="text-lg text-gray-800">{editandoId ? 'Editar publicación' : 'Nueva publicación'}</CardTitle>
             <button onClick={cerrarFormulario} className="rounded-lg p-2 text-gray-500 hover:bg-gray-200" title="Cerrar formulario"><X className="h-5 w-5" /></button>

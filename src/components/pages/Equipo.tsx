@@ -55,7 +55,7 @@ export default function Equipo() {
 
   useEffect(() => {
     supabase
-      .from('equipo')
+      .from('directorio')
       .select(CAMPOS_INTEGRANTE)
       .eq('activo', true)
       .order('orden', { ascending: true })

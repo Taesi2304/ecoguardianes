@@ -1,4 +1,4 @@
-// Directorio del equipo de FDMA (/directorio). Tabla: database/33_equipo_fdma.sql
+// Directorio del equipo de FDMA (/directorio). Tabla: database/37_directorio.sql
 
 export type TipoRed = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'web' | 'otro';
 
@@ -26,7 +26,7 @@ export interface Integrante {
 
 export const CAMPOS_INTEGRANTE = 'id, nombre, slug, cargo, area, resumen, trayectoria, emprendimiento, emprendimiento_logo_url, emprendimiento_url, redes, foto_url, orden, activo';
 
-export const BUCKET_EQUIPO = 'imagenes_equipo';
+export const BUCKET_DIRECTORIO = 'imagenes_directorio';
 
 export const NOMBRES_RED: Record<TipoRed, string> = {
   instagram: 'Instagram',
