@@ -16,13 +16,15 @@ export interface Integrante {
   resumen: string | null;
   trayectoria: string | null;
   emprendimiento: string | null;
+  emprendimiento_logo_url: string | null;
+  emprendimiento_url: string | null; // una de sus redes, escogida en el admin
   redes: RedIntegrante[];
   foto_url: string | null;
   orden: number;
   activo: boolean;
 }
 
-export const CAMPOS_INTEGRANTE = 'id, nombre, slug, cargo, area, resumen, trayectoria, emprendimiento, redes, foto_url, orden, activo';
+export const CAMPOS_INTEGRANTE = 'id, nombre, slug, cargo, area, resumen, trayectoria, emprendimiento, emprendimiento_logo_url, emprendimiento_url, redes, foto_url, orden, activo';
 
 export const BUCKET_EQUIPO = 'imagenes_equipo';
 

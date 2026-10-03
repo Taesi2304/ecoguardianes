@@ -84,27 +84,28 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     { name: 'Cerrar Sesión', path: '/login', icon: '/salir.svg' },
   ];
 
-  // Super Admin (FDMA): primero la página del festival; el compostero es una extensión
+  // Super Admin (FDMA): primero la página y el festival; el compostero es una extensión.
+  // "Página web" es lo que se ve todo el año; "Festival", lo del evento y su programa.
   const grupos: GrupoMenu[] = !isAdmin
     ? [{ items: menuGuardiana }]
     : isSuperAdmin
       ? [
           {
-            titulo: 'Festival',
+            titulo: 'Página web',
             items: [
               { name: 'Página de inicio', path: '/admin/pagina', icon: '/inicio.svg' },
-              { name: 'Cartelera', path: '/admin/cartelera', icon: '/mapa.svg' },
-              { name: 'Talleres', path: '/admin/talleres', icon: '/planta-tierra.svg' },
-              { name: 'Calendario', path: '/admin/calendario', icon: '/historial.svg' },
+              { name: 'Publicaciones', path: '/admin/publicaciones', icon: '/foto-camara.svg' },
               { name: 'Equipo', path: '/admin/equipo', icon: '/usuarios.svg' },
+              { name: 'Aliados', path: '/admin/aliados', icon: '/corazon.svg' },
             ],
           },
           {
-            titulo: 'Difusión',
+            titulo: 'Festival',
             items: [
               { name: 'Convocatorias', path: '/admin/convocatorias', icon: '/reporte.svg' },
-              { name: 'Publicaciones', path: '/admin/publicaciones', icon: '/foto-camara.svg' },
-              { name: 'Aliados', path: '/admin/aliados', icon: '/corazon.svg' },
+              { name: 'Cartelera', path: '/admin/cartelera', icon: '/mapa.svg' },
+              { name: 'Talleres', path: '/admin/talleres', icon: '/planta-tierra.svg' },
+              { name: 'Calendario', path: '/admin/calendario', icon: '/historial.svg' },
             ],
           },
           { titulo: 'Eco Guardianes', items: menuCompostero },

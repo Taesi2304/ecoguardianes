@@ -18,9 +18,11 @@ interface FormularioIntegrante {
   resumen: string;
   trayectoria: string;
   emprendimiento: string;
+  emprendimientoUrl: string;
   orden: string;
   redes: RedIntegrante[];
   foto: File | null;
+  logo: File | null;
 }
 
 const formularioInicial: FormularioIntegrante = {
@@ -30,9 +32,11 @@ const formularioInicial: FormularioIntegrante = {
   resumen: '',
   trayectoria: '',
   emprendimiento: '',
+  emprendimientoUrl: '',
   orden: '',
   redes: [],
   foto: null,
+  logo: null,
 };
 
 const campo = 'mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 font-normal focus:border-green-500 focus:outline-none';
@@ -44,6 +48,8 @@ export default function AdminEquipo() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [fotoActual, setFotoActual] = useState('');
   const urlFotoNueva = useUrlLocal(formulario.foto);
+  const [logoActual, setLogoActual] = useState('');
+  const urlLogoNuevo = useUrlLocal(formulario.logo);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +72,7 @@ export default function AdminEquipo() {
       .order('nombre', { ascending: true });
 
     if (errorConsulta) {
-      setError('No se pudo cargar el equipo. ¿Ya corriste database/33_equipo_fdma.sql?');
+      setError('No se pudo cargar el equipo. ¿Ya corriste database/33_equipo_fdma.sql y 34_equipo_emprendimiento.sql?');
       console.error(errorConsulta);
     } else {
       setIntegrantes((data || []) as Integrante[]);
@@ -77,6 +83,7 @@ export default function AdminEquipo() {
   function cerrarFormulario() {
     setEditandoId(null);
     setFotoActual('');
+    setLogoActual('');
     setFormulario(formularioInicial);
     setFormularioAbierto(false);
   }
@@ -84,6 +91,7 @@ export default function AdminEquipo() {
   function abrirNuevo() {
     setEditandoId(null);
     setFotoActual('');
+    setLogoActual('');
     setFormulario({ ...formularioInicial, orden: String(integrantes.length + 1), redes: [{ tipo: 'instagram', url: '' }] });
     setFormularioAbierto(true);
   }
@@ -91,6 +99,7 @@ export default function AdminEquipo() {
   function abrirEdicion(integrante: Integrante) {
     setEditandoId(integrante.id);
     setFotoActual(integrante.foto_url || '');
+    setLogoActual(integrante.emprendimiento_logo_url || '');
     setFormulario({
       nombre: integrante.nombre,
       cargo: integrante.cargo,
@@ -98,9 +107,11 @@ export default function AdminEquipo() {
       resumen: integrante.resumen || '',
       trayectoria: integrante.trayectoria || '',
       emprendimiento: integrante.emprendimiento || '',
+      emprendimientoUrl: integrante.emprendimiento_url || '',
       orden: String(integrante.orden),
       redes: integrante.redes || [],
       foto: null,
+      logo: null,
     });
     setFormularioAbierto(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -142,16 +153,28 @@ export default function AdminEquipo() {
       return;
     }
 
+    const emprendimiento = formulario.emprendimiento.trim() || null;
+    // Si se quitó la red que estaba escogida, el emprendimiento se queda sin enlace
+    const emprendimientoUrl = emprendimiento && redes.some((red) => red.url === formulario.emprendimientoUrl)
+      ? formulario.emprendimientoUrl
+      : null;
+
     setGuardando(true);
     let fotoSubida: { ruta: string; url: string } | null = null;
+    let logoSubido: { ruta: string; url: string } | null = null;
 
     try {
       const actual = integrantes.find((item) => item.id === editandoId);
       let fotoUrl = fotoActual || null;
+      let logoUrl = emprendimiento ? logoActual || null : null;
 
       if (formulario.foto) {
         fotoSubida = await subirArchivo(BUCKET_EQUIPO, 'equipo', formulario.foto);
         fotoUrl = fotoSubida.url;
+      }
+      if (emprendimiento && formulario.logo) {
+        logoSubido = await subirArchivo(BUCKET_EQUIPO, 'emprendimientos', formulario.logo);
+        logoUrl = logoSubido.url;
       }
 
       const nombre = formulario.nombre.trim();
@@ -163,7 +186,9 @@ export default function AdminEquipo() {
         area: formulario.area.trim(),
         resumen: formulario.resumen.trim() || null,
         trayectoria: formulario.trayectoria.trim() || null,
-        emprendimiento: formulario.emprendimiento.trim() || null,
+        emprendimiento,
+        emprendimiento_logo_url: logoUrl,
+        emprendimiento_url: emprendimientoUrl,
         orden: Number(formulario.orden) || 0,
         redes,
         foto_url: fotoUrl,
@@ -175,14 +200,18 @@ export default function AdminEquipo() {
 
       if (respuesta.error) throw respuesta.error;
 
-      // La foto anterior se borra si se reemplazó o se quitó
-      if (actual?.foto_url && actual.foto_url !== fotoUrl) await borrarArchivos(BUCKET_EQUIPO, [actual.foto_url]);
+      // La foto y el logo anteriores se borran si se reemplazaron o se quitaron
+      await borrarArchivos(BUCKET_EQUIPO, [
+        actual?.foto_url !== fotoUrl ? actual?.foto_url : null,
+        actual?.emprendimiento_logo_url !== logoUrl ? actual?.emprendimiento_logo_url : null,
+      ]);
 
       toast.success(editandoId ? 'Integrante actualizado.' : 'Integrante agregado.');
       cerrarFormulario();
       await cargarIntegrantes();
     } catch (err) {
-      if (fotoSubida) await supabase.storage.from(BUCKET_EQUIPO).remove([fotoSubida.ruta]);
+      const subidas = [fotoSubida, logoSubido].filter((archivo) => archivo !== null).map((archivo) => archivo.ruta);
+      if (subidas.length) await supabase.storage.from(BUCKET_EQUIPO).remove(subidas);
       console.error(err);
       toast.error('No se pudo guardar.');
     } finally {
@@ -214,7 +243,7 @@ export default function AdminEquipo() {
       return;
     }
 
-    await borrarArchivos(BUCKET_EQUIPO, [integrante.foto_url]);
+    await borrarArchivos(BUCKET_EQUIPO, [integrante.foto_url, integrante.emprendimiento_logo_url]);
     setIntegrantes((actuales) => actuales.filter((item) => item.id !== integrante.id));
     toast.success('Integrante eliminado.');
   }
@@ -258,6 +287,30 @@ export default function AdminEquipo() {
                 <label className="block text-sm font-semibold text-gray-700">Emprendimiento o proyecto
                   <input name="emprendimiento" placeholder="Vivero Monos Garden" value={formulario.emprendimiento} onChange={manejarCambio} maxLength={120} className={campo} />
                 </label>
+                {formulario.emprendimiento.trim() && (
+                  <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                    <div className="text-sm font-semibold text-gray-700">Logo del emprendimiento
+                      {!(urlLogoNuevo || logoActual) ? (
+                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFormulario((actual) => ({ ...actual, logo: e.target.files?.[0] || null }))} className="mt-2 block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm font-normal" />
+                      ) : (
+                        <div className="mt-2 flex items-center gap-3">
+                          <ImagenAmpliable src={urlLogoNuevo || logoActual} alt="Logo del emprendimiento" className="h-16 w-16 rounded-full border bg-white object-contain" onQuitar={() => (formulario.logo ? setFormulario((actual) => ({ ...actual, logo: null })) : setLogoActual(''))} />
+                          <p className="text-xs font-normal text-gray-500">{formulario.logo ? `Nuevo: ${formulario.logo.name}` : 'Logo actual'} · ✕ para quitarlo</p>
+                        </div>
+                      )}
+                      <span className="mt-1 block text-xs font-normal text-gray-500">Sale en círculo junto al nombre. Cuadrado y con fondo blanco o transparente se ve mejor.</span>
+                    </div>
+                    <label className="block text-sm font-semibold text-gray-700">Al dar clic en el emprendimiento, abrir
+                      <select name="emprendimientoUrl" value={formulario.emprendimientoUrl} onChange={(e) => setFormulario((actual) => ({ ...actual, emprendimientoUrl: e.target.value }))} className={`${campo} bg-white`}>
+                        <option value="">Nada (solo mostrar el nombre)</option>
+                        {formulario.redes.filter((red) => /^https?:\/\//i.test(red.url.trim())).map((red, indice) => (
+                          <option key={`${red.url}-${indice}`} value={red.url.trim()}>{NOMBRES_RED[red.tipo]} · {red.url.trim().replace(/^https?:\/\/(www\.)?/i, '')}</option>
+                        ))}
+                      </select>
+                      <span className="mt-1 block text-xs font-normal text-gray-500">Sale de sus «Redes sociales». Si la del emprendimiento no aparece, agrégala ahí primero.</span>
+                    </label>
+                  </div>
+                )}
                 <label className="block text-sm font-semibold text-gray-700">Semblanza corta
                   <textarea name="resumen" rows={3} placeholder="Una o dos líneas: aparece en la tarjeta al pasar el cursor por la foto." value={formulario.resumen} onChange={manejarCambio} maxLength={300} className={campo} />
                   <span className="mt-1 block text-right text-xs font-normal text-gray-400">{formulario.resumen.length}/300</span>

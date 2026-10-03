@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Sprout } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CAMPOS_INTEGRANTE } from '@/components/Equipo/equipo';
 import type { Integrante } from '@/components/Equipo/equipo';
-import { FotoIntegrante, RedesIntegrante } from '@/components/Equipo/EquipoUi';
+import { EmprendimientoIntegrante, FotoIntegrante, RedesIntegrante } from '@/components/Equipo/EquipoUi';
 
 export default function PerfilEquipo() {
   const { slug } = useParams();
@@ -80,11 +80,7 @@ export default function PerfilEquipo() {
               <p className="text-sm font-bold uppercase tracking-widest text-[#2d6a4f]">{integrante.area}</p>
               <h1 className="mt-2 text-4xl font-extrabold leading-tight text-[#4a3728] md:text-5xl">{integrante.nombre}</h1>
               <p className="mt-3 text-xl font-semibold text-[#2d6a4f]">{integrante.cargo}</p>
-              {integrante.emprendimiento && (
-                <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#4a3728] shadow-sm">
-                  <Sprout className="h-4 w-4 text-[#2d6a4f]" /> {integrante.emprendimiento}
-                </p>
-              )}
+              <EmprendimientoIntegrante integrante={integrante} className="mt-3 rounded-full bg-white py-1.5 pl-2 pr-4 text-sm font-semibold text-[#4a3728] shadow-sm" />
               {integrante.resumen && <p className="mx-auto mt-5 max-w-2xl text-lg text-gray-700 md:mx-0">{integrante.resumen}</p>}
               <div className="mt-6 flex justify-center md:justify-start">
                 <RedesIntegrante redes={integrante.redes} nombre={integrante.nombre} tamano="grande" />

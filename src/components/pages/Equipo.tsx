@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Loader2, Search, Sprout } from 'lucide-react';
+import { ArrowRight, Loader2, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { agruparPorArea, CAMPOS_INTEGRANTE, crearSlug } from '@/components/Equipo/equipo';
-import { FotoIntegrante, RedesIntegrante } from '@/components/Equipo/EquipoUi';
+import { EmprendimientoIntegrante, FotoIntegrante, RedesIntegrante } from '@/components/Equipo/EquipoUi';
 import type { Integrante } from '@/components/Equipo/equipo';
 
 const TODAS = 'Todas';
@@ -31,9 +31,8 @@ function TarjetaIntegrante({ integrante }: { integrante: Integrante }) {
             <Link to={`/equipo/${integrante.slug}`} className="after:absolute after:inset-0 focus:outline-none">{integrante.nombre}</Link>
           </h3>
           <p className="mt-1 text-sm font-semibold text-[#2d6a4f]">{integrante.cargo}</p>
-          {integrante.emprendimiento && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600"><Sprout className="h-4 w-4 shrink-0 text-[#2d6a4f]" />{integrante.emprendimiento}</p>
-          )}
+          {/* z-10: el enlace del emprendimiento queda encima del que abre el perfil */}
+          <EmprendimientoIntegrante integrante={integrante} className="relative z-10 mt-1.5 text-sm text-gray-600" />
         </div>
         <div className="mt-auto flex items-end justify-between gap-3">
           <div className="relative z-10">

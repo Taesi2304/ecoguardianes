@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Globe, Link as LinkIcon } from 'lucide-react';
+import { ExternalLink, Globe, Link as LinkIcon, Sprout } from 'lucide-react';
 import { iniciales, NOMBRES_RED } from './equipo';
 import type { Integrante, RedIntegrante, TipoRed } from './equipo';
 
@@ -90,5 +90,40 @@ export function FotoIntegrante({ integrante, className = '' }: { integrante: Pic
     <div className={`flex items-center justify-center bg-[#d8ece1] font-extrabold text-[#2d6a4f] ${className}`} aria-hidden="true">
       <span className="text-3xl">{iniciales(integrante.nombre)}</span>
     </div>
+  );
+}
+
+// Nombre del emprendimiento con su logo; si tiene una red escogida, abre esa red
+export function EmprendimientoIntegrante({ integrante, className = '' }: {
+  integrante: Pick<Integrante, 'emprendimiento' | 'emprendimiento_logo_url' | 'emprendimiento_url'>;
+  className?: string;
+}) {
+  const { emprendimiento, emprendimiento_logo_url: logo, emprendimiento_url: url } = integrante;
+  if (!emprendimiento) return null;
+
+  const contenido = (
+    <>
+      {logo
+        ? <img src={logo} alt="" loading="lazy" className="h-7 w-7 shrink-0 rounded-full border border-[#2d6a4f]/10 bg-white object-contain" />
+        : <Sprout className="h-4 w-4 shrink-0 text-[#2d6a4f]" />}
+      <span className="min-w-0 truncate">{emprendimiento}</span>
+      {url && <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#2d6a4f]" aria-hidden="true" />}
+    </>
+  );
+  const estilo = `inline-flex max-w-full items-center gap-2 ${className}`;
+
+  return url ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      title={`Abrir ${emprendimiento}`}
+      className={`${estilo} transition-colors hover:text-[#2d6a4f] hover:underline`}
+    >
+      {contenido}
+    </a>
+  ) : (
+    <p className={estilo}>{contenido}</p>
   );
 }

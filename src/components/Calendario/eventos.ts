@@ -54,8 +54,10 @@ async function cargarHorariosFestival(desde: string, hasta: string): Promise<Hor
   const conEdicion = await consultar(`${CAMPOS_DEL_PARTICIPANTE}, festival_ediciones(nombre, anio)`);
   // Sin la tabla de ediciones (18_ediciones_festival.sql sin correr): los mismos datos sin edición
   const { data } = conEdicion.error ? await consultar(CAMPOS_DEL_PARTICIPANTE) : conEdicion;
+  // Los campos se arman en tiempo de ejecución, así que TypeScript no puede deducir el tipo de las filas
+  const filas = (data || []) as unknown as (Omit<HorarioCartelera, 'participante' | 'edicion'> & { cartelera_participantes: unknown })[];
 
-  return (data || []).flatMap(({ cartelera_participantes, ...horario }) => {
+  return filas.flatMap(({ cartelera_participantes, ...horario }) => {
     const participante = primero(cartelera_participantes as unknown as Relacion<ParticipanteConEdicion>);
     if (!participante) return [];
     const { id, nombre, subtitulo, descripcion } = participante;
