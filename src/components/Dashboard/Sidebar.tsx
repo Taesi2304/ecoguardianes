@@ -96,6 +96,7 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
               { name: 'Cartelera', path: '/admin/cartelera', icon: '/mapa.svg' },
               { name: 'Talleres', path: '/admin/talleres', icon: '/planta-tierra.svg' },
               { name: 'Calendario', path: '/admin/calendario', icon: '/historial.svg' },
+              { name: 'Equipo', path: '/admin/equipo', icon: '/usuarios.svg' },
             ],
           },
           {

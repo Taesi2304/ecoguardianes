@@ -1,0 +1,138 @@
+import { Globe, Link as LinkIcon } from 'lucide-react';
+
+// Directorio del equipo de FDMA (/equipo). Tabla: database/33_equipo_fdma.sql
+
+export type TipoRed = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'web' | 'otro';
+
+export interface RedIntegrante {
+  tipo: TipoRed;
+  url: string;
+}
+
+export interface Integrante {
+  id: string;
+  nombre: string;
+  slug: string;
+  cargo: string;
+  area: string;
+  resumen: string | null;
+  trayectoria: string | null;
+  emprendimiento: string | null;
+  redes: RedIntegrante[];
+  foto_url: string | null;
+  orden: number;
+  activo: boolean;
+}
+
+export const CAMPOS_INTEGRANTE = 'id, nombre, slug, cargo, area, resumen, trayectoria, emprendimiento, redes, foto_url, orden, activo';
+
+export const BUCKET_EQUIPO = 'imagenes_equipo';
+
+// "Fabiola Flores Ñ." → "fabiola-flores-n"
+export function crearSlug(texto: string) {
+  return texto
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120) || 'integrante';
+}
+
+// Las áreas en el orden en que aparece su primer integrante (los integrantes ya vienen por "orden")
+export function agruparPorArea(integrantes: Integrante[]) {
+  const grupos = new Map<string, Integrante[]>();
+  integrantes.forEach((integrante) => {
+    grupos.set(integrante.area, [...(grupos.get(integrante.area) ?? []), integrante]);
+  });
+  return [...grupos.entries()].map(([area, miembros]) => ({ area, miembros }));
+}
+
+export const iniciales = (nombre: string) =>
+  nombre.split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte[0]?.toUpperCase()).join('');
+
+const IconoInstagram = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="2" width="20" height="20" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
+
+const IconoFacebook = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const IconoTiktok = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 12a4 4 0 1 0 4 4V2c.5 2.5 2.5 4.5 5 5" />
+  </svg>
+);
+
+const IconoLinkedin = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect x="2" y="9" width="4" height="12" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const IconoYoutube = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2.5 17a24 24 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49 49 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24 24 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49 49 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+    <path d="m10 15 5-3-5-3z" />
+  </svg>
+);
+
+export const REDES: Record<TipoRed, { nombre: string; Icono: (props: { className?: string }) => React.JSX.Element }> = {
+  instagram: { nombre: 'Instagram', Icono: IconoInstagram },
+  facebook: { nombre: 'Facebook', Icono: IconoFacebook },
+  tiktok: { nombre: 'TikTok', Icono: IconoTiktok },
+  linkedin: { nombre: 'LinkedIn', Icono: IconoLinkedin },
+  youtube: { nombre: 'YouTube', Icono: IconoYoutube },
+  web: { nombre: 'Sitio web', Icono: Globe },
+  otro: { nombre: 'Enlace', Icono: LinkIcon },
+};
+
+// Fila de botones redondos con las redes del integrante
+export function RedesIntegrante({ redes, nombre, tamano = 'chico' }: { redes: RedIntegrante[]; nombre: string; tamano?: 'chico' | 'grande' }) {
+  const validas = redes.filter((red) => red.url && REDES[red.tipo]);
+  if (validas.length === 0) return null;
+
+  const boton = tamano === 'grande' ? 'h-11 w-11' : 'h-9 w-9';
+  const icono = tamano === 'grande' ? 'h-5 w-5' : 'h-4 w-4';
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {validas.map((red, indice) => {
+        const { nombre: nombreRed, Icono } = REDES[red.tipo];
+        return (
+          <a
+            key={`${red.tipo}-${indice}`}
+            href={red.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title={nombreRed}
+            aria-label={`${nombreRed} de ${nombre}`}
+            className={`${boton} flex items-center justify-center rounded-full border border-[#2d6a4f]/20 bg-white text-[#2d6a4f] transition-colors hover:border-[#2d6a4f] hover:bg-[#2d6a4f] hover:text-white`}
+          >
+            <Icono className={icono} />
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+// Foto del integrante, o sus iniciales si aún no tiene
+export function FotoIntegrante({ integrante, className = '' }: { integrante: Pick<Integrante, 'nombre' | 'foto_url'>; className?: string }) {
+  return integrante.foto_url ? (
+    <img src={integrante.foto_url} alt={integrante.nombre} loading="lazy" className={`object-cover ${className}`} />
+  ) : (
+    <div className={`flex items-center justify-center bg-[#d8ece1] font-extrabold text-[#2d6a4f] ${className}`} aria-hidden="true">
+      <span className="text-3xl">{iniciales(integrante.nombre)}</span>
+    </div>
+  );
+}

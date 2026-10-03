@@ -41,6 +41,9 @@ import AdminCartelera from './components/Admin/AdminCartelera';
 import SuperAdminGuard from './components/Guards/SuperAdminGuard';
 import Talleres from './components/pages/Talleres';
 import Calendario from './components/pages/Calendario';
+import Equipo from './components/pages/Equipo';
+import PerfilEquipo from './components/pages/PerfilEquipo';
+import AdminEquipo from './components/Admin/AdminEquipo';
 import CarteleraPage from './components/Cartelera/CarteleraPage';
 import ScrollToTop from './components/ScrollToTop';
 import TituloPagina from './components/TituloPagina';
@@ -80,6 +83,8 @@ export default function App() {
           <Route path="/conectar-redes" element={<ConectarRedes />} />
           <Route path="/talleres" element={<Talleres />} />
           <Route path="/calendario" element={<Calendario />} />
+          <Route path="/equipo" element={<Equipo />} />
+          <Route path="/equipo/:slug" element={<PerfilEquipo />} />
         </Route>
 
         {/* Cartelera a pantalla completa, con su propio diseño oscuro */}
@@ -124,6 +129,7 @@ export default function App() {
               <Route path="convocatorias" element={<AdminConvocatorias />} />
               <Route path="publicaciones" element={<AdminPublicaciones />} />
               <Route path="aliados" element={<AdminAliados />} />
+              <Route path="equipo" element={<AdminEquipo />} />
               <Route path="talleres" element={<AdminTalleres />} />
               <Route path="calendario" element={<AdminCalendario />} />
               <Route path="cartelera" element={<AdminCartelera />} />
