@@ -26,14 +26,15 @@ export const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
-    try {
-      if (!email.trim() || !password.trim()) {
-        throw new Error('Ingresa tu correo y contraseña para continuar.');
-      }
+    if (!email.trim() || !password.trim()) {
+      setError('Ingresa tu correo y contraseña para continuar.');
+      return;
+    }
 
+    setLoading(true);
+    try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -44,18 +45,21 @@ export const Login = () => {
      if (data.user) {
         const ruta = await rutaInicioDe(data.user.id);
 
-        // Si el usuario se autenticó pero no está en la tabla usuarios:
+        // Si el usuario se autenticó pero no está en la tabla usuarios, se cierra la
+        // sesión y se muestra el mismo mensaje genérico: no se revela que el correo existe.
         if (!ruta) {
-          throw new Error("Tu cuenta está incompleta. Contacta al administrador o borra tu cuenta para registrarte de nuevo.");
+          await supabase.auth.signOut();
+          throw new Error('CREDENCIALES_INVALIDAS');
         }
 
         // Cada rol recibe su pantalla inicial correspondiente.
         navigate(ruta);
       }
-    } catch (err: any) {
-      // Ahora verás si el error es de la contraseña o si falta el registro en tu tabla
-      console.error("Error detallado:", err);
-      setError(err.message || 'Error al iniciar sesión.');
+    } catch (err) {
+      // El detalle real va a la consola; al usuario siempre el mismo mensaje para no
+      // delatar qué correos están registrados.
+      console.error('Error detallado:', err);
+      setError('Correo o contraseña incorrectos.');
     } finally {
       setLoading(false);
     }

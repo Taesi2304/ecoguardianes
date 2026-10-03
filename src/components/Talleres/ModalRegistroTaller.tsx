@@ -18,6 +18,7 @@ const MENSAJES_ERROR: Record<string, string> = {
   YA_REGISTRADO: 'Este número de WhatsApp ya está registrado en este taller.',
   TALLER_NO_DISPONIBLE: 'Este taller ya no está disponible.',
   DATOS_INVALIDOS: 'Revisa tu nombre y que el WhatsApp tenga 10 dígitos.',
+  DEMASIADAS_SOLICITUDES: 'Has hecho muchos registros seguidos. Espera un momento e intenta de nuevo.',
 };
 
 const claseInput = 'mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-green-500 focus:outline-none';
