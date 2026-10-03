@@ -26,7 +26,7 @@ const PUBLICAS: Record<string, MetaPagina> = {
   '/talleres': { titulo: 'Talleres', descripcion: 'Talleres del Festival del Medio Ambiente: consulta fechas y regístrate.' },
   '/calendario': { titulo: 'Calendario', descripcion: 'Calendario de actividades del Festival del Medio Ambiente.' },
   '/cartelera': { titulo: 'Cartelera', descripcion: 'Cartelera del Festival del Medio Ambiente.' },
-  '/equipo': { titulo: 'Equipo', descripcion: 'Conoce al equipo que organiza el Festival del Medio Ambiente: sus áreas, trayectoria y proyectos.' },
+  '/equipo': { titulo: 'Directorio', descripcion: 'Conoce al equipo que organiza el Festival del Medio Ambiente: sus áreas, trayectoria y proyectos.' },
 };
 
 const PANEL: Record<string, string> = {

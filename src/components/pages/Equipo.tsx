@@ -83,8 +83,8 @@ export default function Equipo() {
   return (
     <div className="min-h-screen bg-[#fcfaf2]">
       <section className="bg-gradient-to-b from-[#d8ece1] to-[#fcfaf2] px-6 pb-10 pt-12 text-center">
-        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-[#2d6a4f]">Quiénes hacemos el festival</p>
-        <h1 className="mb-4 text-4xl font-extrabold text-[#4a3728] md:text-5xl">Equipo FDMA</h1>
+        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-[#2d6a4f]">Equipo organizador</p>
+        <h1 className="mb-4 text-4xl font-extrabold text-[#4a3728] md:text-5xl">Directorio FDMA</h1>
         <p className="mx-auto max-w-2xl text-lg text-gray-700">
           Conoce a las personas que organizan el Festival del Medio Ambiente, lo que hacen y sus proyectos.
         </p>
