@@ -34,6 +34,7 @@ export const OPCIONES_FAUNA: Opcion[] = [
   { valor: 'escarabajos', etiqueta: 'Escarabajos o larvas' },
   { valor: 'hormigas', etiqueta: 'Hormigas' },
   { valor: 'hongos', etiqueta: 'Hongos o micelio blanco' },
+  { valor: 'moscas', etiqueta: 'Moscas o mosquitas' },
 ];
 
 export const OPCIONES_RESIDUO: Opcion[] = [
@@ -98,6 +99,7 @@ export function diagnosticarVisita(visita: VisitaBitacora) {
     olor: visita.olor_nivel,
     plagas: visita.plagas,
     lixiviados: visita.lixiviados,
+    fauna: visita.fauna,
   });
 }
 
@@ -133,6 +135,7 @@ export interface EntradaDiagnostico {
   olor?: string | null;
   plagas?: boolean;
   lixiviados?: boolean;
+  fauna?: string[] | null;
 }
 
 export interface Diagnostico {
@@ -143,7 +146,9 @@ export interface Diagnostico {
 
 export function diagnosticar(entrada: EntradaDiagnostico): Diagnostico | null {
   const { temperatura, humedad, olor, plagas, lixiviados } = entrada;
-  if (!temperatura && !humedad && !olor && !plagas && !lixiviados) return null;
+  // Unas cuantas moscas no son plaga; si ya marcó "Plagas", ese consejo basta
+  const moscas = !plagas && (entrada.fauna || []).includes('moscas');
+  if (!temperatura && !humedad && !olor && !plagas && !lixiviados && !moscas) return null;
 
   const alertas: string[] = [];
   const atenciones: string[] = [];
@@ -153,6 +158,7 @@ export function diagnosticar(entrada: EntradaDiagnostico): Diagnostico | null {
   if (humedad === 'excesivo' && !lixiviados) alertas.push('Está demasiado húmeda: agrega material seco y voltea para que entre aire.');
   if (olor === 'amoniaco') alertas.push('Le falta aire o tiene demasiados restos verdes: voltea la mezcla y agrega material seco.');
 
+  if (moscas) atenciones.push('Unas cuantas moscas son normales: tapa los restos frescos con hojas secas o tierra para que no lleguen más.');
   if (humedad === 'seco') atenciones.push('Humedécela poco a poco hasta que se sienta como una esponja exprimida.');
   if (temperatura === 'fria') {
     atenciones.push(humedad === 'seco'

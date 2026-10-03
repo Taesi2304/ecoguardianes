@@ -160,17 +160,11 @@ export function FichaParticipante({ participante, tipo, activa, fecha, onEnfocar
         className="space-y-4 rounded-2xl border bg-[#10241b]/80 p-4 backdrop-blur-md transition-colors sm:p-5"
         style={{ borderColor: activa ? `${color}cc` : 'rgba(255,255,255,0.12)' }}
       >
-        <div className="flex items-start justify-between gap-4">
-          {tipo
-            ? <span className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: color }}>{tipo.nombre}</span>
-            : <span />}
-          {/* De dónde viene el participante; el lugar de cada presentación es la sede */}
-          {participante.procedencia && (
-            <span className="pt-1.5 text-right text-xs font-medium uppercase tracking-[0.15em] text-white/60">
-              De {participante.procedencia}
-            </span>
-          )}
-        </div>
+        {tipo && (
+          <div className="flex items-start">
+            <span className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: color }}>{tipo.nombre}</span>
+          </div>
+        )}
 
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{participante.nombre}</h2>

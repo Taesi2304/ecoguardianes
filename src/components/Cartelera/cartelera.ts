@@ -23,7 +23,6 @@ export interface Participante {
   descripcion: string | null;
   tipo_id: string | null;
   grupo_ids: string[];
-  procedencia: string | null;
   imagenes: string[];
   enlace_url: string | null;
   costo: number | null; // null = no se muestra, 0 = gratuito (28_costo_cartelera.sql)
@@ -61,7 +60,7 @@ export async function cargarEdicion(anio?: number): Promise<Edicion | null> {
 export const BUCKET_IMAGENES = 'imagenes_cartelera';
 export const BUCKET_PDF = 'archivos_festival';
 
-export const CAMPOS_PARTICIPANTE = 'id, nombre, subtitulo, descripcion, tipo_id, grupo_ids, procedencia, imagenes, enlace_url, costo, activo, cartelera_horarios(id, sede, fecha, hora_inicio, hora_fin)';
+export const CAMPOS_PARTICIPANTE = 'id, nombre, subtitulo, descripcion, tipo_id, grupo_ids, imagenes, enlace_url, costo, activo, cartelera_horarios(id, sede, fecha, hora_inicio, hora_fin)';
 
 // Mismo texto que en Talleres; null = no se muestra
 export function textoCostoCartelera(costo: number | null) {

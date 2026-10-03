@@ -123,7 +123,7 @@ export default function CarteleraPage() {
       if (grupoId && !participante.grupo_ids.includes(grupoId)) return false;
       if (fecha && !participante.cartelera_horarios.some((horario) => horario.fecha === fecha)) return false;
       if (!termino) return true;
-      const texto = [participante.nombre, participante.subtitulo, participante.procedencia, ...participante.cartelera_horarios.map((horario) => horario.sede)]
+      const texto = [participante.nombre, participante.subtitulo, ...participante.cartelera_horarios.map((horario) => horario.sede)]
         .filter(Boolean)
         .join(' ');
       return normalizar(texto).includes(termino);

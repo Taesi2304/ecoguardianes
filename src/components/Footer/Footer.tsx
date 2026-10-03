@@ -120,7 +120,7 @@ export const Footer = () => {
           <Link to="/terminos-condiciones" className="footer-legal-link">Términos y condiciones</Link>
         </p>
         <p>
-          Hecho con amor por{' '}
+          Desarollado por{' '}
           <a href="https://instagram.com/ijessiyou" target="_blank" rel="noopener noreferrer" className="footer-legal-link font-bold">
             @ijessiyou
           </a>

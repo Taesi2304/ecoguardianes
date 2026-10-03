@@ -49,7 +49,7 @@ import ScrollToTop from './components/ScrollToTop';
 import AvisoNuevaVersion from './components/AvisoNuevaVersion';
 import TituloPagina from './components/TituloPagina';
 
-// 1. Plantilla para las páginas públicas (Mantiene el Header y Footer)
+// 1. Plantilla para las páginas públicas (Mantiene el Header y )
 const PublicLayout = () => {
   return (
     <div className="app-shell min-h-screen flex flex-col bg-[#FFF8DF] text-[#4A2E18]">

@@ -234,11 +234,11 @@ export default function NuevaBitacora() {
     previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
   }, []);
 
-  const [temperatura, humedad, olor, plagas, lixiviados] = useWatch({
+  const [temperatura, humedad, olor, plagas, lixiviados, fauna] = useWatch({
     control: form.control,
-    name: ['temperatura', 'humedad', 'olor', 'plagas', 'lixiviados'],
+    name: ['temperatura', 'humedad', 'olor', 'plagas', 'lixiviados', 'fauna'],
   });
-  const diagnostico = diagnosticar({ temperatura, humedad, olor, plagas, lixiviados });
+  const diagnostico = diagnosticar({ temperatura, humedad, olor, plagas, lixiviados, fauna });
 
   const limpiarFotos = () => {
     setImagenes([]);
@@ -637,7 +637,7 @@ export default function NuevaBitacora() {
           <Card>
             <CardHeader>
               <TituloSeccion icono="/gusano.svg">3. Vida en el compostero</TituloSeccion>
-              <p className="text-sm text-gray-500">Marca lo que viste. Son señales de que la composta está trabajando.</p>
+              <p className="text-sm text-gray-500">Marca lo que viste. Si notas algo más, escríbelo en las observaciones.</p>
             </CardHeader>
             <CardContent>
               <FormField

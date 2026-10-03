@@ -26,7 +26,6 @@ interface FormularioParticipante {
   descripcion: string;
   tipo_id: string;
   grupo_ids: string[];
-  procedencia: string;
   enlace_url: string;
   tipoCosto: TipoCosto;
   costo: string;
@@ -54,7 +53,6 @@ const formularioInicial = (): FormularioParticipante => ({
   descripcion: '',
   tipo_id: '',
   grupo_ids: [],
-  procedencia: '',
   enlace_url: '',
   tipoCosto: 'ninguno',
   costo: '',
@@ -150,7 +148,6 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
       descripcion: participante.descripcion || '',
       tipo_id: participante.tipo_id || '',
       grupo_ids: participante.grupo_ids,
-      procedencia: participante.procedencia || '',
       enlace_url: participante.enlace_url || '',
       tipoCosto: participante.costo === null ? 'ninguno' : Number(participante.costo) === 0 ? 'gratuito' : 'cuota',
       costo: participante.costo !== null && Number(participante.costo) > 0 ? String(participante.costo) : '',
@@ -241,7 +238,6 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
         descripcion: formulario.descripcion.trim() || null,
         tipo_id: formulario.tipo_id || null,
         grupo_ids: formulario.grupo_ids,
-        procedencia: formulario.procedencia.trim() || null,
         enlace_url: formulario.enlace_url.trim() || null,
         costo: formulario.tipoCosto === 'ninguno' ? null : formulario.tipoCosto === 'gratuito' ? 0 : Number(formulario.costo),
         imagenes: [...formulario.imagenes, ...subidas],
@@ -400,10 +396,6 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                       <span className={claseAyuda}>Puede estar en varios: Talleristas, Colectivos… Se usa en el filtro «Grupo» de la cartelera. Los días salen solos de los horarios.</span>
                     </fieldset>
                   </div>
-                  <label className="block text-sm font-semibold text-gray-700">Procedencia
-                    <input name="procedencia" value={formulario.procedencia} onChange={manejarCambio} maxLength={100} placeholder="Tampico" className={claseInput} />
-                    <span className={claseAyuda}>De dónde viene: ciudad, escuela u organización. Se ve arriba a la derecha del detalle como «De Tampico». No es el lugar donde se presenta (eso es la sede de cada horario).</span>
-                  </label>
                 </div>
                 <div className="space-y-5">
                   <label className="block text-sm font-semibold text-gray-700">Descripción (Opcional)
