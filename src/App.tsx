@@ -46,6 +46,7 @@ import PerfilEquipo from './components/pages/PerfilEquipo';
 import AdminEquipo from './components/Admin/AdminEquipo';
 import CarteleraPage from './components/Cartelera/CarteleraPage';
 import ScrollToTop from './components/ScrollToTop';
+import AvisoNuevaVersion from './components/AvisoNuevaVersion';
 import TituloPagina from './components/TituloPagina';
 
 // 1. Plantilla para las páginas públicas (Mantiene el Header y Footer)
@@ -67,6 +68,7 @@ export default function App() {
       <ScrollToTop />
       <TituloPagina />
       <Toaster position="top-right" />
+      <AvisoNuevaVersion />
       <Routes>
         
         {/* === RUTAS PÚBLICAS === */}

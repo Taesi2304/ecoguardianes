@@ -402,7 +402,7 @@ export function ParticipantesCartelera({ tipos, grupos, edicionId }: Props) {
                   </div>
                   <label className="block text-sm font-semibold text-gray-700">Procedencia
                     <input name="procedencia" value={formulario.procedencia} onChange={manejarCambio} maxLength={100} placeholder="Tampico" className={claseInput} />
-                    <span className={claseAyuda}>De dónde viene: ciudad, escuela u organización. Se ve arriba a la derecha del detalle.</span>
+                    <span className={claseAyuda}>De dónde viene: ciudad, escuela u organización. Se ve arriba a la derecha del detalle como «De Tampico». No es el lugar donde se presenta (eso es la sede de cada horario).</span>
                   </label>
                 </div>
                 <div className="space-y-5">

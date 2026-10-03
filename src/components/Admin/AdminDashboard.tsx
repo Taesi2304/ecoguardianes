@@ -203,8 +203,8 @@ export default function AdminDashboard() {
                     <Icon className={`h-6 w-6 ${color}`} />
                   </div>
                 </div>
-                <div className="flex items-center text-sm font-semibold text-green-800 opacity-30 group-hover:opacity-100 transition-opacity">
-                  Gestionar <ArrowRight className="ml-1 h-4 w-4" />
+                <div className="flex items-center text-sm font-semibold text-green-700 group-hover:text-green-900 transition-colors">
+                  Gestionar <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </div>
               </CardContent>
             </Card>

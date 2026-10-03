@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink, HandCoins, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, HandCoins } from 'lucide-react';
 import { VisorImagenes } from '@/components/VisorImagenes';
 import { Presentaciones } from './Presentaciones';
 import { textoCostoCartelera } from './cartelera';
@@ -164,9 +164,10 @@ export function FichaParticipante({ participante, tipo, activa, fecha, onEnfocar
           {tipo
             ? <span className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: color }}>{tipo.nombre}</span>
             : <span />}
+          {/* De dónde viene el participante; el lugar de cada presentación es la sede */}
           {participante.procedencia && (
-            <span className="flex items-center gap-1.5 pt-1.5 text-xs font-medium uppercase tracking-[0.15em] text-white/60">
-              <MapPin className="h-3.5 w-3.5" />{participante.procedencia}
+            <span className="pt-1.5 text-right text-xs font-medium uppercase tracking-[0.15em] text-white/60">
+              De {participante.procedencia}
             </span>
           )}
         </div>
