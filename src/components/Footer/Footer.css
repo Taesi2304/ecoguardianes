@@ -59,7 +59,6 @@
 
 .footer-brand-copy,
 .footer-link,
-.footer-contact-item,
 .footer-title {
   font-size: 0.75rem;
 }
@@ -90,24 +89,67 @@
   color: #2D7A3E;
 }
 
-.footer-contact-item {
+.footer-social {
   display: flex;
-  align-items: center;
   gap: 0.5rem;
-  min-width: 0;
-  color: rgba(74, 46, 24, 0.8);
-  overflow-wrap: anywhere;
 }
 
-.footer-contact-item--align {
-  align-items: flex-start;
+.footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(74, 46, 24, 0.15);
+  color: #2D7A3E;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-.footer-contact-icon {
+.footer-social-link:hover {
+  background-color: #2D7A3E;
+  color: #F5EBD0;
+}
+
+.footer-social-icon {
   width: 1rem;
   height: 1rem;
+}
+
+.footer-aliados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.footer-aliado {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(74, 46, 24, 0.15);
+  background-color: rgba(255, 255, 255, 0.35);
+  color: rgba(74, 46, 24, 0.8);
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.footer-aliado:hover {
+  border-color: #2D7A3E;
   color: #2D7A3E;
-  flex-shrink: 0;
+}
+
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.footer-legal-link:hover {
+  color: #2D7A3E;
+  text-decoration: underline;
 }
 
 .footer-bottom {
@@ -132,7 +174,8 @@
 
 @media (min-width: 1024px) {
   .footer-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Explora y Ayuda son cortas; los aliados necesitan espacio para los chips */
+    grid-template-columns: 1.3fr 0.8fr 0.9fr 1.6fr;
   }
 }
 

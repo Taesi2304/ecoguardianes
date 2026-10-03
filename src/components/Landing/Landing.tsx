@@ -29,8 +29,6 @@ const whyCards = [
 const compostCards = [
   {
     name: 'Valle de Casa Blanca III',
-    percentage: '20%',
-    status: 'Activo',
     participants: 'Eco Guardianes',
     description: 'Compostero comunitario familiar.',
   },
@@ -184,8 +182,6 @@ export const Landing = () => {
                 <div className="compost-content">
                   <div className="compost-meta">
                     <h3 className="compost-name">{item.name}</h3>
-                    <span className="badge-pill badge-pill--green">{item.percentage}</span>
-                    <span className="badge-pill">{item.status}</span>
                   </div>
 
                   <p className="compost-description">{item.description}</p>

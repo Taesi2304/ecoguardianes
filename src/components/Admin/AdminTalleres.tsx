@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Download, Edit, Eye, EyeOff, Image, Loader2, Plus, Trash2, Users, X } from 'lucide-react';
+import { AlertCircle, Download, Edit, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
+import { normalizar } from '@/lib/normalizar';
 import { textoFecha, textoHorario } from '@/components/Talleres/talleres';
 
 interface Taller {
@@ -80,6 +81,9 @@ function obtenerRutaImagen(url: string) {
 
 const hoy = () => new Date().toLocaleDateString('en-CA');
 
+
+const claseFiltro = 'w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none';
+
 export default function AdminTalleres() {
   const [talleres, setTalleres] = useState<Taller[]>([]);
   const [formulario, setFormulario] = useState(formularioInicial);
@@ -93,10 +97,37 @@ export default function AdminTalleres() {
   const [tallerInscritos, setTallerInscritos] = useState<Taller | null>(null);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [cargandoRegistros, setCargandoRegistros] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [costoFiltro, setCostoFiltro] = useState('');
+  const hayFiltros = Boolean(busqueda.trim() || estadoFiltro || costoFiltro);
 
   useEffect(() => {
     cargarTalleres();
   }, []);
+
+  const termino = normalizar(busqueda.trim());
+  const talleresFiltrados = talleres.filter((taller) => {
+    if (termino && !normalizar(`${taller.titulo} ${taller.facilitador || ''} ${taller.lugar}`).includes(termino)) return false;
+
+    const inscritos = taller.registros_talleres[0]?.count ?? 0;
+    const pasado = taller.fecha !== null && taller.fecha < hoy();
+    if (estadoFiltro === 'proximos' && (pasado || taller.fecha === null)) return false;
+    if (estadoFiltro === 'por-confirmar' && taller.fecha !== null) return false;
+    if (estadoFiltro === 'pasados' && !pasado) return false;
+    if (estadoFiltro === 'ocultos' && taller.activo) return false;
+    if (estadoFiltro === 'llenos' && !(taller.cupo !== null && inscritos >= taller.cupo)) return false;
+
+    if (costoFiltro === 'gratuito' && taller.costo !== null) return false;
+    if (costoFiltro === 'con-costo' && taller.costo === null) return false;
+    return true;
+  });
+
+  function quitarFiltros() {
+    setBusqueda('');
+    setEstadoFiltro('');
+    setCostoFiltro('');
+  }
 
   async function cargarTalleres() {
     setCargando(true);
@@ -439,15 +470,51 @@ export default function AdminTalleres() {
       )}
 
       <Card className="overflow-hidden border-transparent bg-white shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Talleres registrados</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
+          <CardTitle className="text-lg text-gray-800">Talleres registrados</CardTitle>
+          {!cargando && talleres.length > 0 && <span className="text-sm text-gray-500">{talleresFiltrados.length} de {talleres.length}</span>}
+        </CardHeader>
+        <div className="flex flex-col gap-3 border-b px-6 py-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por título, facilitador o lugar"
+              aria-label="Buscar talleres"
+              className={`${claseFiltro} pl-9`}
+            />
+          </div>
+          <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} aria-label="Filtrar por estado" className={`${claseFiltro} sm:w-48`}>
+            <option value="">Todos los estados</option>
+            <option value="proximos">Próximos</option>
+            <option value="por-confirmar">Fecha por confirmar</option>
+            <option value="pasados">Ya pasaron</option>
+            <option value="ocultos">Ocultos</option>
+            <option value="llenos">Cupo lleno</option>
+          </select>
+          <select value={costoFiltro} onChange={(e) => setCostoFiltro(e.target.value)} aria-label="Filtrar por costo" className={`${claseFiltro} sm:w-44`}>
+            <option value="">Cualquier costo</option>
+            <option value="gratuito">Gratuitos</option>
+            <option value="con-costo">Con cuota</option>
+          </select>
+          {hayFiltros && (
+            <button type="button" onClick={quitarFiltros} className="text-sm font-medium text-green-700 hover:underline sm:ml-auto">
+              Quitar filtros
+            </button>
+          )}
+        </div>
         <CardContent className="p-0">
           {cargando ? (
             <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div>
           ) : talleres.length === 0 ? (
             <p className="p-8 text-center text-gray-600">Aún no hay talleres. Agrega el primero con "Nuevo taller".</p>
+          ) : talleresFiltrados.length === 0 ? (
+            <p className="p-8 text-center text-gray-600">No hay talleres con esos filtros.</p>
           ) : (
             <ul className="divide-y divide-gray-100">
-              {talleres.map((taller) => {
+              {talleresFiltrados.map((taller) => {
                 const inscritos = taller.registros_talleres[0]?.count ?? 0;
                 const pasado = taller.fecha !== null && taller.fecha < hoy();
                 const lleno = taller.cupo !== null && inscritos >= taller.cupo;

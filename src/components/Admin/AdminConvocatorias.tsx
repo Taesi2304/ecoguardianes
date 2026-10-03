@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
+import { normalizar } from '@/lib/normalizar';
 
 interface Convocatoria {
   id: string;
@@ -44,6 +45,9 @@ const formularioInicial: FormularioConvocatoria = {
 
 const hoy = () => new Date().toLocaleDateString('en-CA');
 
+
+const claseFiltro = 'w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none';
+
 const formatearCierre = (fecha: string) =>
   new Date(`${fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -64,11 +68,35 @@ export default function AdminConvocatorias() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [esSuperAdmin, setEsSuperAdmin] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [cierreFiltro, setCierreFiltro] = useState('');
+  const hayFiltros = Boolean(busqueda.trim() || estadoFiltro || cierreFiltro);
 
   useEffect(() => {
     cargarConvocatorias();
     verificarSuperAdmin();
   }, []);
+
+  const termino = normalizar(busqueda.trim());
+  const convocatoriasFiltradas = convocatorias.filter((convocatoria) => {
+    if (termino && !normalizar(`${convocatoria.titulo} ${convocatoria.descripcion}`).includes(termino)) return false;
+
+    if (estadoFiltro === 'activas' && !convocatoria.activo) return false;
+    if (estadoFiltro === 'inactivas' && convocatoria.activo) return false;
+
+    const vencida = Boolean(convocatoria.fecha_cierre && convocatoria.fecha_cierre < hoy());
+    if (cierreFiltro === 'vigentes' && (!convocatoria.fecha_cierre || vencida)) return false;
+    if (cierreFiltro === 'vencidas' && !vencida) return false;
+    if (cierreFiltro === 'sin-fecha' && convocatoria.fecha_cierre) return false;
+    return true;
+  });
+
+  function quitarFiltros() {
+    setBusqueda('');
+    setEstadoFiltro('');
+    setCierreFiltro('');
+  }
 
   async function verificarSuperAdmin() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -312,9 +340,41 @@ export default function AdminConvocatorias() {
       )}
 
       <Card className="overflow-hidden border-transparent bg-white shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Convocatorias registradas</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
+          <CardTitle className="text-lg text-gray-800">Convocatorias registradas</CardTitle>
+          {!cargando && convocatorias.length > 0 && <span className="text-sm text-gray-500">{convocatoriasFiltradas.length} de {convocatorias.length}</span>}
+        </CardHeader>
+        <div className="flex flex-col gap-3 border-b px-6 py-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por título o descripción"
+              aria-label="Buscar convocatorias"
+              className={`${claseFiltro} pl-9`}
+            />
+          </div>
+          <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} aria-label="Filtrar por estado" className={`${claseFiltro} sm:w-44`}>
+            <option value="">Todos los estados</option>
+            <option value="activas">Activas</option>
+            <option value="inactivas">Inactivas</option>
+          </select>
+          <select value={cierreFiltro} onChange={(e) => setCierreFiltro(e.target.value)} aria-label="Filtrar por fecha de cierre" className={`${claseFiltro} sm:w-48`}>
+            <option value="">Cualquier cierre</option>
+            <option value="vigentes">Vigentes</option>
+            <option value="vencidas">Vencidas</option>
+            <option value="sin-fecha">Sin fecha límite</option>
+          </select>
+          {hayFiltros && (
+            <button type="button" onClick={quitarFiltros} className="text-sm font-medium text-green-700 hover:underline sm:ml-auto">
+              Quitar filtros
+            </button>
+          )}
+        </div>
         <CardContent className="p-0">
-          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : <div className="overflow-x-auto"><table className="tabla-tarjetas w-full min-w-[860px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cierre</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatorias.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><ImagenAmpliable src={convocatoria.imagen_url} alt={convocatoria.titulo} className="h-14 w-20 rounded-md" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-3 md:line-clamp-2">{convocatoria.titulo}</span></td><td data-label="Estado" className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td data-label="Fecha" className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td data-completa data-label="Cierre" className="px-6 py-4 text-gray-600">{convocatoria.fecha_cierre ? <div className="flex flex-col items-start gap-1"><span>{formatearCierre(convocatoria.fecha_cierre)}</span>{convocatoria.fecha_cierre < hoy() && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Vencida</span>}</div> : <span className="text-gray-400">Sin fecha</span>}</td><td data-acciones className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
+          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : convocatoriasFiltradas.length === 0 ? <p className="p-8 text-center text-gray-600">No hay convocatorias con esos filtros.</p> : <div className="overflow-x-auto"><table className="tabla-tarjetas w-full min-w-[860px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cierre</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatoriasFiltradas.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><ImagenAmpliable src={convocatoria.imagen_url} alt={convocatoria.titulo} className="h-14 w-20 rounded-md" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-3 md:line-clamp-2">{convocatoria.titulo}</span></td><td data-label="Estado" className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td data-label="Fecha" className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td data-completa data-label="Cierre" className="px-6 py-4 text-gray-600">{convocatoria.fecha_cierre ? <div className="flex flex-col items-start gap-1"><span>{formatearCierre(convocatoria.fecha_cierre)}</span>{convocatoria.fecha_cierre < hoy() && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Vencida</span>}</div> : <span className="text-gray-400">Sin fecha</span>}</td><td data-acciones className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
         </CardContent>
       </Card>
     </div>

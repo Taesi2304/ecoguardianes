@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Edit, EyeOff, Eye, Search, AlertCircle, Shield, MapPin, Mail, Phone, Trash2, Warehouse } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseRegistro } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { normalizar } from '@/lib/normalizar';
+
+const claseFiltro = 'w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none';
 
 interface Rol { id: string; nombre: string; }
 interface Colonia { id: string; nombre: string; }
@@ -31,7 +34,10 @@ export default function AdminUsuarios() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
-  const [rolesSeleccionados, setRolesSeleccionados] = useState<string[]>([]);
+  const [rolFiltro, setRolFiltro] = useState('');
+  const [coloniaFiltro, setColoniaFiltro] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
+  const hayFiltros = Boolean(busqueda.trim() || rolFiltro || coloniaFiltro || estadoFiltro);
   const [esSuperAdmin, setEsSuperAdmin] = useState(false);
   const [adminColoniaId, setAdminColoniaId] = useState<string | null>(null);
 
@@ -77,7 +83,6 @@ export default function AdminUsuarios() {
         ? rolesCargadas
         : rolesCargadas.filter(r => ['Eco Guardian', 'Administrador'].includes(r.nombre));
       setRoles(rolesPermitidas);
-      setRolesSeleccionados(rolesPermitidas.map(r => r.id));
       setColonias(dataColonias || []);
       setComposterosDisponibles(dataComposteros || []);
 
@@ -117,23 +122,25 @@ export default function AdminUsuarios() {
     }
   };
 
-  const toggleRolSeleccionado = (rolId: string) => {
-    setRolesSeleccionados(prev => {
-      const yaEsta = prev.includes(rolId);
-      if (yaEsta) {
-        return prev.filter(id => id !== rolId);
-      }
-      return [...prev, rolId];
-    });
-  };
-
+  const termino = normalizar(busqueda.trim());
   const usuariosFiltrados = usuarios.filter(u => {
-    const termino = busqueda.toLowerCase();
-    const nombreCompleto = `${u.nombre} ${u.apellido_paterno || ''}`.toLowerCase();
-    const coincideBusqueda = nombreCompleto.includes(termino) || u.correo.toLowerCase().includes(termino);
-    const coincideRol = rolesSeleccionados.length === 0 || (u.rol_id ? rolesSeleccionados.includes(u.rol_id) : false);
-    return coincideBusqueda && coincideRol;
+    if (termino) {
+      const texto = `${u.nombre} ${u.apellido_paterno || ''} ${u.correo} ${u.telefono || ''} ${u.colonias?.nombre || ''} ${u.composteros?.nombre || ''} ${u.composteros?.codigo || ''}`;
+      if (!normalizar(texto).includes(termino)) return false;
+    }
+    if (rolFiltro === 'sin' ? u.rol_id : rolFiltro && u.rol_id !== rolFiltro) return false;
+    if (coloniaFiltro === 'global' ? u.colonia_id : coloniaFiltro && u.colonia_id !== coloniaFiltro) return false;
+    if (estadoFiltro === 'activos' && !u.activo) return false;
+    if (estadoFiltro === 'inactivos' && u.activo) return false;
+    return true;
   });
+
+  const quitarFiltros = () => {
+    setBusqueda('');
+    setRolFiltro('');
+    setColoniaFiltro('');
+    setEstadoFiltro('');
+  };
 
   const obtenerIdRolPorNombre = (...nombres: string[]) => {
     return roles.find(r => nombres.includes(r.nombre))?.id || '';
@@ -172,6 +179,12 @@ export default function AdminUsuarios() {
     setModalAbierto(true);
   };
 
+  // Un Super Admin es global: no lleva colonia
+  const idRolSuperAdmin = obtenerIdRolPorNombre('Super Admin');
+  const esRolSuperAdmin = !!idRolSuperAdmin && formulario.rol_id === idRolSuperAdmin;
+  const coloniaParaGuardar = (coloniaId: string) =>
+    esSuperAdmin ? (esRolSuperAdmin ? null : coloniaId || null) : adminColoniaId;
+
   const manejarCambio = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
@@ -206,7 +219,7 @@ export default function AdminUsuarios() {
         if (!datosFormulario.nombre.trim()) faltantes.push('nombre');
         if (!datosFormulario.correo.trim()) faltantes.push('correo');
         if (!datosFormulario.rol_id) faltantes.push('rol');
-        if (esSuperAdmin && !datosFormulario.colonia_id) faltantes.push('colonia');
+        if (esSuperAdmin && !esRolSuperAdmin && !datosFormulario.colonia_id) faltantes.push('colonia');
         if (!datosFormulario.password.trim()) faltantes.push('contraseña');
 
         if (faltantes.length > 0) {
@@ -227,13 +240,17 @@ export default function AdminUsuarios() {
           throw new Error('La contraseña debe incluir al menos una mayúscula y un número.');
         }
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await supabaseRegistro.auth.signUp({
           email: datosFormulario.correo.trim(),
           password: datosFormulario.password,
         });
 
         if (authError) throw authError;
         if (!authData.user) throw new Error('No se pudo crear la cuenta de acceso.');
+        // Supabase no marca error si el correo ya tiene cuenta: regresa un usuario sin identidades
+        if (authData.user.identities?.length === 0) {
+          throw new Error('Ese correo ya tiene una cuenta. Búscalo en la lista y edítalo para cambiar su rol o colonia.');
+        }
 
         const datos = {
           id: authData.user.id,
@@ -243,7 +260,7 @@ export default function AdminUsuarios() {
           correo: datosFormulario.correo,
           telefono: datosFormulario.telefono || null,
           rol_id: datosFormulario.rol_id || null,
-          colonia_id: esSuperAdmin ? (datosFormulario.colonia_id || null) : adminColoniaId,
+          colonia_id: coloniaParaGuardar(datosFormulario.colonia_id),
           compostero_id: datosFormulario.compostero_id || null
         };
 
@@ -256,7 +273,7 @@ export default function AdminUsuarios() {
           correo: formulario.correo,
           telefono: formulario.telefono || null,
           rol_id: formulario.rol_id || null,
-          colonia_id: esSuperAdmin ? (formulario.colonia_id || null) : adminColoniaId,
+          colonia_id: coloniaParaGuardar(formulario.colonia_id),
           compostero_id: formulario.compostero_id || null
         };
 
@@ -310,30 +327,18 @@ export default function AdminUsuarios() {
   return (
     <div className="mx-auto max-w-6xl py-2 sm:py-4 animate-in fade-in duration-500">
       
-      {/* Cabecera y Buscador */}
+      {/* Cabecera */}
       <div className="mb-8 flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">Directorio de Usuarios</h1>
           <p className="mt-1 font-medium text-green-700">Gestiona accesos, roles y asignación de composteros</p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre o correo..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-4 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 sm:w-64"
-            />
-          </div>
-          <button
-            onClick={abrirModalNuevo}
-            className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700"
-          >
-            <Plus className="h-5 w-5" /> Nuevo Usuario
-          </button>
-        </div>
+        <button
+          onClick={abrirModalNuevo}
+          className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700"
+        >
+          <Plus className="h-5 w-5" /> Nuevo Usuario
+        </button>
       </div>
 
       {error && (
@@ -342,39 +347,47 @@ export default function AdminUsuarios() {
         </div>
       )}
 
-      <Card className="mb-6 border-transparent bg-white shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <Shield className="h-4 w-4 text-green-600" /> Filtrar por rol
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {roles.map((rol) => {
-                const checked = rolesSeleccionados.includes(rol.id);
-                return (
-                  <label
-                    key={rol.id}
-                    className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${
-                      checked ? 'border-green-200 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleRolSeleccionado(rol.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    {rol.nombre}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabla CRUD */}
+      {/* Tabla CRUD con filtros */}
       <Card className="overflow-hidden shadow-sm border-transparent bg-white">
+        <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
+          <CardTitle className="text-lg text-gray-800">Usuarios registrados</CardTitle>
+          {usuarios.length > 0 && <span className="text-sm text-gray-500">{usuariosFiltrados.length} de {usuarios.length}</span>}
+        </CardHeader>
+        <div className="flex flex-col gap-3 border-b px-6 py-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre, correo o teléfono"
+              aria-label="Buscar usuarios"
+              className={`${claseFiltro} pl-9`}
+            />
+          </div>
+          <select value={rolFiltro} onChange={(e) => setRolFiltro(e.target.value)} aria-label="Filtrar por rol" className={`${claseFiltro} sm:w-44`}>
+            <option value="">Todos los roles</option>
+            {roles.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+            <option value="sin">Sin rol</option>
+          </select>
+          {esSuperAdmin && (
+            <select value={coloniaFiltro} onChange={(e) => setColoniaFiltro(e.target.value)} aria-label="Filtrar por colonia" className={`${claseFiltro} sm:w-52`}>
+              <option value="">Todas las colonias</option>
+              {colonias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              <option value="global">Global (sin colonia)</option>
+            </select>
+          )}
+          <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} aria-label="Filtrar por estado" className={`${claseFiltro} sm:w-40`}>
+            <option value="">Todos los estados</option>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </select>
+          {hayFiltros && (
+            <button type="button" onClick={quitarFiltros} className="text-sm font-medium text-green-700 hover:underline sm:ml-auto">
+              Quitar filtros
+            </button>
+          )}
+        </div>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="tabla-tarjetas w-full min-w-[720px] text-left text-sm">
@@ -441,7 +454,7 @@ export default function AdminUsuarios() {
                   </tr>
                 ))}
                 {usuariosFiltrados.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No se encontraron usuarios.</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">{hayFiltros ? 'No hay usuarios con esos filtros.' : 'Aún no hay usuarios registrados.'}</td></tr>
                 )}
               </tbody>
             </table>
@@ -507,12 +520,7 @@ export default function AdminUsuarios() {
                     required
                     value={formulario.rol_id}
                     onChange={manejarCambio}
-                    disabled={!esSuperAdmin}
-                    className={`w-full rounded-lg border px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-green-500 ${
-                      !esSuperAdmin
-                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200'
-                        : 'border-gray-300 bg-white focus:border-green-500'
-                    }`}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
                   >
                     <option value="">Seleccionar Rol</option>
                     {roles
@@ -523,9 +531,9 @@ export default function AdminUsuarios() {
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Colonia</label>
-                  <select name="colonia_id" value={formulario.colonia_id} onChange={manejarCambio} disabled={!esSuperAdmin} className={`w-full rounded-lg border px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-green-500 ${!esSuperAdmin ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'border-gray-300 bg-white focus:border-green-500'}`}>
-                    <option value="">-- Global / Sin Colonia --</option>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Colonia{esSuperAdmin && !esRolSuperAdmin ? ' *' : ''}</label>
+                  <select name="colonia_id" value={esRolSuperAdmin ? '' : formulario.colonia_id} onChange={manejarCambio} disabled={!esSuperAdmin || esRolSuperAdmin} className={`w-full rounded-lg border px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-green-500 ${!esSuperAdmin || esRolSuperAdmin ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'border-gray-300 bg-white focus:border-green-500'}`}>
+                    <option value="">{esRolSuperAdmin ? 'Global (el Super Admin no lleva colonia)' : '-- Selecciona una colonia --'}</option>
                     {colonias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>
                 </div>
