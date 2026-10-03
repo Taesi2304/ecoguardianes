@@ -56,7 +56,7 @@ export default function PerfilEquipo() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-[#fcfaf2] px-6 text-center">
         <p className="text-lg text-[#4a3728]">No encontramos a esta persona en el equipo.</p>
-        <Link to="/equipo" className="rounded-full bg-[#2d6a4f] px-5 py-2.5 font-semibold text-white hover:bg-[#1b4332]">Ver todo el equipo</Link>
+        <Link to="/directorio" className="rounded-full bg-[#2d6a4f] px-5 py-2.5 font-semibold text-white hover:bg-[#1b4332]">Ver todo el equipo</Link>
       </div>
     );
   }
@@ -67,7 +67,7 @@ export default function PerfilEquipo() {
     <div className="min-h-screen bg-[#fcfaf2]">
       <section className="bg-gradient-to-b from-[#d8ece1] to-[#fcfaf2] px-4 pb-12 pt-8 sm:px-8">
         <div className="mx-auto max-w-6xl">
-          <Link to="/equipo" className="mb-8 inline-flex items-center gap-2 text-sm font-bold text-[#2d6a4f] hover:underline">
+          <Link to="/directorio" className="mb-8 inline-flex items-center gap-2 text-sm font-bold text-[#2d6a4f] hover:underline">
             <ArrowLeft className="h-4 w-4" /> Todo el equipo
           </Link>
 
@@ -104,7 +104,7 @@ export default function PerfilEquipo() {
           <h2 className="mb-6 text-xl font-extrabold text-[#4a3728]">También en {integrante.area}</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {companeros.map((companero) => (
-              <Link key={companero.id} to={`/equipo/${companero.slug}`} className="group flex flex-col items-center gap-3 rounded-2xl bg-white p-4 text-center shadow-sm transition hover:shadow-md">
+              <Link key={companero.id} to={`/directorio/${companero.slug}`} className="group flex flex-col items-center gap-3 rounded-2xl bg-white p-4 text-center shadow-sm transition hover:shadow-md">
                 <div className="h-24 w-24 overflow-hidden rounded-full ring-4 ring-[#d8ece1] transition group-hover:ring-[#2d6a4f]">
                   <FotoIntegrante integrante={companero} className="h-full w-full transition duration-500 motion-safe:group-hover:scale-110" />
                 </div>

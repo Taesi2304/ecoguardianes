@@ -1,4 +1,4 @@
-// Directorio del equipo de FDMA (/equipo). Tabla: database/33_equipo_fdma.sql
+// Directorio del equipo de FDMA (/directorio). Tabla: database/33_equipo_fdma.sql
 
 export type TipoRed = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'web' | 'otro';
 

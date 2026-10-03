@@ -252,9 +252,9 @@ export default function AdminEquipo() {
     <div className="mx-auto max-w-5xl space-y-8 py-2 sm:py-4 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Equipo FDMA</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Directorio FDMA</h1>
           <p className="mt-1 font-medium text-green-700">
-            Directorio público en <a href="/equipo" target="_blank" rel="noreferrer" className="underline hover:text-green-900">/equipo</a>, agrupado por área
+            Directorio público en <a href="/directorio" target="_blank" rel="noreferrer" className="underline hover:text-green-900">/directorio</a>, agrupado por área
           </p>
         </div>
         <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
@@ -383,7 +383,7 @@ export default function AdminEquipo() {
                     <p className="truncate text-xs text-gray-500">{integrante.cargo} · <span className="font-semibold text-green-700">{integrante.area}</span></p>
                   </div>
                   <div className="flex gap-1">
-                    <a href={`/equipo/${integrante.slug}`} target="_blank" rel="noreferrer" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Ver perfil"><ExternalLink className="h-4 w-4" /></a>
+                    <a href={`/directorio/${integrante.slug}`} target="_blank" rel="noreferrer" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Ver perfil"><ExternalLink className="h-4 w-4" /></a>
                     <button onClick={() => abrirEdicion(integrante)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button>
                     <button onClick={() => alternarEstado(integrante)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={integrante.activo ? 'Ocultar' : 'Mostrar'}>{integrante.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                     <button onClick={() => eliminar(integrante)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button>

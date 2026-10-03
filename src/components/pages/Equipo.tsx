@@ -28,7 +28,7 @@ function TarjetaIntegrante({ integrante }: { integrante: Integrante }) {
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
           <h3 className="text-lg font-extrabold leading-tight text-[#4a3728]">
-            <Link to={`/equipo/${integrante.slug}`} className="after:absolute after:inset-0 focus:outline-none">{integrante.nombre}</Link>
+            <Link to={`/directorio/${integrante.slug}`} className="after:absolute after:inset-0 focus:outline-none">{integrante.nombre}</Link>
           </h3>
           <p className="mt-1 text-sm font-semibold text-[#2d6a4f]">{integrante.cargo}</p>
           {/* z-10: el enlace del emprendimiento queda encima del que abre el perfil */}

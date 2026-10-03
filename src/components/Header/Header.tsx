@@ -23,7 +23,7 @@ const secciones: Seccion[] = [
       { label: 'Cartelera', href: '/cartelera', detalle: 'Programa, horarios y sedes' },
       { label: 'Talleres', href: '/talleres', detalle: 'Talleres con registro en línea' },
       { label: 'Calendario', href: '/calendario', detalle: 'Actividades durante todo el año' },
-      { label: 'Directorio', href: '/equipo', detalle: 'Equipo organizador del festival' },
+      { label: 'Directorio', href: '/directorio', detalle: 'Equipo organizador del festival' },
     ],
   },
   {
