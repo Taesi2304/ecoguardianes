@@ -93,12 +93,10 @@ export default function Inicio() {
 
   return (
 
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-4xl font-bold text-gray-900 mb-2">¡Hola, {nombreCompleto}! </h1>
-      <p className="text-lg text-gray-600 mb-8">Bienvenido a ECO-GUARDIANES. </p>
-   <br/>
-   <br/>
-        
+    <div className="max-w-4xl mx-auto py-2 sm:py-4">
+      <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 break-words">¡Hola, {nombreCompleto}! </h1>
+      <p className="text-lg text-gray-600 mb-8 sm:mb-12">Bienvenido a ECO-GUARDIANES. </p>
+
       <Card className="bg-green-50 border-green-200 shadow-sm">
         <CardContent className="p-6">
           

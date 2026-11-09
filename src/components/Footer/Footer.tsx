@@ -1,181 +1,125 @@
-import { UserCircleIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+import { FACEBOOK_URL, INSTAGRAM_URL } from '../../lib/redes';
 
 import './Footer.css';
 
+interface Aliado {
+  id: string;
+  nombre: string;
+  enlace_url: string;
+}
+
+const enlacesExplora = [
+  { to: '/cartelera', texto: 'Cartelera' },
+  { to: '/talleres', texto: 'Talleres' },
+  { to: '/calendario', texto: 'Calendario' },
+  { to: '/ecoguardianes', texto: 'Eco Guardianes' },
+  { to: '/manuales', texto: 'Manuales' },
+];
+
+const enlacesAyuda = [
+  { to: '/info', texto: 'Nosotros & Contacto' },
+  { to: '/info#guia-compostaje', texto: 'Guías de compostaje' },
+  { to: '/info#preguntas-frecuentes', texto: 'Preguntas frecuentes' },
+];
+
+const IconoInstagram = () => (
+  <svg className="footer-social-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="2" width="20" height="20" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
+
+const IconoFacebook = () => (
+  <svg className="footer-social-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
 export const Footer = () => {
+  // Los aliados se administran en /admin/aliados
+  const [aliados, setAliados] = useState<Aliado[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from('aliados')
+      .select('id, nombre, enlace_url')
+      .eq('activo', true)
+      .order('orden', { ascending: true })
+      .then(({ data }) => setAliados((data || []) as Aliado[]));
+  }, []);
+
   return (
     <footer className="footer-wrapper">
       <div className="footer-grid">
         <div className="footer-brand">
           <div className="footer-brand-row">
-            <Link to="/" aria-label="Ir al inicio">
-              <img src="/logo-horizontal.svg" alt="Eco Guardianes" className="footer-brand-logo" />
+            <Link to="/" aria-label="Ir al inicio" className="footer-brand-link">
+              <img src="/logo_fdma.svg" alt="" className="footer-brand-logo" />
+              <span className="footer-brand-name">FDMA<small>Festival del Medio Ambiente</small></span>
             </Link>
           </div>
           <p className="footer-brand-copy">
-            Monitoreando hoy el compost que transforma el mañana.
+            Un espacio dedicado a la educación y la acción ambiental. Hogar del proyecto de composta comunitaria Eco Guardianes.
           </p>
+          <div className="footer-social">
+            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="Instagram de FDMA">
+              <IconoInstagram />
+            </a>
+            <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="Facebook de FDMA">
+              <IconoFacebook />
+            </a>
+          </div>
         </div>
 
         <div className="footer-section">
-          <h4 className="footer-title">Navegación</h4>
+          <h4 className="footer-title">Explora</h4>
           <ul className="footer-link-list">
-            <li><Link to="/" className="footer-link">FDMA-Festival</Link></li>
-            <li><Link to="/ecoguardianes" className="footer-link">Eco Guardianes</Link></li>
-            <li><Link to="/info" className="footer-link">Nosotros & Contacto</Link></li>
-            <li><Link to="/login" className="footer-link">Inicio de sesión</Link></li>
-            <li><Link to="/registro" className="footer-link">Registro</Link></li>
+            {enlacesExplora.map(({ to, texto }) => (
+              <li key={to}><Link to={to} className="footer-link">{texto}</Link></li>
+            ))}
           </ul>
         </div>
 
         <div className="footer-section">
-          <h4 className="footer-title">Recursos</h4>
+          <h4 className="footer-title">Ayuda</h4>
           <ul className="footer-link-list">
-            <li><a href="/manuales" className="footer-link">Manuales</a></li>
-            <li><a href="/info#recursos" className="footer-link">Guías de compostaje</a></li>
-            <li><a href="/info#recursos" className="footer-link">Preguntas frecuentes</a></li>
-            <li><a href="/info#sobre-nosotros" className="footer-link">Sobre nosotros</a></li>
-            <li><Link to="/aviso-privacidad" className="footer-link">Aviso de Privacidad</Link></li>
-            <li><Link to="/terminos-condiciones" className="footer-link">Términos y Condiciones</Link></li>
+            {enlacesAyuda.map(({ to, texto }) => (
+              <li key={to}><Link to={to} className="footer-link">{texto}</Link></li>
+            ))}
           </ul>
         </div>
 
-        <div className="footer-section">
-          <h4 className="footer-title">Aliados</h4>
-
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://instagram.com/eco_marce_shop"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @eco_marce_shop
-            </a>
+        {aliados.length > 0 && (
+          <div className="footer-section">
+            <h4 className="footer-title">Aliados</h4>
+            <ul className="footer-aliados">
+              {aliados.map((aliado) => (
+                <li key={aliado.id}>
+                  <a href={aliado.enlace_url} target="_blank" rel="noopener noreferrer" className="footer-aliado">
+                    {aliado.nombre}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/fdma.mx"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @fdma.mx
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/puratastudio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @puratastudio
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/vivero_monos_garden"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @vivero_monos_garden
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/pomodoro_agroecologico"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @pomodoro_agroecologico
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/_ware_street"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @_ware_street
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/edgara.castillo"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @edgara.castillo
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <UserCircleIcon className="footer-contact-icon text-pink-500" />
-            <a
-              href="https://www.instagram.com/parquecasablanca3"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-green-500 transition-colors"
-            >
-              @parquecasablanca3
-            </a>
-          </div>
-
-          <div className="footer-contact-item">
-            <svg
-              className="footer-contact-icon text-blue-600"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-            </svg>
-            <a
-              href="https://www.facebook.com/share/1DKWiUtHvb/?mibextid=wwXIfr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline hover:text-blue-500 transition-colors"
-            >
-              Comunidad en FB de Parque Casa Blanca 3
-            </a>
-          </div>
-        </div>
+        )}
       </div>
 
-      <div className="footer-bottom text-center">
-        <p>© 2026 Eco Guardianes. Todos los derechos reservados.</p>
+      <div className="footer-bottom">
+        <p className="footer-legal">
+          <span>© 2026 FDMA</span>
+          <span aria-hidden="true">·</span>
+          <Link to="/aviso-privacidad" className="footer-legal-link">Aviso de privacidad</Link>
+          <span aria-hidden="true">·</span>
+          <Link to="/terminos-condiciones" className="footer-legal-link">Términos y condiciones</Link>
+        </p>
         <p>
-          Hecho con amor. Desarrollado por{' '}
-          <a
-            href="https://instagram.com/ijessiyou"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-bold hover:text-green-500 hover:underline transition-colors"
-          >
+          Desarollado por{' '}
+          <a href="https://instagram.com/ijessiyou" target="_blank" rel="noopener noreferrer" className="footer-legal-link font-bold">
             @ijessiyou
           </a>
         </p>

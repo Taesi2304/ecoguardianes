@@ -21,7 +21,8 @@ type Metricas = {
 };
 
 export default function AdminDashboard() {
-  const whatsappGroupLink = 'https://chat.whatsapp.com/JmNLCT0TpYK9TqjfawWLdd?s=cl&p=i&mlu=0';
+  // Grupo de WhatsApp de la colonia del admin (se configura en Admin → Colonias)
+  const [grupoWhatsapp, setGrupoWhatsapp] = useState<string | null>(null);
 
   const [composteros, setComposteros] = useState<Compostero[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -43,7 +44,7 @@ export default function AdminDashboard() {
       // 1. Obtener perfil del admin
       const { data: usuario, error: usuarioError } = await supabase
         .from('usuarios')
-        .select('colonia_id, roles(nombre), colonias(nombre)')
+        .select('colonia_id, roles(nombre), colonias(nombre, whatsapp_url)')
         .eq('auth_user_id', user.id)
         .single();
 
@@ -58,7 +59,9 @@ export default function AdminDashboard() {
       const superAdmin = rolNombre === 'Super Admin';
       setEsSuperAdmin(superAdmin);
       
-      const coloniaNombre = Array.isArray(usuario.colonias) ? usuario.colonias[0]?.nombre : (usuario.colonias as any)?.nombre;
+      const colonia = Array.isArray(usuario.colonias) ? usuario.colonias[0] : (usuario.colonias as any);
+      const coloniaNombre = colonia?.nombre;
+      setGrupoWhatsapp(colonia?.whatsapp_url || null);
       setNombreZona(superAdmin ? 'todas las zonas' : coloniaNombre || 'tu colonia');
       const coloniaId = usuario.colonia_id;
 
@@ -142,7 +145,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera */}
       <div className="mb-8 flex items-center gap-4 border-b border-[#4A2E18]/10 pb-5">
@@ -159,15 +162,30 @@ export default function AdminDashboard() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-green-700">Comunidad</p>
           <h2 className="mt-1 text-lg font-bold text-gray-900">Grupo de WhatsApp</h2>
+          {!esSuperAdmin && !grupoWhatsapp && (
+            <p className="mt-1 text-sm text-gray-600">Tu colonia aún no tiene grupo.</p>
+          )}
+          {esSuperAdmin && (
+            <p className="mt-1 text-sm text-gray-600">Cada colonia tiene su propio grupo.</p>
+          )}
         </div>
-        <a
-          href={whatsappGroupLink}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center justify-center rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1fad56]"
-        >
-          Unirme a la comunidad
-        </a>
+        {esSuperAdmin ? (
+          <Link
+            to="/admin/colonias"
+            className="inline-flex items-center justify-center rounded-full border border-green-600 bg-white px-4 py-2.5 text-sm font-bold text-green-700 shadow-sm transition hover:bg-green-50"
+          >
+            Configurar grupos por colonia
+          </Link>
+        ) : grupoWhatsapp && (
+          <a
+            href={grupoWhatsapp}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1fad56]"
+          >
+            Unirme a la comunidad
+          </a>
+        )}
       </div>
 
       {/* Tarjetas Redirigibles */}
@@ -185,8 +203,8 @@ export default function AdminDashboard() {
                     <Icon className={`h-6 w-6 ${color}`} />
                   </div>
                 </div>
-                <div className="flex items-center text-sm font-semibold text-green-800 opacity-30 group-hover:opacity-100 transition-opacity">
-                  Gestionar <ArrowRight className="ml-1 h-4 w-4" />
+                <div className="flex items-center text-sm font-semibold text-green-700 group-hover:text-green-900 transition-colors">
+                  Gestionar <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </div>
               </CardContent>
             </Card>
@@ -217,7 +235,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="tabla-tarjetas w-full min-w-[720px] text-left text-sm">
                 <thead className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500">
                   <tr>
                     <th className="px-6 py-4 font-semibold">Código</th>
@@ -231,22 +249,22 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-gray-100 bg-white">
                   {composteros.map((compostero) => (
                     <tr key={compostero.id} className="transition-colors hover:bg-green-50/30">
-                      <td className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
-                      <td className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
-                      <td className="px-6 py-4 text-gray-600">
+                      <td data-label="Código" className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
+                      <td data-label="Compostero" className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
+                      <td data-label="Colonia" className="px-6 py-4 text-gray-600">
                         <span className="inline-flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5 text-gray-400" />
                           {/* Corregido para leer correctamente el objeto desde Supabase */}
                           {compostero.colonias?.nombre || 'Sin colonia'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
-                      <td className="px-6 py-4 text-gray-500 text-sm"> {/* <-- Nuevo dato formatado */}
+                      <td data-label="Ubicación" className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
+                      <td data-label="Registro" className="px-6 py-4 text-gray-500 text-sm">
                         {new Date(compostero.created_at).toLocaleDateString('es-MX', {
                           day: '2-digit', month: 'short', year: 'numeric'
                         })}
                       </td>
-                      <td className="px-6 py-4">
+                      <td data-label="Estado" className="px-6 py-4">
                         <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
                           {compostero.estado || 'Activo'}
                         </span>

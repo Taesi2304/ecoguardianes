@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Plus, Edit, EyeOff, Eye, Search, AlertCircle, Map, MapPin, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Edit, EyeOff, Eye, Search, AlertCircle, Map, MapPin, Trash2, MessageCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ interface Colonia {
   estado: string;
   codigo_postal: string | null;
   codigo_acceso_colonia: string;
+  whatsapp_url: string | null;
   activo: boolean;
   created_at: string;
 }
@@ -30,7 +31,8 @@ export default function AdminColonias() {
     municipio: 'Matamoros',
     estado: 'Tamaulipas',
     codigo_postal: '',
-    codigo_acceso_colonia: ''
+    codigo_acceso_colonia: '',
+    whatsapp_url: ''
   });
 
   useEffect(() => {
@@ -89,7 +91,8 @@ export default function AdminColonias() {
       municipio: 'Matamoros', 
       estado: 'Tamaulipas', 
       codigo_postal: '',
-      codigo_acceso_colonia: generarCodigoAcceso() 
+      codigo_acceso_colonia: generarCodigoAcceso(),
+      whatsapp_url: ''
     });
     setModalAbierto(true);
   };
@@ -101,7 +104,8 @@ export default function AdminColonias() {
       municipio: c.municipio || 'Matamoros',
       estado: c.estado || 'Tamaulipas',
       codigo_postal: c.codigo_postal || '',
-      codigo_acceso_colonia: c.codigo_acceso_colonia || generarCodigoAcceso()
+      codigo_acceso_colonia: c.codigo_acceso_colonia || generarCodigoAcceso(),
+      whatsapp_url: c.whatsapp_url || ''
     });
     setModalAbierto(true);
   };
@@ -113,12 +117,14 @@ export default function AdminColonias() {
   const guardarColonia = async (e: React.FormEvent) => {
     e.preventDefault();
     setCargando(true);
+    // Un campo vacío se guarda como null: la colonia aún no tiene grupo
+    const datos = { ...formulario, whatsapp_url: formulario.whatsapp_url.trim() || null };
     try {
       if (editandoId) {
-        const { error } = await supabase.from('colonias').update(formulario).eq('id', editandoId);
+        const { error } = await supabase.from('colonias').update(datos).eq('id', editandoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('colonias').insert([formulario]);
+        const { error } = await supabase.from('colonias').insert([datos]);
         if (error) throw error;
       }
       setModalAbierto(false);
@@ -158,7 +164,7 @@ export default function AdminColonias() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera */}
       <div className="mb-8 flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
@@ -193,7 +199,7 @@ export default function AdminColonias() {
       <Card className="overflow-hidden shadow-sm border-transparent bg-white">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="tabla-tarjetas w-full min-w-[720px] text-left text-sm">
               <thead className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 border-b">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Colonia</th>
@@ -207,27 +213,38 @@ export default function AdminColonias() {
               <tbody className="divide-y divide-gray-100 bg-white">
                 {coloniasFiltradas.map((c) => (
                   <tr key={c.id} className={`transition-colors hover:bg-green-50/30 ${!c.activo ? 'opacity-60' : ''}`}>
-                    <td className="px-6 py-4 font-bold text-gray-900 text-base">{c.nombre}</td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td data-completa className="px-6 py-4">
+                      <p className="font-bold text-gray-900 text-base">{c.nombre}</p>
+                      {c.whatsapp_url ? (
+                        <a href={c.whatsapp_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:underline">
+                          <MessageCircle className="h-3.5 w-3.5" /> Grupo de WhatsApp
+                        </a>
+                      ) : (
+                        <span className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
+                          <MessageCircle className="h-3.5 w-3.5" /> Sin grupo de WhatsApp
+                        </span>
+                      )}
+                    </td>
+                    <td data-label="Ubicación" className="px-6 py-4 text-gray-600">
                       <div className="flex flex-col gap-0.5">
                         <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gray-400" /> {c.municipio}, {c.estado}</span>
                         {c.codigo_postal && <span className="text-xs text-gray-400 ml-5">C.P. {c.codigo_postal}</span>}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-sm font-bold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
+                    <td data-label="Código de acceso" className="px-6 py-4">
+                      <span className="inline-block font-mono text-sm font-bold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
                         {c.codigo_acceso_colonia}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">
+                    <td data-label="Registro" className="px-6 py-4 text-gray-500 font-medium">
                       {new Date(c.created_at).toLocaleDateString('es-MX')}
                     </td>
-                    <td className="px-6 py-4">
+                    <td data-label="Estado" className="px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                         {c.activo ? 'Activa' : 'Inactiva'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td data-acciones className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={() => abrirModalEditar(c)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-green-600" title="Editar">
                           <Edit className="h-4 w-4" />
@@ -251,7 +268,7 @@ export default function AdminColonias() {
       {/* Modal */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl bg-white shadow-xl">
             <div className="border-b px-6 py-4"><h2 className="text-xl font-bold text-gray-800">{editandoId ? 'Editar Colonia' : 'Nueva Colonia'}</h2></div>
             <form onSubmit={guardarColonia} className="p-6">
               <div className="space-y-4">
@@ -260,7 +277,7 @@ export default function AdminColonias() {
                   <input type="text" name="nombre" required value={formulario.nombre} onChange={manejarCambio} placeholder="Ej. Valle de Casa Blanca" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">Municipio</label>
                     <input type="text" name="municipio" value={formulario.municipio} onChange={manejarCambio} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-gray-50 focus:border-green-500 focus:outline-none" />
@@ -275,6 +292,12 @@ export default function AdminColonias() {
                   <label className="mb-1 block text-sm font-medium text-gray-700">Código de Acceso (Único) *</label>
                   <input type="text" name="codigo_acceso_colonia" required value={formulario.codigo_acceso_colonia} onChange={manejarCambio} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-green-700 font-bold focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
                   <p className="mt-1 text-xs text-gray-500">Este código servirá para que los vecinos se vinculen a esta colonia en el futuro.</p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Grupo de WhatsApp (Opcional)</label>
+                  <input type="url" name="whatsapp_url" value={formulario.whatsapp_url} onChange={manejarCambio} placeholder="https://chat.whatsapp.com/..." className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                  <p className="mt-1 text-xs text-gray-500">Si lo dejas vacío, los Eco Guardianes de esta colonia verán el aviso "Tu colonia aún no tiene grupo".</p>
                 </div>
               </div>
               

@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import { useScrollAlFormulario } from '@/lib/useScrollAlFormulario';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagenAmpliable } from '@/components/VisorImagenes';
+import { useUrlLocal } from '@/lib/useUrlLocal';
+import { normalizar } from '@/lib/normalizar';
 
 interface Convocatoria {
   id: string;
@@ -11,6 +15,8 @@ interface Convocatoria {
   descripcion: string;
   imagen_url: string;
   enlace_url?: string;
+  fecha_cierre?: string | null; // Fecha límite opcional: sale en el Calendario y la oculta de la landing al pasar
+  texto_boton?: string | null; // Vacío → "Registro"
   activo: boolean;
   created_at: string;
 }
@@ -19,8 +25,13 @@ interface FormularioConvocatoria {
   titulo: string;
   descripcion: string;
   enlace_url: string;
+  fecha_cierre: string;
+  texto_boton: string;
   imagen: File | null;
 }
+
+const TEXTO_BOTON_POR_DEFECTO = 'Registro';
+const SUGERENCIAS_BOTON = ['Registro', 'Más información', 'Descargar bases', 'Inscribirme'];
 
 const BUCKET = 'imagenes_convocatorias';
 
@@ -28,8 +39,18 @@ const formularioInicial: FormularioConvocatoria = {
   titulo: '',
   descripcion: '',
   enlace_url: '',
+  fecha_cierre: '',
+  texto_boton: '',
   imagen: null,
 };
+
+const hoy = () => new Date().toLocaleDateString('en-CA');
+
+
+const claseFiltro = 'w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none';
+
+const formatearCierre = (fecha: string) =>
+  new Date(`${fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function obtenerRutaImagen(url: string) {
   const marcador = `/storage/v1/object/public/${BUCKET}/`;
@@ -42,16 +63,42 @@ export default function AdminConvocatorias() {
   const [formulario, setFormulario] = useState(formularioInicial);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const formularioRef = useScrollAlFormulario(formularioAbierto, editandoId);
   const [imagenActual, setImagenActual] = useState('');
+  const urlImagenNueva = useUrlLocal(formulario.imagen);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [esSuperAdmin, setEsSuperAdmin] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [cierreFiltro, setCierreFiltro] = useState('');
+  const hayFiltros = Boolean(busqueda.trim() || estadoFiltro || cierreFiltro);
 
   useEffect(() => {
     cargarConvocatorias();
     verificarSuperAdmin();
   }, []);
+
+  const termino = normalizar(busqueda.trim());
+  const convocatoriasFiltradas = convocatorias.filter((convocatoria) => {
+    if (termino && !normalizar(`${convocatoria.titulo} ${convocatoria.descripcion}`).includes(termino)) return false;
+
+    if (estadoFiltro === 'activas' && !convocatoria.activo) return false;
+    if (estadoFiltro === 'inactivas' && convocatoria.activo) return false;
+
+    const vencida = Boolean(convocatoria.fecha_cierre && convocatoria.fecha_cierre < hoy());
+    if (cierreFiltro === 'vigentes' && (!convocatoria.fecha_cierre || vencida)) return false;
+    if (cierreFiltro === 'vencidas' && !vencida) return false;
+    if (cierreFiltro === 'sin-fecha' && convocatoria.fecha_cierre) return false;
+    return true;
+  });
+
+  function quitarFiltros() {
+    setBusqueda('');
+    setEstadoFiltro('');
+    setCierreFiltro('');
+  }
 
   async function verificarSuperAdmin() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -74,7 +121,7 @@ export default function AdminConvocatorias() {
 
     const { data, error: errorConsulta } = await supabase
       .from('convocatorias')
-      .select('id, titulo, descripcion, imagen_url, enlace_url, activo, created_at')
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (errorConsulta) {
@@ -97,7 +144,7 @@ export default function AdminConvocatorias() {
     setEditandoId(convocatoria.id);
     setFormularioAbierto(true);
     setImagenActual(convocatoria.imagen_url);
-    setFormulario({ titulo: convocatoria.titulo, descripcion: convocatoria.descripcion, enlace_url: convocatoria.enlace_url || '', imagen: null });
+    setFormulario({ titulo: convocatoria.titulo, descripcion: convocatoria.descripcion, enlace_url: convocatoria.enlace_url || '', fecha_cierre: convocatoria.fecha_cierre || '', texto_boton: convocatoria.texto_boton || '', imagen: null });
   }
 
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -129,7 +176,7 @@ export default function AdminConvocatorias() {
       toast.error('Completa el título y la descripción.');
       return;
     }
-    if (!editandoId && !formulario.imagen) {
+    if (!formulario.imagen && !imagenActual) {
       toast.error('Selecciona una imagen para la convocatoria.');
       return;
     }
@@ -150,6 +197,8 @@ export default function AdminConvocatorias() {
         titulo: formulario.titulo.trim(),
         descripcion: formulario.descripcion.trim(),
         enlace_url: formulario.enlace_url.trim() || null,
+        fecha_cierre: formulario.fecha_cierre || null,
+        texto_boton: formulario.texto_boton.trim() || null,
         imagen_url: imagenUrl,
         ...(editandoId ? {} : { activo: true }),
       };
@@ -219,7 +268,7 @@ export default function AdminConvocatorias() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl space-y-8 py-2 sm:py-4 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Convocatorias</h1>
@@ -233,7 +282,7 @@ export default function AdminConvocatorias() {
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}
 
       {formularioAbierto && (
-        <Card className="border-transparent bg-white shadow-sm">
+        <Card ref={formularioRef} className="scroll-mt-24 border-transparent bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
             <CardTitle className="text-lg text-gray-800">{editandoId ? 'Editar convocatoria' : 'Nueva convocatoria'}</CardTitle>
             <button onClick={() => { setEditandoId(null); setFormulario(formularioInicial); setImagenActual(''); setFormularioAbierto(false); }} className="rounded-lg p-2 text-gray-500 hover:bg-gray-200" title="Cerrar formulario"><X className="h-5 w-5" /></button>
@@ -242,7 +291,24 @@ export default function AdminConvocatorias() {
             <form onSubmit={guardar} className="grid gap-5 md:grid-cols-2">
               <div className="space-y-5">
                 <label className="block text-sm font-semibold text-gray-700">Título<input name="titulo" value={formulario.titulo} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" required /></label>
+<<<<<<< HEAD
                 <label className="block text-sm font-semibold text-gray-700">Enlace de redirección <input name="enlace_url" type="url" placeholder="https://forms.gle/..." value={formulario.enlace_url} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" /></label>
+=======
+                <label className="block text-sm font-semibold text-gray-700">Enlace de redirección (Opcional)<input name="enlace_url" type="url" placeholder="https://forms.gle/..." value={formulario.enlace_url} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" /></label>
+                {formulario.enlace_url.trim() && (
+                  <label className="block text-sm font-semibold text-gray-700">Texto del botón (Opcional)
+                    <input name="texto_boton" value={formulario.texto_boton} onChange={manejarCambio} maxLength={30} placeholder={TEXTO_BOTON_POR_DEFECTO} list="sugerencias-boton" className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" />
+                    <datalist id="sugerencias-boton">
+                      {SUGERENCIAS_BOTON.map((texto) => <option key={texto} value={texto} />)}
+                    </datalist>
+                    <span className="mt-1 block text-xs font-normal text-gray-500">Lo que dice el botón verde. Si lo dejas vacío dice "{TEXTO_BOTON_POR_DEFECTO}".</span>
+                  </label>
+                )}
+                <label className="block text-sm font-semibold text-gray-700">Fecha límite (Opcional)
+                  <input name="fecha_cierre" type="date" value={formulario.fecha_cierre} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" />
+                  <span className="mt-1 block text-xs font-normal text-gray-500">Aparece en el Calendario y la convocatoria se oculta sola de la página al pasar esta fecha.</span>
+                </label>
+>>>>>>> 0b483927aff3a200e392afde5f6e5ab15de49c4e
                 <label className="block text-sm font-semibold text-gray-700">
   Descripción
   <textarea 
@@ -263,9 +329,13 @@ export default function AdminConvocatorias() {
 </label>
                </div>
               <div className="space-y-4">
-                <label className="block text-sm font-semibold text-gray-700">Imagen<input type="file" accept="image/*" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required={!editandoId} /></label>
-                {imagenActual && !formulario.imagen && <img src={imagenActual} alt="Imagen actual" className="h-40 w-full rounded-lg object-cover" />}
-                {formulario.imagen && <p className="text-sm text-green-700">Imagen seleccionada: {formulario.imagen.name}</p>}
+                <label className="block text-sm font-semibold text-gray-700">Imagen{!(urlImagenNueva || imagenActual) && <input type="file" accept="image/*" onChange={manejarImagen} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm" required />}</label>
+                {(urlImagenNueva || imagenActual) && (
+                  <div>
+                    <ImagenAmpliable src={urlImagenNueva || imagenActual} alt="Imagen de la convocatoria" className="h-40 w-full rounded-lg" onQuitar={() => (formulario.imagen ? setFormulario((actual) => ({ ...actual, imagen: null })) : setImagenActual(''))} />
+                    <p className="mt-1 text-xs text-gray-500">{formulario.imagen ? `Nueva: ${formulario.imagen.name}` : 'Imagen actual'} · clic para verla en grande, ✕ para quitarla</p>
+                  </div>
+                )}
                 <button type="submit" disabled={guardando} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
                   {guardando ? <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</> : <><Image className="h-5 w-5" /> Guardar convocatoria</>}
                 </button>
@@ -276,9 +346,41 @@ export default function AdminConvocatorias() {
       )}
 
       <Card className="overflow-hidden border-transparent bg-white shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Convocatorias registradas</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between border-b bg-gray-50/50 px-6 py-4">
+          <CardTitle className="text-lg text-gray-800">Convocatorias registradas</CardTitle>
+          {!cargando && convocatorias.length > 0 && <span className="text-sm text-gray-500">{convocatoriasFiltradas.length} de {convocatorias.length}</span>}
+        </CardHeader>
+        <div className="flex flex-col gap-3 border-b px-6 py-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por título o descripción"
+              aria-label="Buscar convocatorias"
+              className={`${claseFiltro} pl-9`}
+            />
+          </div>
+          <select value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)} aria-label="Filtrar por estado" className={`${claseFiltro} sm:w-44`}>
+            <option value="">Todos los estados</option>
+            <option value="activas">Activas</option>
+            <option value="inactivas">Inactivas</option>
+          </select>
+          <select value={cierreFiltro} onChange={(e) => setCierreFiltro(e.target.value)} aria-label="Filtrar por fecha de cierre" className={`${claseFiltro} sm:w-48`}>
+            <option value="">Cualquier cierre</option>
+            <option value="vigentes">Vigentes</option>
+            <option value="vencidas">Vencidas</option>
+            <option value="sin-fecha">Sin fecha límite</option>
+          </select>
+          {hayFiltros && (
+            <button type="button" onClick={quitarFiltros} className="text-sm font-medium text-green-700 hover:underline sm:ml-auto">
+              Quitar filtros
+            </button>
+          )}
+        </div>
         <CardContent className="p-0">
-          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatorias.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><img src={convocatoria.imagen_url} alt="" className="h-14 w-20 rounded-md object-cover" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-2">{convocatoria.titulo}</span></td><td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
+          {cargando ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div> : convocatorias.length === 0 ? <p className="p-8 text-center text-gray-600">Aún no hay convocatorias registradas.</p> : convocatoriasFiltradas.length === 0 ? <p className="p-8 text-center text-gray-600">No hay convocatorias con esos filtros.</p> : <div className="overflow-x-auto"><table className="tabla-tarjetas w-full min-w-[860px] text-left text-sm"><thead className="border-b bg-white text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Imagen</th><th className="px-6 py-4">Título</th><th className="px-6 py-4">Estado</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4">Cierre</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead><tbody className="divide-y divide-gray-100">{convocatoriasFiltradas.map((convocatoria) => <tr key={convocatoria.id} className="hover:bg-green-50/30"><td className="px-6 py-4"><ImagenAmpliable src={convocatoria.imagen_url} alt={convocatoria.titulo} className="h-14 w-20 rounded-md" /></td><td className="max-w-xs px-6 py-4 font-semibold text-gray-900"><span className="line-clamp-3 md:line-clamp-2">{convocatoria.titulo}</span></td><td data-label="Estado" className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${convocatoria.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{convocatoria.activo ? 'Activa' : 'Inactiva'}</span></td><td data-label="Fecha" className="px-6 py-4 text-gray-600">{new Date(convocatoria.created_at).toLocaleDateString('es-MX')}</td><td data-completa data-label="Cierre" className="px-6 py-4 text-gray-600">{convocatoria.fecha_cierre ? <div className="flex flex-col items-start gap-1"><span>{formatearCierre(convocatoria.fecha_cierre)}</span>{convocatoria.fecha_cierre < hoy() && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Vencida</span>}</div> : <span className="text-gray-400">Sin fecha</span>}</td><td data-acciones className="px-6 py-4"><div className="flex justify-end gap-2"><button onClick={() => abrirEdicion(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title="Editar"><Edit className="h-4 w-4" /></button><button onClick={() => alternarEstado(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-green-600" title={convocatoria.activo ? 'Desactivar' : 'Activar'}>{convocatoria.activo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button><button onClick={() => eliminar(convocatoria)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Eliminar"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
         </CardContent>
       </Card>
     </div>

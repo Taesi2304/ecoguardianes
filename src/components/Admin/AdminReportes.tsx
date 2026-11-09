@@ -7,6 +7,18 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
+import { format } from 'date-fns';
+import {
+  OPCIONES_HUMEDAD,
+  OPCIONES_OLOR,
+  OPCIONES_TEMPERATURA,
+  abreviarUnidad,
+  etiquetaDe,
+  faunaDe,
+  formatearCantidad,
+  residuosDe,
+  sumarPorUnidad,
+} from '@/lib/bitacora';
 
 interface VisitaReporte {
   id: string;
@@ -16,6 +28,13 @@ interface VisitaReporte {
   plagas: boolean;
   lixiviados: boolean;
   observaciones: string | null;
+  propuesta_mejora: string | null;
+  tipos_residuo: string[] | null;
+  residuo_otro: string | null;
+  temperatura_nivel: string | null;
+  humedad_nivel: string | null;
+  olor_nivel: string | null;
+  fauna: string[] | null;
   evidencias: {
     url_publica: string | null;
   }[] | null;
@@ -28,7 +47,38 @@ interface VisitaReporte {
   usuarios: {
     nombre: string;
     apellido_paterno: string | null;
-  };
+  } | null;
+}
+
+const nombreAutor = (v: VisitaReporte) =>
+  v.usuarios ? `${v.usuarios.nombre} ${v.usuarios.apellido_paterno || ''}`.trim() : 'Usuario eliminado';
+
+const fechaCorta = (fecha: string) => new Date(fecha).toLocaleDateString('es-MX');
+
+// Reporte_EcoGuardianes_2026-09-30_14-35.pdf — Windows no permite ":" en nombres de archivo
+const nombreArchivo = (extension: 'xlsx' | 'pdf') =>
+  `Reporte_EcoGuardianes_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${extension}`;
+
+// Descarga una foto y la reduce (máx. 800 px) para que el PDF se genere rápido y pese poco.
+// null si no se pudo cargar: en el PDF sale "Imagen no disponible".
+const LADO_MAXIMO_FOTO = 800;
+function cargarFotoParaPdf(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const escala = Math.min(1, LADO_MAXIMO_FOTO / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(null);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
 }
 
 interface ComposteroFiltro {
@@ -47,6 +97,8 @@ export default function AdminReportes() {
   const [filtroFechaInicio, setFiltroFechaInicio] = useState('');
   const [filtroFechaFin, setFiltroFechaFin] = useState('');
   const [filtroComposteroId, setFiltroComposteroId] = useState('todos');
+  // Evita descargas repetidas: el PDF tarda unos segundos si hay muchas fotos
+  const [exportando, setExportando] = useState<'excel' | 'pdf' | null>(null);
 
   useEffect(() => {
     cargarDatosReporte();
@@ -79,10 +131,18 @@ export default function AdminReportes() {
           plagas,
           lixiviados,
           observaciones,
+          propuesta_mejora,
+          tipos_residuo,
+          residuo_otro,
+          temperatura_nivel,
+          humedad_nivel,
+          olor_nivel,
+          fauna,
           composteros!inner(id, nombre, codigo, colonia_id, colonias(nombre)),
           usuarios(nombre, apellido_paterno),
           evidencias(url_publica)
         `)
+        .is('deleted_at', null)
         .order('fecha', { ascending: true });
 
       // Cargar composteros para el selector de filtro
@@ -115,68 +175,110 @@ export default function AdminReportes() {
 
   // Aplicar filtros de fecha y compostero
   const visitasFiltradas = visitasCrudas.filter(v => {
-    const fechaVisita = v.fecha.split('T')[0];
+    // Fecha local: con split('T') las visitas de la noche caían en el día siguiente (UTC)
+    const fechaVisita = format(new Date(v.fecha), 'yyyy-MM-dd');
     if (filtroFechaInicio && fechaVisita < filtroFechaInicio) return false;
     if (filtroFechaFin && fechaVisita > filtroFechaFin) return false;
     if (filtroComposteroId !== 'todos' && v.composteros.id !== filtroComposteroId) return false;
     return true;
   });
 
-  // Calcular métricas dinámicas separadas
-  const totalKg = visitasFiltradas
-    .filter(v => v.unidad_medida === 'kg' || !v.unidad_medida)
-    .reduce((acc, v) => acc + (Number(v.cantidad_material) || 0), 0);
-
-  const totalLitros = visitasFiltradas
-    .filter(v => v.unidad_medida === 'litros')
-    .reduce((acc, v) => acc + (Number(v.cantidad_material) || 0), 0);
+  // Kilos y litros nunca se suman entre sí
+  const { kg: totalKg, litros: totalLitros } = sumarPorUnidad(visitasFiltradas);
+  const visitasEnLitros = visitasFiltradas.filter(v => v.unidad_medida === 'litros').length;
+  const visitasEnKg = visitasFiltradas.length - visitasEnLitros;
 
   const totalVisitas = visitasFiltradas.length;
   const totalPlagas = visitasFiltradas.filter(v => v.plagas).length;
   const totalLixiviados = visitasFiltradas.filter(v => v.lixiviados).length;
-  const promedioAporte = totalVisitas > 0 ? ((totalKg + totalLitros) / totalVisitas).toFixed(2) : '0';
+  const promedioKg = visitasEnKg > 0 ? totalKg / visitasEnKg : 0;
+  const promedioLitros = visitasEnLitros > 0 ? totalLitros / visitasEnLitros : 0;
 
-  // Datos Gráfica de Barras (Mantenemos la suma total para la gráfica)
-  const datosPorFechaMap: { [key: string]: number } = {};
+  // Gráfica de barras: una serie por unidad
+  const datosPorFechaMap = new Map<string, { fecha: string; kg: number; litros: number }>();
   visitasFiltradas.forEach(v => {
     const fechaStr = new Date(v.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-    datosPorFechaMap[fechaStr] = (datosPorFechaMap[fechaStr] || 0) + (Number(v.cantidad_material) || 0);
+    const dia = datosPorFechaMap.get(fechaStr) || { fecha: fechaStr, kg: 0, litros: 0 };
+    if (v.unidad_medida === 'litros') dia.litros += Number(v.cantidad_material) || 0;
+    else dia.kg += Number(v.cantidad_material) || 0;
+    datosPorFechaMap.set(fechaStr, dia);
   });
-  const datosGraficaBarras = Object.keys(datosPorFechaMap).map(fecha => ({
-    fecha,
-    kilos: datosPorFechaMap[fecha]
-  }));
+  const datosGraficaBarras = Array.from(datosPorFechaMap.values());
 
-  // Datos Gráfica de Pastel
-  const sinAlertas = totalVisitas - (totalPlagas + totalLixiviados);
+  // Gráfica de pastel: una visita con plagas y lixiviados no se resta dos veces
+  const sinAlertas = visitasFiltradas.filter(v => !v.plagas && !v.lixiviados).length;
   const datosGraficaPastel = [
-    { name: 'Sin Alertas', value: sinAlertas > 0 ? sinAlertas : 0 },
+    { name: 'Sin Alertas', value: sinAlertas },
     { name: 'Plagas', value: totalPlagas },
     { name: 'Lixiviados', value: totalLixiviados },
   ];
   const COLORES_PASTEL = ['#16a34a', '#dc2626', '#f97316'];
 
+  const hayDatosParaExportar = () => {
+    if (visitasFiltradas.length > 0) return true;
+    toast.error('No hay bitácoras con los filtros seleccionados.');
+    return false;
+  };
+
   // Exportar a Excel
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
+    if (exportando || !hayDatosParaExportar()) return;
+    setExportando('excel');
+    // Deja que el botón se pinte como "Generando…" antes de armar el archivo
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    try {
+      generarExcel();
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo generar el Excel.');
+    } finally {
+      setExportando(null);
+    }
+  };
+
+  const generarExcel = () => {
     const datosExcel = visitasFiltradas.map(v => ({
       Fecha: new Date(v.fecha).toLocaleString('es-MX'),
       Compostero: `${v.composteros.nombre} (${v.composteros.codigo})`,
       Colonia: v.composteros.colonias?.nombre || 'Global',
-      'Eco Guardiana': `${v.usuarios.nombre} ${v.usuarios.apellido_paterno || ''}`,
-      'Aporte': v.cantidad_material ? `${v.cantidad_material} ${v.unidad_medida === 'litros' ? 'L' : 'kg'}` : '0 kg',
+      'Eco Guardiana': nombreAutor(v),
+      Cantidad: Number(v.cantidad_material) || 0,
+      Unidad: abreviarUnidad(v.unidad_medida),
+      Residuos: residuosDe(v).join(', '),
+      Temperatura: etiquetaDe(OPCIONES_TEMPERATURA, v.temperatura_nivel),
+      Humedad: etiquetaDe(OPCIONES_HUMEDAD, v.humedad_nivel),
+      Olor: etiquetaDe(OPCIONES_OLOR, v.olor_nivel),
+      'Vida observada': faunaDe(v).join(', '),
       Plagas: v.plagas ? 'Sí' : 'No',
-      Lixiviados: v.lixiviados ? 'Sí' : 'No'
+      Lixiviados: v.lixiviados ? 'Sí' : 'No',
+      Observaciones: v.observaciones || '',
+      'Propuesta de mejora': v.propuesta_mejora || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datosExcel);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte Visitas");
-    XLSX.writeFile(workbook, "Reporte_EcoGuardianes.xlsx");
+    XLSX.writeFile(workbook, nombreArchivo('xlsx'));
     toast.success("Archivo Excel descargado con éxito.");
   };
 
   // Exportar a PDF Ejecutivo con Desglose y Evidencias Fotográficas Reales
   const exportarPDF = async () => {
+    if (exportando || !hayDatosParaExportar()) return;
+    setExportando('pdf');
+    const aviso = toast.loading('Generando PDF… puede tardar unos segundos si hay muchas fotos.');
+    try {
+      await generarPDF();
+      toast.success('PDF con desglose e imágenes generado con éxito.', { id: aviso });
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo generar el PDF.', { id: aviso });
+    } finally {
+      setExportando(null);
+    }
+  };
+
+  const generarPDF = async () => {
     const doc = new jsPDF();
     
     // Encabezado institucional
@@ -210,10 +312,10 @@ export default function AdminReportes() {
     // Tabla 1: Resumen General de Aportes
     const tablaColumnas = ["Fecha", "Compostero", "Eco Guardiana", "Aporte", "Plagas", "Lixiviados"];
     const tablaFilas = visitasFiltradas.map(v => [
-      new Date(v.fecha.split('T')[0]).toLocaleDateString('es-MX'),
+      fechaCorta(v.fecha),
       `${v.composteros.nombre} (${v.composteros.codigo})`,
-      `${v.usuarios.nombre} ${v.usuarios.apellido_paterno || ''}`,
-      v.cantidad_material ? `+${v.cantidad_material} ${v.unidad_medida === 'litros' ? 'L' : 'kg'}` : '0 kg',
+      nombreAutor(v),
+      `+${formatearCantidad(v.cantidad_material, v.unidad_medida)}`,
       v.plagas ? 'Sí' : 'No',
       v.lixiviados ? 'Sí' : 'No'
     ]);
@@ -241,17 +343,23 @@ export default function AdminReportes() {
     doc.setTextColor(22, 163, 74);
     doc.text("DESGLOSE TÉCNICO DE MONITOREO Y OBSERVACIONES", 14, ultimaPosicionY);
 
-    const tablaDetallesColumnas = ["Fecha", "Compostero", "Detalles del Formulario (Temperatura, Humedad, Olor, Fauna y Notas)"];
-    
+    const tablaDetallesColumnas = ["Fecha", "Compostero", "Monitoreo (temperatura, humedad, olor, residuos, vida, notas y propuesta)"];
+
     const tablaDetallesFilas = visitasFiltradas.map(v => {
-      const textoObservacion = v.observaciones && v.observaciones.trim() !== "" 
-        ? v.observaciones.replace(/\s+/g, ' ').trim() 
-        : "Sin observaciones registradas en esta visita.";
-      
+      const detalles = [
+        v.temperatura_nivel && `Temperatura: ${etiquetaDe(OPCIONES_TEMPERATURA, v.temperatura_nivel)}`,
+        v.humedad_nivel && `Humedad: ${etiquetaDe(OPCIONES_HUMEDAD, v.humedad_nivel)}`,
+        v.olor_nivel && `Olor: ${etiquetaDe(OPCIONES_OLOR, v.olor_nivel)}`,
+        residuosDe(v).length > 0 && `Residuos: ${residuosDe(v).join(', ')}`,
+        faunaDe(v).length > 0 && `Vida: ${faunaDe(v).join(', ')}`,
+        v.observaciones && `Notas: ${v.observaciones.replace(/\s+/g, ' ').trim()}`,
+        v.propuesta_mejora && `Propuesta: ${v.propuesta_mejora.replace(/\s+/g, ' ').trim()}`,
+      ].filter(Boolean).join('\n');
+
       return [
-        new Date(v.fecha.split('T')[0]).toLocaleDateString('es-MX'),
+        fechaCorta(v.fecha),
         v.composteros.nombre,
-        textoObservacion
+        detalles || "Sin datos de monitoreo en esta visita."
       ];
     });
 
@@ -300,8 +408,11 @@ export default function AdminReportes() {
       const margenY = 15;
       let contadorColumna = 0;
 
-      for (let i = 0; i < urlsEvidencias.length; i++) {
-        const url = urlsEvidencias[i];
+      // Todas las fotos se descargan a la vez (antes era una por una)
+      const fotos = await Promise.all(urlsEvidencias.map(cargarFotoParaPdf));
+
+      for (let i = 0; i < fotos.length; i++) {
+        const foto = fotos[i];
 
         if (posY + altoImg > 270) {
           doc.addPage();
@@ -310,34 +421,13 @@ export default function AdminReportes() {
           posX = 14;
         }
 
-        try {
-          const imgData = await new Promise<{ dataUrl: string, format: string }>((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = img.width;
-              canvas.height = img.height;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) {
-                reject(new Error('No se pudo crear el contexto del canvas'));
-                return;
-              }
-              ctx.drawImage(img, 0, 0);
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-              resolve({ dataUrl, format: 'JPEG' });
-            };
-            img.onerror = (err) => reject(err);
-            img.src = url;
-          });
-
+        if (foto) {
           doc.setDrawColor(220, 220, 220);
           doc.setFillColor(255, 255, 255);
           doc.roundedRect(posX, posY, anchoImg, altoImg, 2, 2, 'FD');
-          doc.addImage(imgData.dataUrl, imgData.format, posX + 2, posY + 2, anchoImg - 4, altoImg - 4);
-
-        } catch (error) {
-          console.error("No se pudo incrustar la imagen en el PDF:", error);
+          doc.addImage(foto, 'JPEG', posX + 2, posY + 2, anchoImg - 4, altoImg - 4);
+        } else {
+          console.error('No se pudo incrustar la imagen en el PDF:', urlsEvidencias[i]);
           doc.setDrawColor(200, 200, 200);
           doc.setFillColor(245, 245, 245);
           doc.roundedRect(posX, posY, anchoImg, altoImg, 2, 2, 'FD');
@@ -358,8 +448,7 @@ export default function AdminReportes() {
       }
     }
 
-    doc.save("Reporte_EcoGuardianes.pdf");
-    toast.success("PDF con desglose e imágenes generado con éxito.");
+    doc.save(nombreArchivo('pdf'));
   };
 
   if (cargando) {
@@ -367,7 +456,7 @@ export default function AdminReportes() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-7xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera y Botones */}
       <div className="mb-8 border-b border-[#4A2E18]/10 pb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -378,17 +467,21 @@ export default function AdminReportes() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button 
-            onClick={exportarExcel} 
-            className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-sm font-semibold text-green-700 shadow-sm transition-colors hover:bg-green-100"
+          <button
+            onClick={exportarExcel}
+            disabled={exportando !== null}
+            className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-sm font-semibold text-green-700 shadow-sm transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <FileSpreadsheet className="h-4 w-4" /> Excel
+            {exportando === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+            {exportando === 'excel' ? 'Generando…' : 'Excel'}
           </button>
-          <button 
-            onClick={exportarPDF} 
-            className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-100"
+          <button
+            onClick={exportarPDF}
+            disabled={exportando !== null}
+            className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <FileDown className="h-4 w-4" /> PDF
+            {exportando === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {exportando === 'pdf' ? 'Generando…' : 'PDF'}
           </button>
         </div>
       </div>
@@ -400,12 +493,12 @@ export default function AdminReportes() {
             <Filter className="h-4 w-4 text-green-600" /> Filtros:
           </div>
           
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Compostero:</span>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <span className="w-20 shrink-0 text-xs text-gray-500 sm:w-auto">Compostero:</span>
             <select
               value={filtroComposteroId}
               onChange={e => setFiltroComposteroId(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg sm:max-w-xs sm:flex-none border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
             >
               <option value="todos">-- Todos los composteros --</option>
               {listaComposteros.map(c => (
@@ -414,23 +507,23 @@ export default function AdminReportes() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Desde:</span>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <span className="w-20 shrink-0 text-xs text-gray-500 sm:w-auto">Desde:</span>
             <input 
               type="date" 
               value={filtroFechaInicio} 
               onChange={e => setFiltroFechaInicio(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg sm:flex-none border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Hasta:</span>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <span className="w-20 shrink-0 text-xs text-gray-500 sm:w-auto">Hasta:</span>
             <input 
               type="date" 
               value={filtroFechaFin} 
               onChange={e => setFiltroFechaFin(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg sm:flex-none border border-gray-300 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
             />
           </div>
 
@@ -485,7 +578,16 @@ export default function AdminReportes() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Promedio por Aporte</p>
-                <p className="mt-2 text-3xl font-bold text-purple-700">{promedioAporte} <span className="text-lg font-semibold">KG/L</span></p>
+                <div className="mt-2 flex flex-col gap-1">
+                  <p className="text-2xl font-bold text-purple-700">
+                    {promedioKg.toFixed(1)} <span className="text-sm font-semibold text-gray-500">kg</span>
+                  </p>
+                  {visitasEnLitros > 0 && (
+                    <p className="text-xl font-bold text-purple-500">
+                      {promedioLitros.toFixed(1)} <span className="text-sm font-semibold text-gray-500">L</span>
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="p-3 bg-purple-100 rounded-xl"><Calendar className="h-6 w-6 text-purple-600" /></div>
             </div>
@@ -522,7 +624,9 @@ export default function AdminReportes() {
                       <XAxis dataKey="fecha" stroke="#888888" fontSize={12} tickLine={false} />
                       <YAxis stroke="#888888" fontSize={12} tickLine={false} />
                       <Tooltip />
-                      <Bar dataKey="kilos" fill="#16a34a" radius={[4, 4, 0, 0]} barSize={32} />
+                      <Legend />
+                      <Bar dataKey="kg" name="Kilos (kg)" fill="#16a34a" radius={[4, 4, 0, 0]} barSize={24} />
+                      {totalLitros > 0 && <Bar dataKey="litros" name="Litros (L)" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={24} />}
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

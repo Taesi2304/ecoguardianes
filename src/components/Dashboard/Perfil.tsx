@@ -144,7 +144,7 @@ export default function Perfil() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-4xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera */}
       <div className="mb-8 flex items-center gap-4 border-b border-[#4A2E18]/10 pb-5">

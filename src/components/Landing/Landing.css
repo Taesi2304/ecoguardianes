@@ -13,7 +13,6 @@ section[id] {
     radial-gradient(circle at bottom right, rgba(74, 46, 24, 0.06), transparent 20%),
     #FFF8DF;
   color: #4A2E18;
-  font-family: sans-serif;
   overflow-x: hidden;
 }
 
@@ -180,7 +179,7 @@ section[id] {
 }
 
 .hero-note {
-  margin-top: 1rem;
+  margin-top: 2.5rem;
   background: #FCECD2;
   border: 1px solid rgba(74, 46, 24, 0.2);
   padding: 0.75rem 1.5rem;
@@ -673,7 +672,7 @@ section[id] {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .landing-title {
     font-size: 2.5rem;
   }

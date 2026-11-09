@@ -29,8 +29,6 @@ const whyCards = [
 const compostCards = [
   {
     name: 'Valle de Casa Blanca III',
-    percentage: '20%',
-    status: 'Activo',
     participants: 'Eco Guardianes',
     description: 'Compostero comunitario familiar.',
   },
@@ -143,7 +141,6 @@ export const Landing = () => {
             </span>
           </div>
 
-          <br />
           <div className="hero-note">
             Hecho por amor, tierra y comunidad. 
           </div>
@@ -185,8 +182,6 @@ export const Landing = () => {
                 <div className="compost-content">
                   <div className="compost-meta">
                     <h3 className="compost-name">{item.name}</h3>
-                    <span className="badge-pill badge-pill--green">{item.percentage}</span>
-                    <span className="badge-pill">{item.status}</span>
                   </div>
 
                   <p className="compost-description">{item.description}</p>
@@ -204,8 +199,7 @@ export const Landing = () => {
       </section>
 
       <section id="visitas" className="section-block section-block--narrow">
-        <h2 className="section-title section-title--center">¿Cómo funciona?</h2>
-        <br /> <br />
+        <h2 className="section-title section-title--center mb-10">¿Cómo funciona?</h2>
         <div className="steps-grid">
           {[
             { step: '1', title: 'Registro', desc: 'Únete a la comunidad y crea tu espacio de compostaje.', icon: <img src={compostero1} alt="Registro" className="step-icon-image" /> },

@@ -62,12 +62,12 @@ export const Informacion = () => {
         <div className="paper-card about-card">
           <p className="about-copy text-lg font-medium text-[#4A2E18]">
             Una 
-            <span className="text-bold"> idea que nació del diálogo  </span>
+            <span className="font-bold"> idea que nació del diálogo  </span>
             y se hizo posible gracias al trabajo colectivo. 
             El objetivo es crear una propuesta 
-            <span className="text-bold"> autosostenible </span>
+            <span className="font-bold"> autosostenible </span>
             que nos permita seguir
-             <span className="text-bold"> regenerando el suelo de Matamoros </span>
+             <span className="font-bold"> regenerando el suelo de Matamoros </span>
              transformando nuestros residuos orgánicos en vida y fortaleciendo los vínculos de nuestra comunidad.
           </p>
         </div>
@@ -80,8 +80,8 @@ export const Informacion = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Card de Guías */}
-          <article className="paper-card why-card">
+          {/* Card de Guías (enlace del footer: /info#guia-compostaje) */}
+          <article id="guia-compostaje" className="paper-card why-card scroll-mt-24">
             <div className="testimonial-tape washi-tape-beige" />
             <div className="why-icon">
               <img src={hoja} alt="Hoja" className="w-8 h-8 object-contain" />
@@ -101,8 +101,8 @@ export const Informacion = () => {
             </a>
           </article>
 
-          {/* Card de FAQ con efecto Washi Tape */}
-          <article className="paper-card why-card relative mt-4 md:mt-0">
+          {/* Card de FAQ con efecto Washi Tape (enlace del footer: /info#preguntas-frecuentes) */}
+          <article id="preguntas-frecuentes" className="paper-card why-card relative mt-4 md:mt-0 scroll-mt-24">
             {/* Aquí está el efecto visual de la cinta adhesiva */}
             <div className="testimonial-tape washi-tape-green" />
             

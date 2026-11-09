@@ -213,17 +213,17 @@ export default function AdminComposteros() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl py-2 sm:py-4 animate-in fade-in duration-500">
       
       {/* Cabecera */}
-      <div className="mb-8 flex items-center justify-between border-b border-[#4A2E18]/10 pb-5">
+      <div className="mb-8 flex flex-col gap-4 border-b border-[#4A2E18]/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">Gestión de Composteros</h1>
           <p className="mt-1 font-medium text-green-700">Administra los puntos de recolección</p>
         </div>
         <button
           onClick={abrirModalNuevo}
-          className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           <Plus className="h-5 w-5" />
           Nuevo Compostero
@@ -264,7 +264,7 @@ export default function AdminComposteros() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="tabla-tarjetas w-full min-w-[720px] text-left text-sm">
               <thead className="bg-white text-xs uppercase tracking-wider text-gray-500 border-b">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Código</th>
@@ -279,28 +279,28 @@ export default function AdminComposteros() {
               <tbody className="divide-y divide-gray-100 bg-white">
                 {composterosFiltrados.map((compostero) => (
                   <tr key={compostero.id} className={`transition-colors hover:bg-green-50/30 ${!compostero.activo ? 'opacity-60' : ''}`}>
-                    <td className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td data-label="Código" className="px-6 py-4 font-bold text-green-700">{compostero.codigo}</td>
+                    <td data-label="Compostero" className="px-6 py-4 font-medium text-gray-900">{compostero.nombre}</td>
+                    <td data-label="Colonia" className="px-6 py-4 text-gray-600">
                       <span className="inline-flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-gray-400" />
                         {compostero.colonias?.nombre || 'Sin colonia'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">
+                    <td data-label="Dirección" className="px-6 py-4 text-gray-600">{compostero.direccion || 'No especificada'}</td>
+                    <td data-label="Registro" className="px-6 py-4 text-gray-500 text-sm">
                       {new Date(compostero.created_at).toLocaleDateString('es-MX', {
                         day: '2-digit', month: 'short', year: 'numeric'
                       })}
                     </td>
-                    <td className="px-6 py-4">
+                    <td data-label="Estado" className="px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         compostero.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {compostero.activo ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td data-acciones className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={() => abrirModalEditar(compostero)} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-green-600" title="Editar">
                           <Edit className="h-4 w-4" />
@@ -334,7 +334,7 @@ export default function AdminComposteros() {
       {/* Modal / Overlay */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl bg-white shadow-xl">
             <div className="border-b px-6 py-4">
               <h2 className="text-xl font-bold text-gray-800">
                 {editandoId ? 'Editar Compostero' : 'Nuevo Compostero'}

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { rutaInicioDe } from '../../lib/sesion';
 import '../Landing/Landing.css';
 
 export const Login = () => {
@@ -12,16 +13,28 @@ export const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mostrarPassword, setMostrarPassword] = useState(false);
 
+  // Si ya hay sesión, no vuelve a pedir correo y contraseña
+  useEffect(() => {
+    let cancelado = false;
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session || cancelado) return;
+      const ruta = await rutaInicioDe(session.user.id).catch(() => null);
+      if (ruta && !cancelado) navigate(ruta, { replace: true });
+    });
+    return () => { cancelado = true; };
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
-    try {
-      if (!email.trim() || !password.trim()) {
-        throw new Error('Ingresa tu correo y contraseña para continuar.');
-      }
+    if (!email.trim() || !password.trim()) {
+      setError('Ingresa tu correo y contraseña para continuar.');
+      return;
+    }
 
+    setLoading(true);
+    try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -30,34 +43,30 @@ export const Login = () => {
       if (authError) throw authError;
 
      if (data.user) {
-        const { data: usuario, error: usuarioError } = await supabase
-          .from('usuarios')
-          .select('roles(nombre)')
-          .eq('auth_user_id', data.user.id)
-          .maybeSingle(); // <-- Cambiamos .single() por .maybeSingle()
+        const ruta = await rutaInicioDe(data.user.id);
 
-        if (usuarioError) throw usuarioError;
-
-        // Si el usuario se autenticó pero no está en la tabla usuarios:
-        if (!usuario) {
-          throw new Error("Tu cuenta está incompleta. Contacta al administrador o borra tu cuenta para registrarte de nuevo.");
+        // Si el usuario se autenticó pero no está en la tabla usuarios, se cierra la
+        // sesión y se muestra el mismo mensaje genérico: no se revela que el correo existe.
+        if (!ruta) {
+          await supabase.auth.signOut();
+          throw new Error('CREDENCIALES_INVALIDAS');
         }
 
         // Cada rol recibe su pantalla inicial correspondiente.
-        const rol = ((usuario?.roles as any)?.[0] || usuario?.roles as any)?.nombre;
-        navigate(rol === 'Administrador' || rol === 'Super Admin' ? '/admin' : '/dashboard');
+        navigate(ruta);
       }
-    } catch (err: any) {
-      // Ahora verás si el error es de la contraseña o si falta el registro en tu tabla
-      console.error("Error detallado:", err);
-      setError(err.message || 'Error al iniciar sesión.');
+    } catch (err) {
+      // El detalle real va a la consola; al usuario siempre el mismo mensaje para no
+      // delatar qué correos están registrados.
+      console.error('Error detallado:', err);
+      setError('Correo o contraseña incorrectos.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="landing-page min-h-screen flex flex-col items-center justify-center pt-24 pb-12 px-4">
+    <div className="landing-page flex flex-col items-center justify-center px-4 pt-10 pb-12 sm:pt-16">
       
       <div className="bg-[#FFF8DF] border border-[#4A2E18]/10 shadow-sm rounded-xl p-3 mb-6">
         <img src="/logo.svg" alt="Logo" className="w-8 h-8 object-contain" />

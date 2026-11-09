@@ -8,3 +8,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Para que un admin cree cuentas de otras personas: signUp con el cliente normal
+// cambia la sesión del admin por la de la cuenta nueva. Este no guarda sesión.
+export const supabaseRegistro = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'sb-registro-admin' },
+});
