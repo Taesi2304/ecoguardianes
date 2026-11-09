@@ -1,14 +1,37 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 
 // Recibe la función onClose para cerrar el menú en celulares
 export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(() => location.pathname.startsWith('/admin'));
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [cargandoRol, setCargandoRol] = useState(true);
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+
+  const handleLogout = async () => {
+    setCerrandoSesion(true);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error(`No se pudo cerrar sesión: ${error.message}`);
+        return;
+      }
+
+      onClose?.();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast.error('No se pudo cerrar sesión. Intenta de nuevo.');
+    } finally {
+      setCerrandoSesion(false);
+    }
+  };
 
   useEffect(() => {
     const cargarRol = async () => {
@@ -102,37 +125,39 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
           const isActive = location.pathname === item.path;
 
           return (
-            <Link
-              key={item.name}
-              to={item.path}
-              onClick={onClose} // Cierra el menú al hacer clic (útil en celular)
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-                isActive 
-                  ? 'bg-[#EBF3E8] text-[#2D7A3E] border border-[#2D7A3E]/20 shadow-sm' 
-                  : 'text-[#4A2E18]/70 hover:bg-[#4A2E18]/5 hover:text-[#4A2E18]'
-              }`}
-            >
-              <img 
-                src={item.icon} 
-                alt={item.name} 
-                className={`w-5 h-5 object-contain transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`} 
-              />
-              {item.name}
-            </Link>
+            item.name === 'Cerrar Sesión' ? (
+              <button
+                key={item.name}
+                type="button"
+                onClick={handleLogout}
+                disabled={cerrandoSesion}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium text-[#4A2E18]/70 transition-colors hover:bg-[#4A2E18]/5 hover:text-[#4A2E18] disabled:cursor-wait disabled:opacity-60"
+              >
+                <img src={item.icon} alt="" className="h-5 w-5 object-contain opacity-60" />
+                {cerrandoSesion ? 'Cerrando sesión...' : item.name}
+              </button>
+            ) : (
+              <Link
+                key={item.name}
+                to={item.path}
+                onClick={onClose} // Cierra el menú al hacer clic (útil en celular)
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+                  isActive
+                    ? 'bg-[#EBF3E8] text-[#2D7A3E] border border-[#2D7A3E]/20 shadow-sm'
+                    : 'text-[#4A2E18]/70 hover:bg-[#4A2E18]/5 hover:text-[#4A2E18]'
+                }`}
+              >
+                <img
+                  src={item.icon}
+                  alt={item.name}
+                  className={`w-5 h-5 object-contain transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}
+                />
+                {item.name}
+              </Link>
+            )
           );
         })}
       </nav>
-
-      {/* Botón Salir
-      <div className="p-4 border-t border-[#4A2E18]/10">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <img src="/salir.svg" alt="Cerrar Sesión" className="w-5 h-5 object-contain opacity-70" />
-          Cerrar Sesión
-        </button>
-      </div> */}
     </aside>
   );
 };

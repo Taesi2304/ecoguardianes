@@ -634,7 +634,7 @@ export default function NuevaBitacora() {
                 name="observaciones"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cambios o avances / Retos detectados</FormLabel>
+                    <FormLabel>Cambios, avances o retos detectados</FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Ej. El material está perdiendo su forma, hay presencia de moscas..." 
