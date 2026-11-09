@@ -1,6 +1,6 @@
 // Directorio del equipo de FDMA (/directorio). Tabla: database/37_directorio.sql
 
-export type TipoRed = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'web' | 'otro';
+export type TipoRed = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'web' | 'correo' | 'otro';
 
 export interface RedIntegrante {
   tipo: TipoRed;
@@ -35,6 +35,7 @@ export const NOMBRES_RED: Record<TipoRed, string> = {
   linkedin: 'LinkedIn',
   youtube: 'YouTube',
   web: 'Sitio web',
+  correo: 'Correo electrónico',
   otro: 'Enlace',
 };
 

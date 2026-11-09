@@ -147,10 +147,18 @@ export default function AdminEquipo() {
     }
 
     const redes = formulario.redes
-      .map((red) => ({ ...red, url: red.url.trim() }))
+      .map((red) => {
+        const url = red.url.trim();
+        return {
+          ...red,
+          url: red.tipo === 'correo' && url && !/^mailto:/i.test(url) ? `mailto:${url}` : url,
+        };
+      })
       .filter((red) => red.url);
-    if (redes.some((red) => !/^https?:\/\//i.test(red.url))) {
-      toast.error('Los enlaces de redes deben empezar con https://');
+    if (redes.some((red) => red.tipo === 'correo'
+      ? !/^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(red.url)
+      : !/^https?:\/\//i.test(red.url))) {
+      toast.error('Los enlaces deben empezar con https://; el correo debe usar mailto:ejemplo@correo.com');
       return;
     }
 
@@ -342,7 +350,14 @@ export default function AdminEquipo() {
                         <select value={red.tipo} onChange={(e) => cambiarRed(indice, { tipo: e.target.value as TipoRed })} className="rounded-lg border border-gray-300 px-2 py-2 font-normal focus:border-green-500 focus:outline-none" aria-label="Red social">
                           {(Object.keys(NOMBRES_RED) as TipoRed[]).map((tipo) => <option key={tipo} value={tipo}>{NOMBRES_RED[tipo]}</option>)}
                         </select>
-                        <input type="url" placeholder="https://..." value={red.url} onChange={(e) => cambiarRed(indice, { url: e.target.value })} className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 font-normal focus:border-green-500 focus:outline-none" aria-label="Enlace" />
+                        <input
+                          type={red.tipo === 'correo' ? 'email' : 'url'}
+                          placeholder={red.tipo === 'correo' ? 'correo@ejemplo.com' : 'https://...'}
+                          value={red.tipo === 'correo' ? red.url.replace(/^mailto:/i, '') : red.url}
+                          onChange={(e) => cambiarRed(indice, { url: red.tipo === 'correo' ? `mailto:${e.target.value}` : e.target.value })}
+                          className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 font-normal focus:border-green-500 focus:outline-none"
+                          aria-label={red.tipo === 'correo' ? 'Correo electrónico' : 'Enlace'}
+                        />
                         <button type="button" onClick={() => setFormulario((actual) => ({ ...actual, redes: actual.redes.filter((_, i) => i !== indice) }))} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Quitar"><X className="h-4 w-4" /></button>
                       </div>
                     ))}

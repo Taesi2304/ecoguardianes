@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { ExternalLink, Globe, Link as LinkIcon, Sprout } from 'lucide-react';
+import { ExternalLink, Globe, Link as LinkIcon, Mail, Sprout } from 'lucide-react';
 import { iniciales, NOMBRES_RED } from './equipo';
 import type { Integrante, RedIntegrante, TipoRed } from './equipo';
 
@@ -47,6 +47,7 @@ const ICONOS: Record<TipoRed, Icono> = {
   linkedin: IconoLinkedin,
   youtube: IconoYoutube,
   web: Globe,
+  correo: Mail,
   otro: LinkIcon,
 };
 
