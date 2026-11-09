@@ -71,12 +71,12 @@ export function normalizarUrlRed(tipo: TipoRed, valor: string) {
   } catch {
     return url;
   }
+}
 
-  export function mostrarValorRed(tipo: TipoRed, valor: string) {
-    if (tipo !== 'instagram') return valor.replace(/^mailto:/i, '');
-    const url = normalizarUrlRed(tipo, valor);
-    return url.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '@').replace(/\/$/, '');
-  }
+export function mostrarValorRed(tipo: TipoRed, valor: string) {
+  if (tipo !== 'instagram') return valor.replace(/^mailto:/i, '');
+  const url = normalizarUrlRed(tipo, valor);
+  return url.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '@').replace(/\/$/, '');
 }
 
 // "Fabiola Flores Ñ." → "fabiola-flores-n"
