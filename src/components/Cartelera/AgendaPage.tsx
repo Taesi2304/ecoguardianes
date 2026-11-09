@@ -52,11 +52,23 @@ export default function AgendaPage() {
         <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-700">
           Talleres, cursos, eventos y convocatorias para participar durante todo el año.
         </p>
-        {!verEdiciones && (
-          <Link to="/cartelera?ediciones=1" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#2d6a4f] px-5 py-3 font-semibold text-white hover:bg-[#24563f]">
-            Ediciones anteriores <ArrowRight className="h-4 w-4" />
+        <nav aria-label="Sección de cartelera" className="mx-auto mt-7 flex w-fit flex-wrap justify-center gap-2 rounded-full bg-white/80 p-1.5 shadow-sm">
+          <Link
+            to="/cartelera?agenda=1"
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${!verEdiciones ? 'bg-[#2d6a4f] text-white' : 'text-[#2d6a4f] hover:bg-[#d8ece1]'}`}
+          >
+            Agenda anual
           </Link>
-        )}
+          <Link
+            to="/cartelera?ediciones=1"
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${verEdiciones ? 'bg-[#2d6a4f] text-white' : 'text-[#2d6a4f] hover:bg-[#d8ece1]'}`}
+          >
+            Ediciones anteriores
+          </Link>
+        </nav>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-[#4a3728]/65">
+          {verEdiciones ? 'Consulta las carteleras de festivales anteriores.' : 'La agenda se actualiza durante todo el año.'}
+        </p>
       </header>
 
       <section className="mx-auto max-w-4xl px-4 pb-16 sm:px-8">

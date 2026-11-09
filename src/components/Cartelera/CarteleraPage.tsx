@@ -244,7 +244,11 @@ function CarteleraHistoricaPage() {
       {/* Toda la página se desplaza con la barra del navegador; solo el panel izquierdo queda fijo */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 pt-4 lg:px-8">
         <NavCartelera edicion={edicion} />
-        <h1 className="mb-4 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{edicion?.nombre ?? 'Cartelera'}</h1>
+        <h1 className="mb-3 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{edicion?.nombre ?? 'Cartelera del festival'}</h1>
+        <div className="mb-5 flex flex-wrap justify-center gap-2">
+          <Link to="/cartelera?agenda=1" className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/25">Agenda anual</Link>
+          <Link to="/cartelera?ediciones=1" className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/25">Ediciones anteriores</Link>
+        </div>
 
         {edicion && !edicion.es_actual && (
           <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl bg-black/40 px-4 py-2 text-center text-sm text-white/85 backdrop-blur">
@@ -371,6 +375,7 @@ export default function CarteleraPage() {
   const [mostrarCartelera, setMostrarCartelera] = useState<boolean | null>(null);
   const [parametros] = useSearchParams();
   const esEdicionHistorica = Boolean(parametros.get('edicion'));
+  const esAgenda = parametros.get('agenda') === '1';
 
   useEffect(() => {
     let vigente = true;
@@ -384,8 +389,8 @@ export default function CarteleraPage() {
     return () => { vigente = false; };
   }, []);
 
-  if (!esEdicionHistorica && mostrarCartelera === false) return <AgendaPage />;
-  if (mostrarCartelera === null && !esEdicionHistorica) {
+  if (!esEdicionHistorica && (mostrarCartelera === false || esAgenda)) return <AgendaPage />;
+  if (mostrarCartelera === null && !esEdicionHistorica && !esAgenda) {
     return <div className="flex min-h-screen items-center justify-center bg-[#12261d]"><Loader2 className="h-8 w-8 animate-spin text-white/70" /></div>;
   }
   return <CarteleraHistoricaPage />;
