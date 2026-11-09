@@ -388,7 +388,11 @@ export default function AdminEquipo() {
                         </select>
                         <input
                           type={red.tipo === 'correo' ? 'email' : 'text'}
-                          placeholder={red.tipo === 'instagram' ? '@usuario' : red.tipo === 'correo' ? 'correo@ejemplo.com' : 'https://...'}
+                          placeholder={red.tipo === 'instagram'
+                            ? 'Usuario o URL del perfil (ej. @usuario)'
+                            : red.tipo === 'correo'
+                              ? 'Correo electrónico (ej. correo@ejemplo.com)'
+                              : 'URL del perfil (ej. https://...)'}
                           value={mostrarValorRed(red.tipo, red.url)}
                           onChange={(e) => cambiarRed(indice, { url: e.target.value })}
                           onBlur={() => cambiarRed(indice, { url: normalizarUrlRed(red.tipo, red.url) })}
