@@ -3,11 +3,12 @@ import type { ReactNode, WheelEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Loader2, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, claveHora, etiquetaDia } from './cartelera';
+import { CAMPOS_PARTICIPANTE, cargarCatalogos, cargarEdicion, claveHora, etiquetaDia, edicionEnCurso } from './cartelera';
 import type { Catalogo, Edicion, Participante } from './cartelera';
 import { DetalleActivo, FichaParticipante } from './DetalleParticipante';
 import { NavCartelera, PieCartelera } from './MarcoCartelera';
 import { Bienvenida } from './Bienvenida';
+import AgendaPage from './AgendaPage';
 
 // Mientras FDMA no suba su propia foto en Admin → Cartelera → Ajustes
 const FONDO_POR_DEFECTO = '/galeria/foto3.jpeg';
@@ -58,7 +59,7 @@ function FilaDeslizable({ children }: { children: ReactNode }) {
 
 const normalizar =(texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export default function CarteleraPage() {
+function CarteleraHistoricaPage() {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [tipos, setTipos] = useState<Catalogo[]>([]);
   const [grupos, setGrupos] = useState<Catalogo[]>([]);
@@ -364,4 +365,28 @@ export default function CarteleraPage() {
       )}
     </div>
   );
+}
+
+export default function CarteleraPage() {
+  const [mostrarCartelera, setMostrarCartelera] = useState<boolean | null>(null);
+  const [parametros] = useSearchParams();
+  const esEdicionHistorica = Boolean(parametros.get('edicion'));
+
+  useEffect(() => {
+    let vigente = true;
+    Promise.all([
+      supabase.from('pagina_inicio').select('mostrar_cartelera').eq('id', 1).maybeSingle(),
+      cargarEdicion(),
+    ]).then(async ([pagina, edicionActual]) => {
+      const dentroDelPeriodo = edicionActual ? await edicionEnCurso(edicionActual.id) : false;
+      if (vigente) setMostrarCartelera(Boolean(pagina.data?.mostrar_cartelera && dentroDelPeriodo));
+    });
+    return () => { vigente = false; };
+  }, []);
+
+  if (!esEdicionHistorica && mostrarCartelera === false) return <AgendaPage />;
+  if (mostrarCartelera === null && !esEdicionHistorica) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#12261d]"><Loader2 className="h-8 w-8 animate-spin text-white/70" /></div>;
+  }
+  return <CarteleraHistoricaPage />;
 }

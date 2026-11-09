@@ -17,7 +17,7 @@ type PaginaInicio = {
 } & Partial<Record<SeccionVisible, boolean>>;
 
 const SECCIONES: { campo: SeccionVisible; nombre: string; detalle: string }[] = [
-  { campo: 'mostrar_cartelera', nombre: 'Cartelera del festival', detalle: 'Banner y botón "Ver Cartelera" (actívalo cuando la cartelera esté lista)' },
+  { campo: 'mostrar_cartelera', nombre: 'Cartelera del festival', detalle: 'Activa la edición del festival; al desactivarla, /cartelera muestra la agenda anual' },
   { campo: 'mostrar_talleres', nombre: 'Próximos talleres', detalle: 'Tarjetas de talleres extraordinarios con registro' },
   { campo: 'mostrar_calendario', nombre: 'Esta semana', detalle: 'Actividades de los próximos 7 días del calendario' },
   { campo: 'mostrar_convocatorias', nombre: 'Convocatorias', detalle: 'Tarjetas de convocatorias activas' },

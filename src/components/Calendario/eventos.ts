@@ -109,7 +109,7 @@ function eventosDelFestival(horarios: HorarioCartelera[], categoria: CategoriaCa
 // Eventos del calendario + talleres + días del festival + cierres de convocatoria
 // entre dos fechas 'YYYY-MM-DD'
 export async function cargarEventos(desde: string, hasta: string, categorias?: CategoriaCalendario[]): Promise<EventoCalendario[]> {
-  const [eventos, talleres, horarios, pagina, convocatorias, listaCategorias] = await Promise.all([
+  const [eventos, talleres, horarios, convocatorias, listaCategorias] = await Promise.all([
     supabase
       .from('eventos_calendario')
       .select('id, titulo, fecha, hora_inicio, hora_fin, lugar, categoria_id, descripcion, enlace_url')
@@ -122,11 +122,6 @@ export async function cargarEventos(desde: string, hasta: string, categorias?: C
       .gte('fecha', desde)
       .lte('fecha', hasta),
     cargarHorariosFestival(desde, hasta),
-    supabase
-      .from('pagina_inicio')
-      .select('mostrar_cartelera')
-      .eq('id', 1)
-      .maybeSingle(),
     supabase
       .from('convocatorias')
       .select('id, titulo, descripcion, enlace_url, fecha_cierre')
@@ -153,10 +148,9 @@ export async function cargarEventos(desde: string, hasta: string, categorias?: C
     texto_enlace: 'Registrarme',
   }));
 
-  // Si la Cartelera está oculta en la página de inicio, el festival tampoco sale
-  const deFestival = pagina.data?.mostrar_cartelera
-    ? eventosDelFestival(horarios, porClave('festival'))
-    : [];
+  // La visibilidad de la cartelera pública no debe ocultar el calendario.
+  // Así los eventos siguen sincronizados aunque la edición del festival haya terminado.
+  const deFestival = eventosDelFestival(horarios, porClave('festival'));
 
   const deConvocatorias: EventoCalendario[] = (convocatorias.data || []).map((convocatoria) => ({
     id: `convocatoria-${convocatoria.id}`,

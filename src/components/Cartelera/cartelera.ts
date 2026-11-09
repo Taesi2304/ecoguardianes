@@ -57,6 +57,20 @@ export async function cargarEdicion(anio?: number): Promise<Edicion | null> {
   return (data as Edicion | null) ?? null;
 }
 
+// El periodo público se calcula con las fechas de sus horarios, por lo que no
+// hace falta duplicar fechas en la edición ni mantener un interruptor cada año.
+export async function edicionEnCurso(edicionId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('cartelera_horarios')
+    .select('fecha, cartelera_participantes!inner(edicion_id)')
+    .eq('cartelera_participantes.edicion_id', edicionId)
+    .order('fecha', { ascending: true });
+  const fechas = (data || []).map((fila) => fila.fecha).filter(Boolean);
+  if (fechas.length === 0) return false;
+  const hoy = new Date().toISOString().slice(0, 10);
+  return hoy >= fechas[0] && hoy <= fechas[fechas.length - 1];
+}
+
 export const BUCKET_IMAGENES = 'imagenes_cartelera';
 export const BUCKET_PDF = 'archivos_festival';
 

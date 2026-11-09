@@ -202,23 +202,19 @@ export const LandingFDMA = () => {
           </a>
         </div>
 
-        {(pagina.mostrar_cartelera || pagina.mostrar_talleres) && (
-          <div className="flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
-            {pagina.mostrar_cartelera && (
-              <Link to="/cartelera" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
-                Ver Cartelera del Festival
-              </Link>
-            )}
+        <div className="flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
+            <Link to="/cartelera" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
+              Cartelera / Agenda
+            </Link>
             {pagina.mostrar_talleres && (
               <Link to="/talleres" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
                 Próximos talleres y registro
               </Link>
             )}
-          </div>
-        )}
+        </div>
 
         {/* Botones de Acción (Eco Guardianes) */}
-        <div className={`flex w-full max-w-sm flex-col gap-4 sm:w-auto sm:max-w-none sm:flex-row ${pagina.mostrar_cartelera || pagina.mostrar_talleres ? 'mt-6' : ''}`}>
+        <div className="mt-6 flex w-full max-w-sm flex-col gap-4 sm:w-auto sm:max-w-none sm:flex-row">
           <Link
             to="/info"
             className="px-8 py-3.5 rounded-full bg-white text-[#4a3728] font-bold shadow-sm border border-gray-200 hover:bg-gray-50 hover:scale-105 transition-all text-center"
