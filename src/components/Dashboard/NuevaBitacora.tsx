@@ -574,7 +574,7 @@ export default function NuevaBitacora() {
                 name="residuo_otro"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-600">Otro (opcional)</FormLabel>
+                    <FormLabel className="text-gray-600">Otro </FormLabel>
                     <FormControl>
                       <Input placeholder="Ej. Pasto cortado, aserrín..." enterKeyHint="next" {...field} />
                     </FormControl>
@@ -708,11 +708,7 @@ export default function NuevaBitacora() {
                 name="observaciones"
                 render={({ field }) => (
                   <FormItem>
-<<<<<<< HEAD
-                    <FormLabel>Cambios, avances o retos detectados</FormLabel>
-=======
-                    <FormLabel>Cambios, avances o retos que notaste <span className="font-normal text-gray-400">(opcional)</span></FormLabel>
->>>>>>> 0b483927aff3a200e392afde5f6e5ab15de49c4e
+                    <FormLabel>Cambios, avances o retos que notaste <span className="font-normal text-gray-400"></span></FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Ej. El material está perdiendo su forma, hay presencia de moscas..."
@@ -729,7 +725,7 @@ export default function NuevaBitacora() {
                 name="propuesta_mejora"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Propuesta de mejora para el proyecto <span className="font-normal text-gray-400">(opcional)</span></FormLabel>
+                    <FormLabel>Propuesta de mejora para el proyecto <span className="font-normal text-gray-400"></span></FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Ej. Agregar más estructurante seco, ajustar frecuencia de volteo..."

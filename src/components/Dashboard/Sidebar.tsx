@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
-<<<<<<< HEAD
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
-=======
-import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, Loader2 } from 'lucide-react';
->>>>>>> 0b483927aff3a200e392afde5f6e5ab15de49c4e
+import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 
 interface ItemMenu {
@@ -37,7 +32,6 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   const [isAdmin, setIsAdmin] = useState(() => location.pathname.startsWith('/admin'));
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [cargandoRol, setCargandoRol] = useState(true);
-<<<<<<< HEAD
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
 
   const handleLogout = async () => {
@@ -59,10 +53,8 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       setCerrandoSesion(false);
     }
   };
-=======
   // true/false = el usuario lo abrió/cerró; sin valor = abierto solo si contiene la página actual
   const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(leerGruposGuardados);
->>>>>>> 0b483927aff3a200e392afde5f6e5ab15de49c4e
 
   useEffect(() => {
     const cargarRol = async () => {
@@ -172,6 +164,21 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
 
   const enlace = (item: ItemMenu, compacto = false) => {
     const isActive = esActivo(item);
+    if (item.name === 'Cerrar Sesión') {
+      return (
+        <button
+          key={item.name}
+          type="button"
+          onClick={handleLogout}
+          disabled={cerrandoSesion}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 text-left font-medium transition-colors ${compacto ? 'py-2' : 'py-2.5'} text-[#4A2E18]/70 hover:bg-[#4A2E18]/5 hover:text-[#4A2E18] disabled:cursor-wait disabled:opacity-60`}
+        >
+          <img src={item.icon} alt="" className="h-5 w-5 object-contain opacity-60" />
+          {cerrandoSesion ? 'Cerrando sesión...' : item.name}
+        </button>
+      );
+    }
+
     return (
       <Link
         key={item.name}
@@ -224,41 +231,6 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
           }
 
           return (
-<<<<<<< HEAD
-            item.name === 'Cerrar Sesión' ? (
-              <button
-                key={item.name}
-                type="button"
-                onClick={handleLogout}
-                disabled={cerrandoSesion}
-                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium text-[#4A2E18]/70 transition-colors hover:bg-[#4A2E18]/5 hover:text-[#4A2E18] disabled:cursor-wait disabled:opacity-60"
-              >
-                <img src={item.icon} alt="" className="h-5 w-5 object-contain opacity-60" />
-                {cerrandoSesion ? 'Cerrando sesión...' : item.name}
-              </button>
-            ) : (
-              <Link
-                key={item.name}
-                to={item.path}
-                onClick={onClose} // Cierra el menú al hacer clic (útil en celular)
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#EBF3E8] text-[#2D7A3E] border border-[#2D7A3E]/20 shadow-sm'
-                    : 'text-[#4A2E18]/70 hover:bg-[#4A2E18]/5 hover:text-[#4A2E18]'
-                }`}
-              >
-                <img
-                  src={item.icon}
-                  alt={item.name}
-                  className={`w-5 h-5 object-contain transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}
-                />
-                {item.name}
-              </Link>
-            )
-          );
-        })}
-      </nav>
-=======
             <div key={grupo.titulo}>
               <button
                 type="button"
@@ -291,7 +263,6 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       <div className="space-y-1 border-t border-[#4A2E18]/10 p-4">
         {menuCuenta.map((item) => enlace(item, true))}
       </div>
->>>>>>> 0b483927aff3a200e392afde5f6e5ab15de49c4e
     </aside>
   );
 };

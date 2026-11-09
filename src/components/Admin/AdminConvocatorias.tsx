@@ -291,9 +291,6 @@ export default function AdminConvocatorias() {
             <form onSubmit={guardar} className="grid gap-5 md:grid-cols-2">
               <div className="space-y-5">
                 <label className="block text-sm font-semibold text-gray-700">Título<input name="titulo" value={formulario.titulo} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" required /></label>
-<<<<<<< HEAD
-                <label className="block text-sm font-semibold text-gray-700">Enlace de redirección <input name="enlace_url" type="url" placeholder="https://forms.gle/..." value={formulario.enlace_url} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" /></label>
-=======
                 <label className="block text-sm font-semibold text-gray-700">Enlace de redirección (Opcional)<input name="enlace_url" type="url" placeholder="https://forms.gle/..." value={formulario.enlace_url} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" /></label>
                 {formulario.enlace_url.trim() && (
                   <label className="block text-sm font-semibold text-gray-700">Texto del botón (Opcional)
@@ -308,7 +305,6 @@ export default function AdminConvocatorias() {
                   <input name="fecha_cierre" type="date" value={formulario.fecha_cierre} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" />
                   <span className="mt-1 block text-xs font-normal text-gray-500">Aparece en el Calendario y la convocatoria se oculta sola de la página al pasar esta fecha.</span>
                 </label>
->>>>>>> 0b483927aff3a200e392afde5f6e5ab15de49c4e
                 <label className="block text-sm font-semibold text-gray-700">
   Descripción
   <textarea 
