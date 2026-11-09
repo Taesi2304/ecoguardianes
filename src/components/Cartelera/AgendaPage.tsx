@@ -63,7 +63,7 @@ export default function AgendaPage() {
             to="/cartelera?ediciones=1"
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${verEdiciones ? 'bg-[#2d6a4f] text-white' : 'text-[#2d6a4f] hover:bg-[#d8ece1]'}`}
           >
-            Ediciones anteriores
+           Cartelera de Ediciones anteriores
           </Link>
         </nav>
         <p className="mx-auto mt-3 max-w-xl text-sm text-[#4a3728]/65">
