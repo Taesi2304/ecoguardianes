@@ -291,7 +291,7 @@ export default function AdminEquipo() {
                   <span className="mt-1 block text-xs font-normal text-gray-500">Las personas con la misma área salen juntas. Escríbela igual para todas.</span>
                 </label>
                 <label className="block text-sm font-semibold text-gray-700">Emprendimiento o proyecto
-                  <input name="emprendimiento" placeholder="Vivero Monos Garden" value={formulario.emprendimiento} onChange={manejarCambio} maxLength={120} className={campo} />
+                  <input name="emprendimiento" placeholder="nombre del emprendimiento" value={formulario.emprendimiento} onChange={manejarCambio} maxLength={120} className={campo} />
                 </label>
                 {formulario.emprendimiento.trim() && (
                   <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4">

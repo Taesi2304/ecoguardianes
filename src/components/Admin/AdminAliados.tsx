@@ -230,7 +230,7 @@ export default function AdminAliados() {
             <form onSubmit={guardar} className="grid gap-5 md:grid-cols-2">
               <div className="space-y-5">
                 <label className="block text-sm font-semibold text-gray-700">Nombre o usuario
-                  <input name="nombre" placeholder="@vivero_monos_garden" value={formulario.nombre} onChange={manejarCambio} maxLength={100} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" required />
+                  <input name="nombre" placeholder="@nombredelaliado" value={formulario.nombre} onChange={manejarCambio} maxLength={100} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" required />
                 </label>
                 <label className="block text-sm font-semibold text-gray-700">Enlace (Instagram, Facebook o sitio web)
                   <input name="enlace_url" type="url" placeholder="https://www.instagram.com/..." value={formulario.enlace_url} onChange={manejarCambio} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none" required />
