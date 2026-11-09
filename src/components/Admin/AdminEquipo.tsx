@@ -8,7 +8,7 @@ import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
-import { BUCKET_DIRECTORIO, CAMPOS_INTEGRANTE, crearSlug, NOMBRES_RED } from '@/components/Equipo/equipo';
+import { BUCKET_DIRECTORIO, CAMPOS_INTEGRANTE, crearSlug, normalizarUrlRed, NOMBRES_RED } from '@/components/Equipo/equipo';
 import type { Integrante, RedIntegrante, TipoRed } from '@/components/Equipo/equipo';
 import { FotoIntegrante } from '@/components/Equipo/EquipoUi';
 
@@ -147,13 +147,7 @@ export default function AdminEquipo() {
     }
 
     const redes = formulario.redes
-      .map((red) => {
-        const url = red.url.trim();
-        return {
-          ...red,
-          url: red.tipo === 'correo' && url && !/^mailto:/i.test(url) ? `mailto:${url}` : url,
-        };
-      })
+      .map((red) => ({ ...red, url: normalizarUrlRed(red.tipo, red.url) }))
       .filter((red) => red.url);
     if (redes.some((red) => red.tipo === 'correo'
       ? !/^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(red.url)
@@ -164,8 +158,11 @@ export default function AdminEquipo() {
 
     const emprendimiento = formulario.emprendimiento.trim() || null;
     // Si se quitó la red que estaba escogida, el emprendimiento se queda sin enlace
-    const emprendimientoUrl = emprendimiento && redes.some((red) => red.url === formulario.emprendimientoUrl)
-      ? formulario.emprendimientoUrl
+    const emprendimientoUrlNormalizada = formulario.redes
+      .map((red) => ({ ...red, url: normalizarUrlRed(red.tipo, red.url) }))
+      .find((red) => red.url === normalizarUrlRed(red.tipo, formulario.emprendimientoUrl))?.url;
+    const emprendimientoUrl = emprendimiento && emprendimientoUrlNormalizada
+      ? emprendimientoUrlNormalizada
       : null;
 
     setGuardando(true);
@@ -354,7 +351,8 @@ export default function AdminEquipo() {
                           type={red.tipo === 'correo' ? 'email' : 'url'}
                           placeholder={red.tipo === 'correo' ? 'correo@ejemplo.com' : 'https://...'}
                           value={red.tipo === 'correo' ? red.url.replace(/^mailto:/i, '') : red.url}
-                          onChange={(e) => cambiarRed(indice, { url: red.tipo === 'correo' ? `mailto:${e.target.value}` : e.target.value })}
+                          onChange={(e) => cambiarRed(indice, { url: e.target.value })}
+                          onBlur={() => cambiarRed(indice, { url: normalizarUrlRed(red.tipo, red.url) })}
                           className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 font-normal focus:border-green-500 focus:outline-none"
                           aria-label={red.tipo === 'correo' ? 'Correo electrónico' : 'Enlace'}
                         />

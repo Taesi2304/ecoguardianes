@@ -39,6 +39,28 @@ export const NOMBRES_RED: Record<TipoRed, string> = {
   otro: 'Enlace',
 };
 
+const REDES_CON_PERFIL = new Set<TipoRed>(['instagram', 'facebook', 'tiktok', 'linkedin', 'youtube']);
+
+export function normalizarUrlRed(tipo: TipoRed, valor: string) {
+  const url = valor.trim();
+  if (!url) return '';
+
+  if (tipo === 'correo') {
+    return `mailto:${url.replace(/^mailto:/i, '')}`;
+  }
+
+  if (!REDES_CON_PERFIL.has(tipo)) return url;
+
+  try {
+    const urlNormalizada = new URL(url);
+    urlNormalizada.search = '';
+    urlNormalizada.hash = '';
+    return urlNormalizada.toString().replace(/\/$/, '');
+  } catch {
+    return url;
+  }
+}
+
 // "Fabiola Flores Ñ." → "fabiola-flores-n"
 export function crearSlug(texto: string) {
   return texto
