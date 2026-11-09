@@ -77,7 +77,46 @@ export default function AdminEquipo() {
       setError('No se pudo cargar el equipo. ¿Ya corriste database/33_equipo_fdma.sql y 34_equipo_emprendimiento.sql?');
       console.error(errorConsulta);
     } else {
-      setIntegrantes((data || []) as Integrante[]);
+      const registros = (data || []) as Integrante[];
+      const actualizados = registros.map((integrante) => {
+        const redesOriginales = integrante.redes || [];
+        const redes = redesOriginales.map((red) => ({
+          ...red,
+          url: normalizarUrlRed(red.tipo, red.url),
+        }));
+        const redEmprendimiento = redesOriginales.find((red) => red.url === integrante.emprendimiento_url);
+        const emprendimientoUrl = redEmprendimiento
+          ? normalizarUrlRed(redEmprendimiento.tipo, redEmprendimiento.url)
+          : integrante.emprendimiento_url;
+
+        return { ...integrante, redes, emprendimiento_url: emprendimientoUrl };
+      });
+
+      const cambios = actualizados.filter((integrante, indice) =>
+        JSON.stringify(integrante.redes) !== JSON.stringify(registros[indice].redes)
+        || integrante.emprendimiento_url !== registros[indice].emprendimiento_url
+      );
+
+      if (cambios.length > 0) {
+        const resultados = await Promise.all(cambios.map((integrante) =>
+          supabase
+            .from('directorio')
+            .update({
+              redes: integrante.redes,
+              emprendimiento_url: integrante.emprendimiento_url,
+            })
+            .eq('id', integrante.id)
+        ));
+        const errorMigracion = resultados.find((resultado) => resultado.error)?.error;
+        if (errorMigracion) {
+          toast.error('El equipo cargó, pero no se pudieron actualizar todos los enlaces existentes.');
+          console.error('Error al normalizar enlaces existentes:', errorMigracion);
+        } else {
+          toast.success(`${cambios.length} registro${cambios.length === 1 ? '' : 's'} actualizado${cambios.length === 1 ? '' : 's'}.`);
+        }
+      }
+
+      setIntegrantes(actualizados);
     }
     setCargando(false);
   }
