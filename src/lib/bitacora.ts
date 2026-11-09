@@ -34,7 +34,7 @@ export const OPCIONES_FAUNA: Opcion[] = [
   { valor: 'escarabajos', etiqueta: 'Escarabajos o larvas' },
   { valor: 'hormigas', etiqueta: 'Hormigas' },
   { valor: 'hongos', etiqueta: 'Hongos o micelio blanco' },
-  { valor: 'moscas', etiqueta: 'Moscas o mosquitas' },
+  { valor: 'moscas', etiqueta: 'Moscas' },
 ];
 
 export const OPCIONES_RESIDUO: Opcion[] = [
