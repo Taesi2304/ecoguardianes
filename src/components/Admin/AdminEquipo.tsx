@@ -8,7 +8,7 @@ import { borrarArchivos, subirArchivo } from '@/lib/storage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImagenAmpliable } from '@/components/VisorImagenes';
 import { useUrlLocal } from '@/lib/useUrlLocal';
-import { BUCKET_DIRECTORIO, CAMPOS_INTEGRANTE, crearSlug, normalizarUrlRed, NOMBRES_RED } from '@/components/Equipo/equipo';
+import { BUCKET_DIRECTORIO, CAMPOS_INTEGRANTE, crearSlug, mostrarValorRed, normalizarUrlRed, NOMBRES_RED } from '@/components/Equipo/equipo';
 import type { Integrante, RedIntegrante, TipoRed } from '@/components/Equipo/equipo';
 import { FotoIntegrante } from '@/components/Equipo/EquipoUi';
 
@@ -387,13 +387,13 @@ export default function AdminEquipo() {
                           {(Object.keys(NOMBRES_RED) as TipoRed[]).map((tipo) => <option key={tipo} value={tipo}>{NOMBRES_RED[tipo]}</option>)}
                         </select>
                         <input
-                          type={red.tipo === 'correo' ? 'email' : 'url'}
-                          placeholder={red.tipo === 'correo' ? 'correo@ejemplo.com' : 'https://...'}
-                          value={red.tipo === 'correo' ? red.url.replace(/^mailto:/i, '') : red.url}
+                          type={red.tipo === 'correo' ? 'email' : 'text'}
+                          placeholder={red.tipo === 'instagram' ? '@usuario' : red.tipo === 'correo' ? 'correo@ejemplo.com' : 'https://...'}
+                          value={mostrarValorRed(red.tipo, red.url)}
                           onChange={(e) => cambiarRed(indice, { url: e.target.value })}
                           onBlur={() => cambiarRed(indice, { url: normalizarUrlRed(red.tipo, red.url) })}
                           className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 font-normal focus:border-green-500 focus:outline-none"
-                          aria-label={red.tipo === 'correo' ? 'Correo electrónico' : 'Enlace'}
+                          aria-label={red.tipo === 'instagram' ? 'Usuario de Instagram' : red.tipo === 'correo' ? 'Correo electrónico' : 'Enlace'}
                         />
                         <button type="button" onClick={() => setFormulario((actual) => ({ ...actual, redes: actual.redes.filter((_, i) => i !== indice) }))} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600" title="Quitar"><X className="h-4 w-4" /></button>
                       </div>

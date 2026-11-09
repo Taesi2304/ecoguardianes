@@ -49,6 +49,18 @@ export function normalizarUrlRed(tipo: TipoRed, valor: string) {
     return `mailto:${url.replace(/^mailto:/i, '')}`;
   }
 
+  if (tipo === 'instagram') {
+    const entrada = url.replace(/^@/, '');
+    try {
+      const urlInstagram = new URL(/^https?:\/\//i.test(entrada) ? entrada : `https://www.instagram.com/${entrada}`);
+      if (!/^(www\.)?instagram\.com$/i.test(urlInstagram.hostname)) return url;
+      const usuario = urlInstagram.pathname.split('/').filter(Boolean)[0];
+      return usuario ? `https://www.instagram.com/${usuario}` : url;
+    } catch {
+      return url;
+    }
+  }
+
   if (!REDES_CON_PERFIL.has(tipo)) return url;
 
   try {
@@ -58,6 +70,12 @@ export function normalizarUrlRed(tipo: TipoRed, valor: string) {
     return urlNormalizada.toString().replace(/\/$/, '');
   } catch {
     return url;
+  }
+
+  export function mostrarValorRed(tipo: TipoRed, valor: string) {
+    if (tipo !== 'instagram') return valor.replace(/^mailto:/i, '');
+    const url = normalizarUrlRed(tipo, valor);
+    return url.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '@').replace(/\/$/, '');
   }
 }
 
