@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Edit, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
+import { AlertCircle, Edit, Eye, EyeOff, ExternalLink, Image, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { useScrollAlFormulario } from '@/lib/useScrollAlFormulario';
@@ -274,9 +274,14 @@ export default function AdminConvocatorias() {
           <h1 className="text-3xl font-bold text-gray-900">Convocatorias</h1>
           <p className="mt-1 font-medium text-green-700">Publica oportunidades para tu comunidad</p>
         </div>
-        <button onClick={abrirNueva} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
-          <Plus className="h-5 w-5" /> Nueva convocatoria
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <a href="/#convocatorias" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <ExternalLink className="h-4 w-4" /> Ver página
+          </a>
+          <button onClick={abrirNueva} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
+            <Plus className="h-5 w-5" /> Nueva convocatoria
+          </button>
+        </div>
       </div>
 
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}

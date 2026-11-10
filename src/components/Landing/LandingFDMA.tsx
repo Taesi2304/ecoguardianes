@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { formatearFecha, formatearHora } from '../../lib/utils';
@@ -457,15 +457,7 @@ export const LandingFDMA = () => {
       )}
                   {pagina.mostrar_convocatorias && !cargandoConvocatorias && convocatorias.length > 0 && (
                   <section id="convocatorias" className="mx-auto mt-0 w-full max-w-7xl scroll-mt-24 px-4 pt-6 sm:px-8">
-                  <div className="mb-8 flex flex-col items-center justify-between gap-3 sm:flex-row sm:items-center">
-                    <h3 className="text-center text-2xl font-bold text-[#4a3728] md:text-3xl">Convocatorias</h3>
-                    <a
-                      href="/#convocatorias"
-                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                    >
-                      <ExternalLink className="h-4 w-4" aria-hidden="true" /> Ver página
-                    </a>
-                  </div>
+                  <h3 className="mb-8 text-center text-2xl font-bold text-[#4a3728] md:text-3xl">Convocatorias</h3>
                   
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                       {convocatorias.map((convocatoria) => (

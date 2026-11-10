@@ -23,7 +23,7 @@ export const Header = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const isItemActive = (href: string) => location.pathname === href.split('#')[0];
+  const isItemActive = (href: string) => !href.includes('#') && location.pathname === href;
   const seccionActiva = (seccion: Seccion) =>
     seccion.href ? isItemActive(seccion.href) : !!seccion.items?.some((item) => isItemActive(item.href));
 
