@@ -36,6 +36,7 @@ const TEXTOS: { campo: 'titulo' | 'subtitulo' | 'descripcion'; nombre: string }[
 type FdmaSeccion = { id: string; anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
 type FdmaGanador = { lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string; imagen: string };
 type FdmaActividad = { id: string; seccion_id: string; titulo: string; subtitulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
+type FdmaFormulario = { anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
 
 // Lista legible de lo que cambió respecto a lo guardado, para confirmar antes de publicar
 function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
@@ -48,10 +49,12 @@ function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
     setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id
       ? { ...actividad, ganadores: actividad.ganadores.map((ganador, posicion) => posicion === indice ? { ...ganador, [campo]: valor } : ganador) }
       : actividad));
+    setFdmaCambiosPendientes(true);
   }
 
   function agregarGanadores(id: string) {
     setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id ? { ...actividad, ganadores: crearGanadores() } : actividad));
+    setFdmaCambiosPendientes(true);
   }
 
   async function subirImagenGanador(id: string, indice: number, archivo: File) {
@@ -77,10 +80,13 @@ export default function AdminPaginaInicio() {
   const [error, setError] = useState<string | null>(null);
   const [fdmaSecciones, setFdmaSecciones] = useState<FdmaSeccion[]>([]);
   const [fdmaActividades, setFdmaActividades] = useState<FdmaActividad[]>([]);
-  const [fdmaForm, setFdmaForm] = useState({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true });
+  const [fdmaForm, setFdmaForm] = useState<FdmaFormulario>({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true });
+  const [fdmaFormOriginal, setFdmaFormOriginal] = useState<FdmaFormulario | null>(null);
+  const [fdmaActividadesOriginales, setFdmaActividadesOriginales] = useState<FdmaActividad[]>([]);
   const [actividadForm, setActividadForm] = useState({ titulo: '', subtitulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [] as File[], videos: '', pdfs: '', pdfArchivos: [] as File[], ganadores: false, enlace_url: '' });
   const [fdmaSeleccionada, setFdmaSeleccionada] = useState<string | null>(null);
   const [actividadAbierta, setActividadAbierta] = useState<string | null>(null);
+  const [fdmaCambiosPendientes, setFdmaCambiosPendientes] = useState(false);
   const [seccionesAbiertas, setSeccionesAbiertas] = useState(true);
   const [fdmaAbierta, setFdmaAbierta] = useState(true);
   const archivosVista = useMemo(() => actividadForm.archivos.map((archivo) => ({ archivo, url: URL.createObjectURL(archivo) })), [actividadForm.archivos]);
@@ -108,6 +114,7 @@ export default function AdminPaginaInicio() {
           ? { ...item, videos: [...item.videos, url] }
           : { ...item, imagenes: [...item.imagenes, url] }
       : item));
+    setFdmaCambiosPendientes(true);
     toast.success('Archivo cargado. Pulsa Guardar para publicar el cambio.');
   }
 
@@ -119,6 +126,7 @@ export default function AdminPaginaInicio() {
     const posicion = url.indexOf(marcador);
     if (posicion >= 0) await supabase.storage.from('fdma-media').remove([decodeURIComponent(url.slice(posicion + marcador.length))]);
     setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? { ...item, [tipo]: item[tipo].filter((_, actual) => actual !== indice) } : item));
+    setFdmaCambiosPendientes(true);
     toast.success('Elemento quitado. Pulsa Guardar para confirmar.');
   }
 
@@ -160,9 +168,14 @@ export default function AdminPaginaInicio() {
     setFdmaSecciones(lista);
     if (lista[0]) {
       setFdmaSeleccionada(lista[0].id);
-      setFdmaForm({ anio: lista[0].anio, titulo: lista[0].titulo, subtitulo: lista[0].subtitulo || '', descripcion: lista[0].descripcion, activo: lista[0].activo });
+      const formulario = { anio: lista[0].anio, titulo: lista[0].titulo, subtitulo: lista[0].subtitulo || '', descripcion: lista[0].descripcion, activo: lista[0].activo };
+      setFdmaForm(formulario);
+      setFdmaFormOriginal(formulario);
       const { data: actividades } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', lista[0].id).order('orden');
-      setFdmaActividades((actividades || []) as FdmaActividad[]);
+      const actividadesCargadas = (actividades || []) as FdmaActividad[];
+      setFdmaActividades(actividadesCargadas);
+      setFdmaActividadesOriginales(actividadesCargadas);
+      setFdmaCambiosPendientes(false);
     }
   }
 
@@ -173,14 +186,20 @@ export default function AdminPaginaInicio() {
       : await supabase.from('fdma_secciones').insert(payload).select().single();
     if (resultado.error) { toast.error(`No se pudo guardar FDMA: ${resultado.error.message}`); return; }
     toast.success('Edición FDMA guardada.');
+    setFdmaCambiosPendientes(false);
     await cargarFdma();
   }
 
   async function seleccionarFdma(seccion: FdmaSeccion) {
     setFdmaSeleccionada(seccion.id);
-    setFdmaForm({ anio: seccion.anio, titulo: seccion.titulo, subtitulo: seccion.subtitulo || '', descripcion: seccion.descripcion, activo: seccion.activo });
+    const formulario = { anio: seccion.anio, titulo: seccion.titulo, subtitulo: seccion.subtitulo || '', descripcion: seccion.descripcion, activo: seccion.activo };
+    setFdmaForm(formulario);
+    setFdmaFormOriginal(formulario);
     const { data } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', seccion.id).order('orden');
-    setFdmaActividades((data || []) as FdmaActividad[]);
+    const actividadesCargadas = (data || []) as FdmaActividad[];
+    setFdmaActividades(actividadesCargadas);
+    setFdmaActividadesOriginales(actividadesCargadas);
+    setFdmaCambiosPendientes(false);
   }
 
   async function guardarActividad(actividad: FdmaActividad) {
@@ -191,6 +210,7 @@ export default function AdminPaginaInicio() {
     if (errorActividad) toast.error(`No se pudo actualizar: ${errorActividad.message}`);
     else {
       toast.success('Actividad actualizada.');
+      setFdmaCambiosPendientes(false);
       await seleccionarFdma(fdmaSecciones.find((seccion) => seccion.id === fdmaSeleccionada) || { id: fdmaSeleccionada!, anio: 0, titulo: '', subtitulo: '', descripcion: '', activo: true });
     }
   }
@@ -234,6 +254,7 @@ export default function AdminPaginaInicio() {
     toast.success('Actividad agregada.');
     setActividadForm({ titulo: '', subtitulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [], videos: '', pdfs: '', pdfArchivos: [], ganadores: false, enlace_url: '' });
     await cargarFdma();
+    setFdmaCambiosPendientes(false);
     if (actividadCreada) setActividadAbierta(actividadCreada.id);
   }
 
@@ -294,6 +315,24 @@ export default function AdminPaginaInicio() {
 
   const cambios = original ? describirCambios(original, pagina) : [];
   const hayCambios = cambios.length > 0;
+  const camposActividad = (actividad: FdmaActividad) => ({
+    id: actividad.id,
+    titulo: actividad.titulo,
+    subtitulo: actividad.subtitulo,
+    descripcion: actividad.descripcion,
+    fecha: actividad.fecha,
+    imagenes: actividad.imagenes,
+    videos: actividad.videos,
+    pdfs: actividad.pdfs,
+    ganadores: actividad.ganadores,
+    enlace_url: actividad.enlace_url,
+  });
+  const fdmaTieneCambios = fdmaSeleccionada
+    ? fdmaCambiosPendientes
+      || !fdmaFormOriginal
+      || JSON.stringify(fdmaForm) !== JSON.stringify(fdmaFormOriginal)
+      || JSON.stringify(fdmaActividades.map(camposActividad)) !== JSON.stringify(fdmaActividadesOriginales.map(camposActividad))
+    : Boolean(fdmaForm.titulo.trim() || fdmaForm.subtitulo.trim() || fdmaForm.descripcion.trim() || fdmaActividades.length);
 
   return (
     <form onSubmit={guardar} className="mx-auto max-w-4xl space-y-8 py-2 sm:py-4 animate-in fade-in duration-500">
@@ -355,7 +394,7 @@ export default function AdminPaginaInicio() {
             {fdmaSecciones.map((seccion) => (
               <button type="button" key={seccion.id} onClick={() => void seleccionarFdma(seccion)} className={`rounded-full px-4 py-2 text-sm font-bold ${fdmaSeleccionada === seccion.id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}`}>FDMA {seccion.anio}</button>
             ))}
-            <button type="button" onClick={() => { setFdmaSeleccionada(null); setFdmaForm({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true }); setFdmaActividades([]); }} className="rounded-full border border-dashed border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Nueva edición</button>
+            <button type="button" onClick={() => { setFdmaSeleccionada(null); setFdmaForm({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true }); setFdmaFormOriginal(null); setFdmaActividades([]); setFdmaActividadesOriginales([]); setFdmaCambiosPendientes(false); }} className="rounded-full border border-dashed border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Nueva edición</button>
           </div>
           {fdmaSeleccionada && <p className="text-sm text-gray-500">Estás editando <strong>FDMA {fdmaForm.anio}</strong>. Si fue un error, puedes eliminarla desde el botón rojo al guardar.</p>}
           <div className="grid gap-4 md:grid-cols-2">
@@ -392,9 +431,9 @@ export default function AdminPaginaInicio() {
                     <div><p className="text-sm font-bold text-gray-800">Fotos</p><p className="text-xs text-gray-500">Imágenes del carrete</p></div>
                     <span className="rounded-full bg-green-50 px-2 py-1 text-xs font-bold text-green-700">{actividad.imagenes.length}</span>
                   </div>
-                  <label className="mt-3 block cursor-pointer rounded-lg border border-dashed border-green-300 bg-green-50/50 p-3 text-center text-xs font-semibold text-green-800 hover:bg-green-50">
+                  <label className="relative mt-3 block min-h-11 cursor-pointer rounded-lg border border-dashed border-green-300 bg-green-50/50 p-3 text-center text-xs font-semibold text-green-800 hover:bg-green-50">
                     + Agregar fotos
-                    <input type="file" accept="image/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="sr-only" />
+                    <input type="file" accept="image/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                   </label>
                 </div>
                 <div className="rounded-xl border border-blue-100 bg-white p-3">
@@ -402,9 +441,9 @@ export default function AdminPaginaInicio() {
                     <div><p className="text-sm font-bold text-gray-800">Videos</p><p className="text-xs text-gray-500">Videos de la actividad</p></div>
                     <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{actividad.videos.length}</span>
                   </div>
-                  <label className="mt-3 block cursor-pointer rounded-lg border border-dashed border-blue-300 bg-blue-50/50 p-3 text-center text-xs font-semibold text-blue-800 hover:bg-blue-50">
+                  <label className="relative mt-3 block min-h-11 cursor-pointer rounded-lg border border-dashed border-blue-300 bg-blue-50/50 p-3 text-center text-xs font-semibold text-blue-800 hover:bg-blue-50">
                     + Agregar videos
-                    <input type="file" accept="video/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="sr-only" />
+                    <input type="file" accept="video/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                   </label>
                 </div>
                 <div className="rounded-xl border border-red-100 bg-white p-3">
@@ -412,9 +451,9 @@ export default function AdminPaginaInicio() {
                     <div><p className="text-sm font-bold text-gray-800">Documentos</p><p className="text-xs text-gray-500">Archivos PDF</p></div>
                     <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-bold text-red-700">{actividad.pdfs.length}</span>
                   </div>
-                  <label className="mt-3 block cursor-pointer rounded-lg border border-dashed border-red-300 bg-red-50/50 p-3 text-center text-xs font-semibold text-red-800 hover:bg-red-50">
+                  <label className="relative mt-3 block min-h-11 cursor-pointer rounded-lg border border-dashed border-red-300 bg-red-50/50 p-3 text-center text-xs font-semibold text-red-800 hover:bg-red-50">
                     + Agregar PDF
-                    <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="sr-only" />
+                    <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                   </label>
                 </div>
               </div>
@@ -438,10 +477,10 @@ export default function AdminPaginaInicio() {
                       <input value={ganador.descripcion} onChange={(e) => actualizarGanador(actividad.id, indice, 'descripcion', e.target.value)} placeholder="Descripción del proyecto" className="rounded border px-2 py-1 text-sm" />
                     </div>
                     {ganador.imagen && <img src={ganador.imagen} alt={`Imagen del ${ganador.lugar}.º lugar`} className="h-24 w-32 rounded object-cover" />}
-                    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-xs font-semibold text-green-800 hover:bg-green-50">
+                    <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-xs font-semibold text-green-800 hover:bg-green-50">
                       <span>{ganador.imagen ? 'Cambiar imagen del proyecto' : 'Agregar imagen del proyecto'}</span>
                       <span className="rounded-md bg-white px-2 py-1 text-green-700 shadow-sm">Seleccionar imagen</span>
-                      <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); }} className="sr-only" />
+                      <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                     </label>
                   </div>
                 ))}
@@ -460,18 +499,18 @@ export default function AdminPaginaInicio() {
               <input value={actividadForm.subtitulo} onChange={(e) => setActividadForm({ ...actividadForm, subtitulo: e.target.value })} placeholder="Subtítulo (ej. Presentación y premiación)" className="rounded-lg border px-3 py-2" />
               <input type="date" value={actividadForm.fecha} onChange={(e) => setActividadForm({ ...actividadForm, fecha: e.target.value })} className="rounded-lg border px-3 py-2" />
               <textarea value={actividadForm.imagenes} onChange={(e) => setActividadForm({ ...actividadForm, imagenes: e.target.value })} placeholder="Fotos: una URL por línea (sin límite)" rows={2} className="rounded-lg border px-3 py-2" />
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-sm font-semibold text-green-800 hover:bg-green-50">
+              <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-sm font-semibold text-green-800 hover:bg-green-50">
                 <span>Fotos y videos de la actividad</span>
                 <span className="rounded-md bg-white px-2 py-1 text-xs text-green-700 shadow-sm">Seleccionar archivos</span>
-                <input type="file" accept="image/*,video/*" multiple onChange={(e) => setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) })} className="sr-only" />
+                <input type="file" accept="image/*,video/*" multiple onChange={(e) => setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) })} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
               </label>
             </div>
             <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
             {archivosVista.length > 0 && <div className="rounded-lg border border-green-100 bg-green-50 p-3"><p className="mb-2 text-sm font-bold text-green-800">Archivos seleccionados: se subirán al pulsar “Agregar actividad”</p><div className="flex flex-wrap gap-3">{archivosVista.map(({ archivo, url }, indice) => <div key={url} className="relative w-32">{archivo.type.startsWith('video/') ? <video src={url} controls className="h-20 w-full rounded object-cover" /> : <img src={url} alt={archivo.name} className="h-20 w-full rounded object-cover" />}<button type="button" onClick={() => setActividadForm((actual) => ({ ...actual, archivos: actual.archivos.filter((_, posicion) => posicion !== indice) }))} aria-label={`Quitar ${archivo.name}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><p className="truncate text-xs text-gray-600">{archivo.name}</p></div>)}</div></div>}
-            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-red-300 bg-red-50/60 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-50">
+            <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-red-300 bg-red-50/60 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-50">
               <span>Documentos PDF de la actividad</span>
               <span className="rounded-md bg-white px-2 py-1 text-xs text-red-700 shadow-sm">Seleccionar PDF</span>
-              <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="sr-only" />
+              <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
             </label>
             {actividadForm.pdfArchivos.length > 0 && <p className="text-sm text-gray-600">PDF seleccionados: {actividadForm.pdfArchivos.map((archivo) => archivo.name).join(', ')}. Se subirán al agregar la actividad.</p>}
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={actividadForm.ganadores} onChange={(e) => setActividadForm({ ...actividadForm, ganadores: e.target.checked })} className="h-4 w-4 accent-green-600" /> Incluir sección de ganadores (1.º, 2.º y 3.º lugar)</label>
@@ -509,7 +548,11 @@ export default function AdminPaginaInicio() {
       {/* Barra fija mientras haya cambios sin publicar */}
       <div className={`sticky bottom-4 flex flex-col gap-3 rounded-2xl border p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between ${hayCambios ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-white'}`}>
         <p className={`text-sm font-medium ${hayCambios ? 'text-amber-800' : 'text-gray-500'}`}>
-          {hayCambios ? `Cambios sin publicar: ${cambios.join(', ')}` : 'Sin cambios pendientes. Lo que ves es lo que está publicado.'}
+          {hayCambios
+            ? `Cambios sin publicar: ${cambios.join(', ')}`
+            : fdmaTieneCambios
+              ? 'Hay cambios FDMA sin publicar. Pulsa “Guardar edición” o “Guardar” dentro de la actividad para publicarlos.'
+              : 'Sin cambios pendientes. Lo que ves es lo que está publicado.'}
         </p>
         <div className="flex shrink-0 gap-2">
           {hayCambios && (
