@@ -28,16 +28,32 @@ export const ORGANIGRAMA_AREAS = [
   },
 ] as const;
 
-export type AreaOrganigrama = typeof ORGANIGRAMA_AREAS[number];
+export const AREA_GENERAL = {
+  id: 'general',
+  nombre: 'Coordinación General',
+  color: 'bg-[#7bc35b]',
+  ring: 'ring-[#7bc35b]',
+  texto: 'text-[#2d6a4f]',
+  palabrasClave: ['general'],
+} as const;
+
+export type AreaOrganigrama = typeof ORGANIGRAMA_AREAS[number] | typeof AREA_GENERAL;
+
+function normalizarArea(area: string) {
+  return area.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
 export function agruparParaOrganigrama(integrantes: Integrante[]) {
-  return ORGANIGRAMA_AREAS.map((area) => ({
+  const general = integrantes.filter((integrante) => normalizarArea(integrante.area).includes('general'));
+  const grupos = ORGANIGRAMA_AREAS.map((area) => ({
     ...area,
     miembros: integrantes.filter((integrante) => {
-      const nombreArea = integrante.area.toLocaleLowerCase();
-      return area.palabrasClave.some((palabra) => nombreArea.includes(palabra));
+      const nombreArea = normalizarArea(integrante.area);
+      return !nombreArea.includes('general') && area.palabrasClave.some((palabra) => nombreArea.includes(normalizarArea(palabra)));
     }),
   }));
+
+  return { general, grupos };
 }
 
 export async function exportarOrganigrama(elemento: HTMLElement, nombreArchivo = 'organigrama-fdma.png') {
@@ -53,4 +69,3 @@ export async function exportarOrganigrama(elemento: HTMLElement, nombreArchivo =
   enlace.href = canvas.toDataURL('image/png');
   enlace.click();
 }
-

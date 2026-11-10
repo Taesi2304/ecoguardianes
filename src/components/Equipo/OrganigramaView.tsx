@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { FotoIntegrante } from './EquipoUi';
 import type { Integrante } from './equipo';
-import { agruparParaOrganigrama, exportarOrganigrama, type AreaOrganigrama } from './organigrama';
+import { AREA_GENERAL, agruparParaOrganigrama, exportarOrganigrama, type AreaOrganigrama } from './organigrama';
 
 function TarjetaOrganigrama({ integrante, area }: { integrante: Integrante; area: AreaOrganigrama }) {
   return (
@@ -20,7 +20,7 @@ function TarjetaOrganigrama({ integrante, area }: { integrante: Integrante; area
 
 export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
-  const grupos = useMemo(() => agruparParaOrganigrama(integrantes), [integrantes]);
+  const { general, grupos } = useMemo(() => agruparParaOrganigrama(integrantes), [integrantes]);
   const [descargando, setDescargando] = useState(false);
 
   const descargar = async () => {
@@ -62,6 +62,18 @@ export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) 
             <br />
             General
           </div>
+
+          {general.length > 0 && (
+            <div className="relative mx-auto mt-12 grid max-w-2xl grid-cols-2 gap-4 before:absolute before:left-1/2 before:top-0 before:h-6 before:border-l-2 before:border-dotted before:border-[#a9b5b8]">
+              {general.map((integrante) => (
+                <TarjetaOrganigrama
+                  key={integrante.id}
+                  integrante={integrante}
+                  area={AREA_GENERAL}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="relative mt-16 grid grid-cols-3 gap-8 before:absolute before:left-[16.66%] before:right-[16.66%] before:top-0 before:border-t-2 before:border-dotted before:border-[#a9b5b8]">
             {grupos.map((area) => (
