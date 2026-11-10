@@ -146,7 +146,7 @@ export default function AdminPaginaInicio() {
   }, []);
 
   async function cargarFdma() {
-    const { data: secciones } = await supabase.from('fdma_secciones').select('id, anio, titulo, descripcion, activo').order('anio', { ascending: false });
+    const { data: secciones } = await supabase.from('fdma_secciones').select('id, anio, titulo, subtitulo, descripcion, activo').order('anio', { ascending: false });
     const lista = (secciones || []) as FdmaSeccion[];
     setFdmaSecciones(lista);
     if (lista[0]) {
@@ -359,9 +359,17 @@ export default function AdminPaginaInicio() {
             <button type="button" onClick={() => void guardarFdmaSeccion()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Guardar edición</button>
             {fdmaSeleccionada && <button type="button" onClick={() => void eliminarFdmaSeccion()} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"><Trash2 className="mr-1 inline h-4 w-4" /> Eliminar edición</button>}
           </div>
-          {fdmaSeleccionada && <div className="space-y-3 border-t pt-4">
-            <h3 className="font-bold text-gray-800">Actividades ({fdmaActividades.length})</h3>
-            {fdmaActividades.map((actividad) => <div key={actividad.id} className="space-y-2 rounded-lg bg-gray-50 p-3">
+          {fdmaSeleccionada && <div className="space-y-4 border-t pt-5">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div><h3 className="text-xl font-bold text-gray-800">Actividades de esta edición</h3><p className="text-sm text-gray-500">Cada actividad funciona como una tarjeta independiente. Ábrela para editar su contenido.</p></div>
+              <span className="text-sm font-semibold text-green-700">{fdmaActividades.length} actividad{fdmaActividades.length === 1 ? '' : 'es'}</span>
+            </div>
+            {fdmaActividades.map((actividad) => <details key={actividad.id} className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50">
+                <span className="min-w-0"><span className="block truncate font-bold text-gray-800">{actividad.titulo || 'Actividad sin título'}</span><span className="mt-1 block truncate text-sm text-gray-500">{actividad.subtitulo || actividad.fecha || 'Sin subtítulo'} · {actividad.imagenes.length} foto(s), {actividad.videos.length} video(s), {actividad.pdfs.length} PDF</span></span>
+                <ChevronDown className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="space-y-3 border-t bg-gray-50/60 p-4">
               <div className="grid gap-2 md:grid-cols-2">
                 <input value={actividad.titulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, titulo: e.target.value } : item))} placeholder="Título de la actividad" className="rounded-lg border px-3 py-2 text-sm" />
                 <input value={actividad.subtitulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, subtitulo: e.target.value } : item))} placeholder="Subtítulo: fecha o frase breve" className="rounded-lg border px-3 py-2 text-sm" />
@@ -371,8 +379,8 @@ export default function AdminPaginaInicio() {
                 <input value={actividad.enlace_url || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, enlace_url: e.target.value } : item))} placeholder="URL opcional" className="rounded-lg border px-3 py-2 text-sm" />
               </div>
               <textarea value={actividad.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, descripcion: e.target.value } : item))} rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
-              <textarea value={actividad.videos.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Enlaces de videos: una URL por línea (YouTube, Vimeo o Storage)" aria-label="Enlaces de videos" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
-              <textarea value={actividad.pdfs.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, pdfs: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Enlaces de documentos PDF: una URL por línea" aria-label="Enlaces de documentos PDF" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <label className="block text-sm font-semibold text-gray-700">Videos externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Pega un enlace de YouTube, Vimeo o Storage por línea.</span><textarea value={actividad.videos.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="https://..." aria-label="Videos externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" /></label>
+              <label className="block text-sm font-semibold text-gray-700">Documentos PDF externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Pega un enlace de PDF por línea. También puedes subir archivos PDF.</span><textarea value={actividad.pdfs.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, pdfs: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="https://..." aria-label="Documentos PDF externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" /></label>
               <p className="text-xs text-gray-500">Carrete: {actividad.imagenes.length} foto(s) y {actividad.videos.length} video(s).</p>
               <div className="flex flex-wrap gap-3">
                 {actividad.imagenes.map((url, indice) => <div key={url} className="relative h-20 w-24 overflow-hidden rounded-lg border bg-white shadow-sm"><img src={url} alt={`Foto ${indice + 1}`} className="h-full w-full object-cover" /><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'imagenes', indice)} aria-label={`Quitar foto ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><span className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 text-center text-[10px] text-white">Foto {indice + 1}</span></div>)}
@@ -402,8 +410,11 @@ export default function AdminPaginaInicio() {
                 <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar</button>
                 <button type="button" onClick={() => void eliminarActividad(actividad.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Eliminar</button>
               </div>
-            </div>)}
-            <div className="grid gap-3 md:grid-cols-2">
+              </div>
+            </details>)}
+            <details className="group overflow-hidden rounded-xl border-2 border-dashed border-green-200 bg-green-50/30">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-4 font-bold text-green-700"><Plus className="h-5 w-5" /> Agregar nueva actividad <ChevronDown className="ml-auto h-5 w-5 transition-transform group-open:rotate-180" /></summary>
+              <div className="grid gap-3 border-t border-green-100 p-4 md:grid-cols-2">
               <input value={actividadForm.titulo} onChange={(e) => setActividadForm({ ...actividadForm, titulo: e.target.value })} placeholder="Título de la actividad (ej. Feria de proyectos)" className="rounded-lg border px-3 py-2" />
               <input value={actividadForm.subtitulo} onChange={(e) => setActividadForm({ ...actividadForm, subtitulo: e.target.value })} placeholder="Subtítulo (ej. Presentación y premiación)" className="rounded-lg border px-3 py-2" />
               <input type="date" value={actividadForm.fecha} onChange={(e) => setActividadForm({ ...actividadForm, fecha: e.target.value })} className="rounded-lg border px-3 py-2" />
@@ -413,12 +424,13 @@ export default function AdminPaginaInicio() {
             </div>
             <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
             {archivosVista.length > 0 && <div className="rounded-lg border border-green-100 bg-green-50 p-3"><p className="mb-2 text-sm font-bold text-green-800">Archivos seleccionados: se subirán al pulsar “Agregar actividad”</p><div className="flex flex-wrap gap-3">{archivosVista.map(({ archivo, url }, indice) => <div key={url} className="relative w-32">{archivo.type.startsWith('video/') ? <video src={url} controls className="h-20 w-full rounded object-cover" /> : <img src={url} alt={archivo.name} className="h-20 w-full rounded object-cover" />}<button type="button" onClick={() => setActividadForm((actual) => ({ ...actual, archivos: actual.archivos.filter((_, posicion) => posicion !== indice) }))} aria-label={`Quitar ${archivo.name}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><p className="truncate text-xs text-gray-600">{archivo.name}</p></div>)}</div></div>}
-            <textarea value={actividadForm.videos} onChange={(e) => setActividadForm({ ...actividadForm, videos: e.target.value })} placeholder="Enlaces de videos: una URL por línea (YouTube, Vimeo o Storage)" aria-label="Enlaces de videos" rows={2} className="w-full rounded-lg border px-3 py-2" />
-            <textarea value={actividadForm.pdfs} onChange={(e) => setActividadForm({ ...actividadForm, pdfs: e.target.value })} placeholder="Enlaces de documentos PDF: una URL por línea (opcional)" aria-label="Enlaces de documentos PDF" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            <label className="block text-sm font-semibold text-gray-700">Videos externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Opcional: un enlace de YouTube, Vimeo o Storage por línea.</span><textarea value={actividadForm.videos} onChange={(e) => setActividadForm({ ...actividadForm, videos: e.target.value })} placeholder="https://..." aria-label="Videos externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+            <label className="block text-sm font-semibold text-gray-700">Documentos PDF externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Opcional: un enlace de PDF por línea.</span><textarea value={actividadForm.pdfs} onChange={(e) => setActividadForm({ ...actividadForm, pdfs: e.target.value })} placeholder="https://..." aria-label="Documentos PDF externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
             <label className="flex items-center rounded-lg border bg-white px-3 py-2 text-xs text-gray-500">Agregar documentos PDF<input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="ml-2 min-w-0 text-xs text-gray-700" /></label>
             {actividadForm.pdfArchivos.length > 0 && <p className="text-sm text-gray-600">PDF seleccionados: {actividadForm.pdfArchivos.map((archivo) => archivo.name).join(', ')}. Se subirán al agregar la actividad.</p>}
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={actividadForm.ganadores} onChange={(e) => setActividadForm({ ...actividadForm, ganadores: e.target.checked })} className="h-4 w-4 accent-green-600" /> Incluir sección de ganadores (1.º, 2.º y 3.º lugar)</label>
-            <button type="button" onClick={() => void agregarActividad()} className="rounded-lg border border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Agregar actividad</button>
+                <button type="button" onClick={() => void agregarActividad()} className="rounded-lg border border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Agregar actividad</button>
+            </details>
           </div>}
         </CardContent>}
       </Card>
