@@ -97,6 +97,24 @@ interface FdmaSeccion {
   fdma_actividades: FdmaActividad[];
 }
 
+function ordenarActividades(actividades: FdmaActividad[]) {
+  return actividades
+    .map((actividad, indice) => ({ actividad, indice }))
+    .sort((a, b) => {
+      const esPatrocinadores = (titulo: string) => titulo.trim().toLocaleLowerCase('es-MX') === 'patrocinadores';
+      const patrocinadoresA = esPatrocinadores(a.actividad.titulo);
+      const patrocinadoresB = esPatrocinadores(b.actividad.titulo);
+
+      if (patrocinadoresA !== patrocinadoresB) return patrocinadoresA ? 1 : -1;
+      if (!a.actividad.fecha && !b.actividad.fecha) return a.indice - b.indice;
+      if (!a.actividad.fecha) return 1;
+      if (!b.actividad.fecha) return -1;
+
+      return a.actividad.fecha.localeCompare(b.actividad.fecha) || a.indice - b.indice;
+    })
+    .map(({ actividad }) => actividad);
+}
+
 function FdmaGanadorCard({ ganador }: { ganador: FdmaActividad['ganadores'][number] }) {
   const [visorAbierto, setVisorAbierto] = useState(false);
 
@@ -295,7 +313,7 @@ export const LandingFDMA = () => {
           const seccion = data as FdmaSeccion;
           setFdma({
             ...seccion,
-            fdma_actividades: (seccion.fdma_actividades || []).map((actividad) => ({
+            fdma_actividades: ordenarActividades((seccion.fdma_actividades || []).map((actividad) => ({
               ...actividad,
               titulo: actividad.titulo || '',
               subtitulo: actividad.subtitulo || '',
@@ -304,7 +322,7 @@ export const LandingFDMA = () => {
               videos: Array.isArray(actividad.videos) ? actividad.videos : [],
               pdfs: Array.isArray(actividad.pdfs) ? actividad.pdfs : [],
               ganadores: Array.isArray(actividad.ganadores) ? actividad.ganadores : [],
-            })),
+            }))),
           });
         }
       });
