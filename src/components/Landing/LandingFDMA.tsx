@@ -291,7 +291,22 @@ export const LandingFDMA = () => {
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setFdma(data as FdmaSeccion);
+        if (data) {
+          const seccion = data as FdmaSeccion;
+          setFdma({
+            ...seccion,
+            fdma_actividades: (seccion.fdma_actividades || []).map((actividad) => ({
+              ...actividad,
+              titulo: actividad.titulo || '',
+              subtitulo: actividad.subtitulo || '',
+              descripcion: actividad.descripcion || '',
+              imagenes: Array.isArray(actividad.imagenes) ? actividad.imagenes : [],
+              videos: Array.isArray(actividad.videos) ? actividad.videos : [],
+              pdfs: Array.isArray(actividad.pdfs) ? actividad.pdfs : [],
+              ganadores: Array.isArray(actividad.ganadores) ? actividad.ganadores : [],
+            })),
+          });
+        }
       });
   }, [cargarTalleres]);
 

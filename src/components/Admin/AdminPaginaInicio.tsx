@@ -38,32 +38,33 @@ type FdmaGanador = { lugar: number; proyecto: string; participantes: string; ase
 type FdmaActividad = { id: string; seccion_id: string; titulo: string; subtitulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
 type FdmaFormulario = { anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
 
+function normalizarActividad(actividad: FdmaActividad): FdmaActividad {
+  return {
+    ...actividad,
+    titulo: actividad.titulo || '',
+    subtitulo: actividad.subtitulo || '',
+    descripcion: actividad.descripcion || '',
+    imagenes: Array.isArray(actividad.imagenes) ? actividad.imagenes : [],
+    videos: Array.isArray(actividad.videos) ? actividad.videos : [],
+    pdfs: Array.isArray(actividad.pdfs) ? actividad.pdfs : [],
+    ganadores: Array.isArray(actividad.ganadores) ? actividad.ganadores.map((ganador) => ({
+      lugar: ganador.lugar,
+      proyecto: ganador.proyecto || '',
+      participantes: ganador.participantes || '',
+      asesor: ganador.asesor || '',
+      organizacion: ganador.organizacion || '',
+      contacto: ganador.contacto || '',
+      descripcion: ganador.descripcion || '',
+      imagen: ganador.imagen || '',
+    })) : [],
+  };
+}
+
 // Lista legible de lo que cambió respecto a lo guardado, para confirmar antes de publicar
 function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
   const cambios: string[] = [];
   for (const { campo, nombre } of SECCIONES) {
     if (campo in actual && !!original[campo] !== !!actual[campo]) cambios.push(`${actual[campo] ? 'Mostrar' : 'Ocultar'} «${nombre}»`);
-  }
-
-  function actualizarGanador(id: string, indice: number, campo: keyof FdmaGanador, valor: string) {
-    setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id
-      ? { ...actividad, ganadores: actividad.ganadores.map((ganador, posicion) => posicion === indice ? { ...ganador, [campo]: valor } : ganador) }
-      : actividad));
-    setFdmaCambiosPendientes(true);
-  }
-
-  function agregarGanadores(id: string) {
-    setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id ? { ...actividad, ganadores: crearGanadores() } : actividad));
-    setFdmaCambiosPendientes(true);
-  }
-
-  async function subirImagenGanador(id: string, indice: number, archivo: File) {
-    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const ruta = `ganadores/${crypto.randomUUID()}.${extension}`;
-    const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
-    if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
-    actualizarGanador(id, indice, 'imagen', supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
-    toast.success('Imagen del lugar cargada. Pulsa Guardar.');
   }
 
   for (const { campo, nombre } of TEXTOS) {
@@ -100,6 +101,27 @@ export default function AdminPaginaInicio() {
     }, 0);
     return () => window.clearTimeout(temporizador);
   }, [actividadAbierta, fdmaActividades.length]);
+
+  function actualizarGanador(id: string, indice: number, campo: keyof FdmaGanador, valor: string) {
+    setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id
+      ? { ...actividad, ganadores: actividad.ganadores.map((ganador, posicion) => posicion === indice ? { ...ganador, [campo]: valor } : ganador) }
+      : actividad));
+    setFdmaCambiosPendientes(true);
+  }
+
+  function agregarGanadores(id: string) {
+    setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id ? { ...actividad, ganadores: crearGanadores() } : actividad));
+    setFdmaCambiosPendientes(true);
+  }
+
+  async function subirImagenGanador(id: string, indice: number, archivo: File) {
+    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const ruta = `ganadores/${crypto.randomUUID()}.${extension}`;
+    const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+    if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
+    actualizarGanador(id, indice, 'imagen', supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
+    toast.success('Imagen del lugar cargada. Pulsa Guardar.');
+  }
 
   async function subirImagenActividad(id: string, archivo: File) {
     const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
@@ -162,17 +184,33 @@ export default function AdminPaginaInicio() {
     void cargarFdma();
   }, []);
 
-  async function cargarFdma() {
-    const { data: secciones } = await supabase.from('fdma_secciones').select('id, anio, titulo, subtitulo, descripcion, activo').order('anio', { ascending: false });
+  async function cargarFdma(preferredId?: string) {
+    const { data: secciones, error: errorSecciones } = await supabase.from('fdma_secciones').select('id, anio, titulo, subtitulo, descripcion, activo').order('anio', { ascending: false });
+    if (errorSecciones) {
+      toast.error(`No se pudieron cargar las ediciones FDMA: ${errorSecciones.message}`);
+      return;
+    }
     const lista = (secciones || []) as FdmaSeccion[];
     setFdmaSecciones(lista);
-    if (lista[0]) {
-      setFdmaSeleccionada(lista[0].id);
-      const formulario = { anio: lista[0].anio, titulo: lista[0].titulo, subtitulo: lista[0].subtitulo || '', descripcion: lista[0].descripcion, activo: lista[0].activo };
+    if (lista.length === 0) {
+      setFdmaSeleccionada(null);
+      setFdmaFormOriginal(null);
+      setFdmaActividades([]);
+      setFdmaActividadesOriginales([]);
+      return;
+    }
+    const seccionActual = lista.find((seccion) => seccion.id === (preferredId || fdmaSeleccionada)) || lista[0];
+    if (seccionActual) {
+      setFdmaSeleccionada(seccionActual.id);
+      const formulario = { anio: seccionActual.anio, titulo: seccionActual.titulo || '', subtitulo: seccionActual.subtitulo || '', descripcion: seccionActual.descripcion || '', activo: seccionActual.activo };
       setFdmaForm(formulario);
       setFdmaFormOriginal(formulario);
-      const { data: actividades } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', lista[0].id).order('orden');
-      const actividadesCargadas = (actividades || []) as FdmaActividad[];
+      const { data: actividades, error: errorActividades } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', seccionActual.id).order('orden');
+      if (errorActividades) {
+        toast.error(`No se pudieron cargar las actividades FDMA: ${errorActividades.message}`);
+        return;
+      }
+      const actividadesCargadas = ((actividades || []) as FdmaActividad[]).map(normalizarActividad);
       setFdmaActividades(actividadesCargadas);
       setFdmaActividadesOriginales(actividadesCargadas);
       setFdmaCambiosPendientes(false);
@@ -185,18 +223,24 @@ export default function AdminPaginaInicio() {
       ? await supabase.from('fdma_secciones').update(payload).eq('id', fdmaSeleccionada).select().single()
       : await supabase.from('fdma_secciones').insert(payload).select().single();
     if (resultado.error) { toast.error(`No se pudo guardar FDMA: ${resultado.error.message}`); return; }
+    if (resultado.data?.id) setFdmaSeleccionada(resultado.data.id);
     toast.success('Edición FDMA guardada.');
     setFdmaCambiosPendientes(false);
-    await cargarFdma();
+    await cargarFdma(resultado.data?.id);
   }
 
   async function seleccionarFdma(seccion: FdmaSeccion) {
     setFdmaSeleccionada(seccion.id);
+    setActividadAbierta(null);
     const formulario = { anio: seccion.anio, titulo: seccion.titulo, subtitulo: seccion.subtitulo || '', descripcion: seccion.descripcion, activo: seccion.activo };
     setFdmaForm(formulario);
     setFdmaFormOriginal(formulario);
-    const { data } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', seccion.id).order('orden');
-    const actividadesCargadas = (data || []) as FdmaActividad[];
+    const { data, error: errorActividades } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', seccion.id).order('orden');
+    if (errorActividades) {
+      toast.error(`No se pudieron cargar las actividades FDMA: ${errorActividades.message}`);
+      return;
+    }
+    const actividadesCargadas = ((data || []) as FdmaActividad[]).map(normalizarActividad);
     setFdmaActividades(actividadesCargadas);
     setFdmaActividadesOriginales(actividadesCargadas);
     setFdmaCambiosPendientes(false);
@@ -433,7 +477,7 @@ export default function AdminPaginaInicio() {
                   </div>
                   <label className="relative mt-3 block min-h-11 cursor-pointer rounded-lg border border-dashed border-green-300 bg-green-50/50 p-3 text-center text-xs font-semibold text-green-800 hover:bg-green-50">
                     + Agregar fotos
-                    <input type="file" accept="image/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                    <input type="file" accept="image/*" multiple onChange={(e) => { Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo)); e.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                   </label>
                 </div>
                 <div className="rounded-xl border border-blue-100 bg-white p-3">
@@ -443,7 +487,7 @@ export default function AdminPaginaInicio() {
                   </div>
                   <label className="relative mt-3 block min-h-11 cursor-pointer rounded-lg border border-dashed border-blue-300 bg-blue-50/50 p-3 text-center text-xs font-semibold text-blue-800 hover:bg-blue-50">
                     + Agregar videos
-                    <input type="file" accept="video/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                    <input type="file" accept="video/*" multiple onChange={(e) => { Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo)); e.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                   </label>
                 </div>
                 <div className="rounded-xl border border-red-100 bg-white p-3">
@@ -453,7 +497,7 @@ export default function AdminPaginaInicio() {
                   </div>
                   <label className="relative mt-3 block min-h-11 cursor-pointer rounded-lg border border-dashed border-red-300 bg-red-50/50 p-3 text-center text-xs font-semibold text-red-800 hover:bg-red-50">
                     + Agregar PDF
-                    <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                    <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => { Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo)); e.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                   </label>
                 </div>
               </div>
@@ -480,7 +524,7 @@ export default function AdminPaginaInicio() {
                     <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-xs font-semibold text-green-800 hover:bg-green-50">
                       <span>{ganador.imagen ? 'Cambiar imagen del proyecto' : 'Agregar imagen del proyecto'}</span>
                       <span className="rounded-md bg-white px-2 py-1 text-green-700 shadow-sm">Seleccionar imagen</span>
-                      <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                      <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); e.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                     </label>
                   </div>
                 ))}
@@ -502,7 +546,7 @@ export default function AdminPaginaInicio() {
               <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-sm font-semibold text-green-800 hover:bg-green-50">
                 <span>Fotos y videos de la actividad</span>
                 <span className="rounded-md bg-white px-2 py-1 text-xs text-green-700 shadow-sm">Seleccionar archivos</span>
-                <input type="file" accept="image/*,video/*" multiple onChange={(e) => setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) })} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                <input type="file" accept="image/*,video/*" multiple onChange={(e) => { setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) }); e.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
               </label>
             </div>
             <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
@@ -510,7 +554,7 @@ export default function AdminPaginaInicio() {
             <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-red-300 bg-red-50/60 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-50">
               <span>Documentos PDF de la actividad</span>
               <span className="rounded-md bg-white px-2 py-1 text-xs text-red-700 shadow-sm">Seleccionar PDF</span>
-              <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+              <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => { setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) }); e.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
             </label>
             {actividadForm.pdfArchivos.length > 0 && <p className="text-sm text-gray-600">PDF seleccionados: {actividadForm.pdfArchivos.map((archivo) => archivo.name).join(', ')}. Se subirán al agregar la actividad.</p>}
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={actividadForm.ganadores} onChange={(e) => setActividadForm({ ...actividadForm, ganadores: e.target.checked })} className="h-4 w-4 accent-green-600" /> Incluir sección de ganadores (1.º, 2.º y 3.º lugar)</label>
