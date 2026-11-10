@@ -44,28 +44,6 @@ function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
     if (campo in actual && !!original[campo] !== !!actual[campo]) cambios.push(`${actual[campo] ? 'Mostrar' : 'Ocultar'} «${nombre}»`);
   }
 
-  async function subirImagenActividad(id: string, archivo: File) {
-    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const ruta = `actividades/${crypto.randomUUID()}.${extension}`;
-    const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
-    if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
-    const url = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
-    setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? (archivo.type.startsWith('video/') ? { ...item, videos: [...item.videos, url] } : { ...item, imagenes: [...item.imagenes, url] }) : item));
-    toast.success('Imagen cargada. Pulsa Guardar para publicar el cambio.');
-  }
-
-  async function quitarMediaActividad(id: string, tipo: 'imagenes' | 'videos' | 'pdfs', indice: number) {
-    const actividad = fdmaActividades.find((item) => item.id === id);
-    if (!actividad) return;
-    const url = actividad[tipo][indice];
-    const marcador = '/storage/v1/object/public/fdma-media/';
-    const posicion = url.indexOf(marcador);
-    if (posicion >= 0) {
-      await supabase.storage.from('fdma-media').remove([decodeURIComponent(url.slice(posicion + marcador.length))]);
-    }
-    setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? { ...item, [tipo]: item[tipo].filter((_, actual) => actual !== indice) } : item));
-    toast.success('Elemento quitado. Pulsa Guardar para confirmar.');
-  }
   for (const { campo, nombre } of TEXTOS) {
     if (original[campo].trim() !== actual[campo].trim()) cambios.push(`Cambiar ${nombre.toLowerCase()}`);
   }
@@ -88,6 +66,43 @@ export default function AdminPaginaInicio() {
   const archivosVista = useMemo(() => actividadForm.archivos.map((archivo) => ({ archivo, url: URL.createObjectURL(archivo) })), [actividadForm.archivos]);
 
   useEffect(() => () => archivosVista.forEach(({ url }) => URL.revokeObjectURL(url)), [archivosVista]);
+
+  async function subirImagenActividad(id: string, archivo: File) {
+    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const ruta = `actividades/${crypto.randomUUID()}.${extension}`;
+    const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+    if (errorSubida) { toast.error(`No se pudo subir el archivo: ${errorSubida.message}`); return; }
+    const url = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
+    setFdmaActividades((actuales) => actuales.map((item) => item.id === id
+      ? archivo.type === 'application/pdf'
+        ? { ...item, pdfs: [...item.pdfs, url] }
+        : archivo.type.startsWith('video/')
+          ? { ...item, videos: [...item.videos, url] }
+          : { ...item, imagenes: [...item.imagenes, url] }
+      : item));
+    toast.success('Archivo cargado. Pulsa Guardar para publicar el cambio.');
+  }
+
+  async function quitarMediaActividad(id: string, tipo: 'imagenes' | 'videos' | 'pdfs', indice: number) {
+    const actividad = fdmaActividades.find((item) => item.id === id);
+    if (!actividad) return;
+    const url = actividad[tipo][indice];
+    const marcador = '/storage/v1/object/public/fdma-media/';
+    const posicion = url.indexOf(marcador);
+    if (posicion >= 0) await supabase.storage.from('fdma-media').remove([decodeURIComponent(url.slice(posicion + marcador.length))]);
+    setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? { ...item, [tipo]: item[tipo].filter((_, actual) => actual !== indice) } : item));
+    toast.success('Elemento quitado. Pulsa Guardar para confirmar.');
+  }
+
+  async function eliminarFdmaSeccion() {
+    if (!fdmaSeleccionada || !window.confirm('Se eliminará esta edición y todas sus actividades. ¿Continuar?')) return;
+    const { error: errorEliminacion } = await supabase.from('fdma_secciones').delete().eq('id', fdmaSeleccionada);
+    if (errorEliminacion) { toast.error(`No se pudo eliminar la edición: ${errorEliminacion.message}`); return; }
+    toast.success('Edición eliminada.');
+    setFdmaSeleccionada(null);
+    setFdmaActividades([]);
+    await cargarFdma();
+  }
 
   useEffect(() => {
     const cargarPagina = async () => {
@@ -306,6 +321,7 @@ export default function AdminPaginaInicio() {
             ))}
             <button type="button" onClick={() => { setFdmaSeleccionada(null); setFdmaForm({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true }); setFdmaActividades([]); }} className="rounded-full border border-dashed border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Nueva edición</button>
           </div>
+          {fdmaSeleccionada && <p className="text-sm text-gray-500">Estás editando <strong>FDMA {fdmaForm.anio}</strong>. Si fue un error, puedes eliminarla desde el botón rojo al guardar.</p>}
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-semibold text-gray-700">Año<input type="number" value={fdmaForm.anio} onChange={(e) => setFdmaForm({ ...fdmaForm, anio: Number(e.target.value) })} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
             <label className="text-sm font-semibold text-gray-700">Título de la edición<input value={fdmaForm.titulo} onChange={(e) => setFdmaForm({ ...fdmaForm, titulo: e.target.value })} placeholder={`FDMA ${fdmaForm.anio}`} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
@@ -313,7 +329,10 @@ export default function AdminPaginaInicio() {
           <label className="block text-sm font-semibold text-gray-700">Subtítulo de la edición<input value={fdmaForm.subtitulo} onChange={(e) => setFdmaForm({ ...fdmaForm, subtitulo: e.target.value })} placeholder="Ej. Actividades, encuentros y comunidad" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
           <label className="block text-sm font-semibold text-gray-700">Descripción general de la edición<textarea value={fdmaForm.descripcion} onChange={(e) => setFdmaForm({ ...fdmaForm, descripcion: e.target.value })} placeholder="Explica de qué trata esta edición." rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={fdmaForm.activo} onChange={(e) => setFdmaForm({ ...fdmaForm, activo: e.target.checked })} className="h-4 w-4 accent-green-600" /> Mostrar esta edición en la página pública</label>
-          <button type="button" onClick={() => void guardarFdmaSeccion()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Guardar edición</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void guardarFdmaSeccion()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Guardar edición</button>
+            {fdmaSeleccionada && <button type="button" onClick={() => void eliminarFdmaSeccion()} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"><Trash2 className="mr-1 inline h-4 w-4" /> Eliminar edición</button>}
+          </div>
           {fdmaSeleccionada && <div className="space-y-3 border-t pt-4">
             <h3 className="font-bold text-gray-800">Actividades ({fdmaActividades.length})</h3>
             {fdmaActividades.map((actividad) => <div key={actividad.id} className="space-y-2 rounded-lg bg-gray-50 p-3">
@@ -322,7 +341,7 @@ export default function AdminPaginaInicio() {
                 <input value={actividad.subtitulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, subtitulo: e.target.value } : item))} placeholder="Subtítulo: fecha o frase breve" className="rounded-lg border px-3 py-2 text-sm" />
                 <input type="date" value={actividad.fecha || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, fecha: e.target.value || null } : item))} className="rounded-lg border px-3 py-2 text-sm" />
                 <textarea value={actividad.imagenes.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Fotos: una URL por línea" rows={2} className="rounded-lg border px-3 py-2 text-sm" />
-                <input type="file" accept="image/*,video/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                <input type="file" accept="image/*,video/*,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="rounded-lg border bg-white px-3 py-2 text-sm" />
                 <input value={actividad.enlace_url || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, enlace_url: e.target.value } : item))} placeholder="URL opcional" className="rounded-lg border px-3 py-2 text-sm" />
               </div>
               <textarea value={actividad.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, descripcion: e.target.value } : item))} rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />

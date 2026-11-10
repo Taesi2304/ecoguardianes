@@ -123,6 +123,40 @@ function FdmaCarrusel({ actividad }: { actividad: FdmaActividad }) {
   );
 }
 
+function FdmaCarruselGlobal({ actividades, anio }: { actividades: FdmaActividad[]; anio: number }) {
+  const medios = actividades.flatMap((actividad) => [
+    ...actividad.imagenes.map((url) => ({ url, video: false, titulo: actividad.titulo })),
+    ...actividad.videos.map((url) => ({ url, video: true, titulo: actividad.titulo })),
+  ]);
+  const [indice, setIndice] = useState(0);
+  if (medios.length === 0) return null;
+  const medio = medios[indice] || medios[0];
+  const cambiar = (paso: number) => setIndice((actual) => (actual + paso + medios.length) % medios.length);
+
+  return (
+    <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white p-3 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3 px-2">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#2d6a4f]">Galería FDMA {anio}</p>
+          <p className="text-sm text-[#4a3728]/65">Fotos y videos de todas las actividades</p>
+        </div>
+        <span className="text-sm font-semibold text-[#4a3728]/60">{indice + 1} / {medios.length}</span>
+      </div>
+      <div className="relative overflow-hidden rounded-xl bg-black/10">
+        <div className="flex h-72 items-center justify-center bg-[#d8ece1]">
+          {medio.video ? <video src={medio.url} controls className="h-full w-full object-contain" /> : <img src={medio.url} alt={`${medio.titulo} — imagen ${indice + 1}`} className="h-full w-full object-contain" loading="lazy" />}
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-4 py-2 text-sm font-semibold text-white">{medio.titulo}</div>
+        {medios.length > 1 && <>
+          <button type="button" onClick={() => cambiar(-1)} aria-label="Medio anterior de FDMA" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"><ChevronLeft className="h-6 w-6" /></button>
+          <button type="button" onClick={() => cambiar(1)} aria-label="Medio siguiente de FDMA" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"><ChevronRight className="h-6 w-6" /></button>
+        </>}
+      </div>
+      {medios.length > 1 && <div className="mt-3 flex max-w-full gap-1.5 overflow-x-auto px-1 pb-1">{medios.map((item, posicion) => <button key={`${item.url}-${posicion}`} type="button" onClick={() => setIndice(posicion)} aria-label={`Ver ${item.titulo}, medio ${posicion + 1}`} className={`h-2 shrink-0 rounded-full transition-all ${posicion === indice ? 'w-7 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'}`} />)}</div>}
+    </div>
+  );
+}
+
 export const LandingFDMA = () => {
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
   const [cargandoConvocatorias, setCargandoConvocatorias] = useState(true);
@@ -414,6 +448,7 @@ export const LandingFDMA = () => {
             {fdma.subtitulo && <p className="mt-1 font-semibold text-[#2d6a4f]">{fdma.subtitulo}</p>}
             {fdma.descripcion && <p className="mx-auto mt-2 max-w-3xl text-[#4a3728]/75">{fdma.descripcion}</p>}
           </div>
+          <FdmaCarruselGlobal actividades={fdma.fdma_actividades} anio={fdma.anio} />
           <div className="grid gap-6 md:grid-cols-2">
             {fdma.fdma_actividades.map((actividad) => (
               <article key={actividad.id} className="overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm">
