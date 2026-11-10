@@ -44,6 +44,7 @@ import Equipo from './components/pages/Equipo';
 import PerfilEquipo from './components/pages/PerfilEquipo';
 import AdminEquipo from './components/Admin/AdminEquipo';
 import CarteleraPage from './components/Cartelera/CarteleraPage';
+import AgendaPage from './components/Cartelera/AgendaPage';
 import ScrollToTop from './components/ScrollToTop';
 import AvisoNuevaVersion from './components/AvisoNuevaVersion';
 import TituloPagina from './components/TituloPagina';
@@ -91,6 +92,7 @@ export default function App() {
 
         {/* Cartelera a pantalla completa, con su propio diseño oscuro */}
         <Route path="/cartelera" element={<CarteleraPage />} />
+        <Route path="/agendapage" element={<AgendaPage />} />
 
        
           {/* === RUTAS DEL DASHBOARD (Privadas, con Sidebar) === */}

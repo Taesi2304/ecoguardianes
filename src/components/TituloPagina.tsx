@@ -27,6 +27,7 @@ const PUBLICAS: Record<string, MetaPagina> = {
   '/talleres': { titulo: 'Talleres', descripcion: 'Talleres del Festival del Medio Ambiente: consulta fechas y regístrate.' },
   '/calendario': { titulo: 'Calendario', descripcion: 'Calendario de actividades del Festival del Medio Ambiente.' },
   '/cartelera': { titulo: 'Cartelera', descripcion: 'Cartelera del Festival del Medio Ambiente.' },
+  '/agendapage': { titulo: 'Agenda Anual', descripcion: 'Próximas actividades de Eco Guardianes.' },
   '/directorio': { titulo: 'Directorio', descripcion: 'Conoce al equipo que organiza el Festival del Medio Ambiente: sus áreas, trayectoria y proyectos.' },
 };
 

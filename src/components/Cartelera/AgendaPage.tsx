@@ -74,26 +74,26 @@ export default function AgendaPage() {
         <NavCartelera edicion={null} />
         <header className="px-2 pb-10 pt-10 text-center">
         <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-white/75">Eco Guardianes</p>
-        <h1 className="text-4xl font-extrabold text-white md:text-5xl">Agenda Anual - Cartelera </h1>
+        <h1 className="text-4xl font-extrabold text-white md:text-5xl">Agenda y carteleras del festival</h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80">
-          Talleres, cursos, eventos y convocatorias para participar durante todo el año.
+          Consulta las próximas actividades o revisa las ediciones anteriores del festival.
         </p>
         <nav aria-label="Sección de cartelera" className="mx-auto mt-7 flex w-fit flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-[#0c1f16]/85 p-1.5 shadow-lg backdrop-blur-md">
           <Link
-            to="/cartelera?agenda=1"
+            to="/agendapage"
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${!verEdiciones ? 'bg-white/90 text-[#1a1716]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
           >
-            Agenda anual
+            Agenda Anual
           </Link>
           <Link
-            to="/cartelera?ediciones=1"
+            to="/agendapage?ediciones=1"
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${verEdiciones ? 'bg-white/90 text-[#1a1716]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
           >
-           Cartelera de Ediciones anteriores
+           Ediciones anteriores
           </Link>
         </nav>
         <p className="mx-auto mt-3 max-w-xl text-sm text-white/60">
-          {verEdiciones ? 'Consulta las carteleras de festivales anteriores.' : 'La agenda se actualiza durante todo el año.'}
+          {verEdiciones ? 'Consulta las carteleras de festivales anteriores.' : 'Talleres, cursos, eventos y convocatorias durante todo el año.'}
         </p>
         </header>
 
