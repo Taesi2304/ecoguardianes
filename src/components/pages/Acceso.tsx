@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { LogIn, UserPlus } from 'lucide-react';
 import { Login } from './Login';
@@ -11,9 +11,13 @@ export default function Acceso() {
   const modoInicial = parametros.get('modo') === 'registro' ? 'registro' : 'login';
   const [modo, setModo] = useState<ModoAcceso>(modoInicial);
 
+  useEffect(() => {
+    setModo(parametros.get('modo') === 'registro' ? 'registro' : 'login');
+  }, [parametros]);
+
   function cambiarModo(nuevoModo: ModoAcceso) {
     setModo(nuevoModo);
-    setParametros({ modo: nuevoModo });
+    setParametros({ modo: nuevoModo }, { replace: true });
   }
 
   return (
@@ -21,7 +25,7 @@ export default function Acceso() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 text-center">
           <h1 className="section-title text-4xl">Acceso a Eco Guardianes</h1>
-          <p className="mt-2 font-medium text-[#4A2E18]/70">Elige cómo quieres continuar.</p>
+          <p className="mt-3 text-lg font-bold text-[#4A2E18] sm:text-xl">Elige una opción para continuar:</p>
         </div>
 
         <div className="mx-auto mb-4 flex max-w-md rounded-full border border-[#2D7A3E]/20 bg-white/70 p-1.5 shadow-sm" role="tablist" aria-label="Tipo de acceso">
@@ -45,7 +49,7 @@ export default function Acceso() {
           </button>
         </div>
 
-        {modo === 'login' ? <Login embedded /> : <Registro embedded />}
+        {modo === 'login' ? <Login key="login" embedded /> : <Registro key="registro" embedded />}
 
         <p className="mt-2 text-center text-sm font-medium text-[#4A2E18]/70">
           <Link to="/manuales" className="font-bold text-[#2D7A3E] hover:underline">¿Necesitas ayuda? Consulta el manual</Link>

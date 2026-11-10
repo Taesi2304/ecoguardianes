@@ -1,10 +1,10 @@
 import { BookOpen, CheckCircle2, ChevronDown, ClipboardCheck, History, HelpCircle, Leaf, LogIn, UserPlus ,PlayCircle} from 'lucide-react';
 
 const pasosCuenta = [
-  'En la pantalla de inicio, seleccione Registro.',
-  'Escriba su nombre, correo electrónico y una contraseña.',
-  'Seleccione su colonia e ingrese el código de acceso que le compartió el equipo Eco Guardianes.',
-  'Presione "Crear cuenta". Después podrá iniciar sesión con su correo y contraseña.',
+  'En la pantalla de inicio, seleccione "Crear cuenta" para abrir el acceso de Eco Guardianes.',
+  'Complete la breve encuesta y espere el código de acceso que le compartirá el equipo Eco Guardianes.',
+  'En la misma pantalla, seleccione "Ya tengo mi código" e ingrese el código recibido.',
+  'Complete sus datos, acepte los términos y presione "Completar Registro". Después podrá iniciar sesión con su correo y contraseña.',
 ];
 
 const pasosVisita = [
@@ -62,7 +62,7 @@ export default function Manuales() {
           <ListaPasos pasos={pasosCuenta} />
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="/acceso?modo=registro" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
-              <UserPlus className="h-5 w-5" aria-hidden="true" /> Ir a "Registro"
+              <UserPlus className="h-5 w-5" aria-hidden="true" /> Ir a "Crear cuenta"
             </a>
             <a href="https://drive.google.com/file/d/1TKK49tpYLj9iqS6P9gorY7YvCoKO3eMp/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-[#2d6a4f] px-5 py-3 text-base font-bold text-[#2d6a4f] transition hover:bg-[#d8ece1]">
               <PlayCircle className="h-5 w-5" aria-hidden="true" /> Ver tutorial paso a paso
@@ -75,11 +75,11 @@ export default function Manuales() {
             <div className="rounded-xl bg-[#f4e8bf] p-3 text-[#4a3728]"><LogIn className="h-7 w-7" aria-hidden="true" /></div>
             <div><p className="text-sm font-bold uppercase tracking-wide text-[#2d6a4f]">Cada vez que visite la plataforma</p><h2 id="iniciar" className="text-2xl font-bold">Iniciar sesión</h2></div>
           </div>
-          <p className="text-lg leading-relaxed">Seleccione "Iniciar sesión", escriba el correo y la contraseña que registró, y presione "Entrar".</p>
+          <p className="text-lg leading-relaxed">Abra el acceso de Eco Guardianes, seleccione "Iniciar sesión", escriba el correo y la contraseña que registró, y presione "Iniciar Sesión".</p>
           
            <div className="mt-7 flex flex-wrap gap-3">
             <a href="/acceso?modo=login" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
-              <LogIn className="h-5 w-5" aria-hidden="true" /> Ir a "Inicio de sesión"
+              <LogIn className="h-5 w-5" aria-hidden="true" /> Ir a "Iniciar sesión"
             </a>
           </div>
 

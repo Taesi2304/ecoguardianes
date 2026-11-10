@@ -140,7 +140,7 @@ export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
         </h2>
         <p className="text-[#4A2E18]/70 font-medium">
           {step === 0
-            ? 'Para crear una cuenta llena la breve encuesta para poder tener el código de acceso.'
+            ? '¿Te interesa implementar un compostero comunitario en tu colonia o ser parte de nuestra red actual?'
             : step === 1
             ? 'Ingresa el código que te proporcionaron.' 
             : 'Completa tus datos para ser una Eco Guardian'}
@@ -159,7 +159,7 @@ export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
         {step === 0 && (
           <div className="space-y-5 text-center">
             <p className="leading-relaxed text-[#4A2E18]/80">
-              ¿Te interesa implementar un compostero comunitario en tu colonia o ser parte de nuestra red actual?
+              Para crear una cuenta, llena la breve encuesta para poder tener el código de acceso.
             </p>
             <a
               href="https://docs.google.com/forms/d/e/1FAIpQLScG-OcX0Qehprh5PRyD6ThKUM1nsP9vi-msq6x_IgW6XjvKqg/viewform?usp=preview"
@@ -172,8 +172,12 @@ export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
             <p className="text-sm text-[#4A2E18]/65">
               Después de llenar la encuesta y recibir tu código, continúa con el registro.
             </p>
-            <button type="button" onClick={() => setStep(1)} className="font-bold text-[#2D7A3E] hover:underline">
-              Ya tengo mi código: continuar con el registro
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="group flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#2D7A3E] bg-white px-5 py-3 font-extrabold text-[#2D7A3E] shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#2D7A3E] hover:text-white hover:shadow-lg"
+            >
+              Ya tengo mi código <span className="transition-transform group-hover:translate-x-1">→</span>
             </button>
           </div>
         )}
