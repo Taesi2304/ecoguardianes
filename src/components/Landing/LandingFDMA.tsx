@@ -74,6 +74,23 @@ interface Publicacion {
   fecha_publicacion: string;
 }
 
+interface FdmaActividad {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  fecha: string | null;
+  imagenes: string[];
+  enlace_url: string | null;
+}
+
+interface FdmaSeccion {
+  id: string;
+  anio: number;
+  titulo: string;
+  descripcion: string;
+  fdma_actividades: FdmaActividad[];
+}
+
 export const LandingFDMA = () => {
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
   const [cargandoConvocatorias, setCargandoConvocatorias] = useState(true);
@@ -87,6 +104,7 @@ export const LandingFDMA = () => {
   const [tallerSeleccionado, setTallerSeleccionado] = useState<TallerPublico | null>(null);
   const [cartelAbierto, setCartelAbierto] = useState<Convocatoria | null>(null);
   const [eventosSemana, setEventosSemana] = useState<EventoCalendario[]>([]);
+  const [fdma, setFdma] = useState<FdmaSeccion | null>(null);
 
   const cargarTalleres = useCallback(() => supabase
     .from('talleres_publicos')
@@ -158,6 +176,16 @@ export const LandingFDMA = () => {
     cargarAliados();
     cargarConvocatorias();
     cargarPublicaciones();
+    supabase
+      .from('fdma_secciones')
+      .select('id, anio, titulo, descripcion, fdma_actividades(id, titulo, descripcion, fecha, imagenes, enlace_url)')
+      .eq('activo', true)
+      .order('anio', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setFdma(data as FdmaSeccion);
+      });
   }, [cargarTalleres]);
 
   return (
@@ -346,6 +374,28 @@ export const LandingFDMA = () => {
                   )}
                   </section>
                   )}
+      {fdma && fdma.fdma_actividades.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
+          <div className="mb-7 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#2d6a4f]">Edición {fdma.anio}</p>
+            <h3 className="mt-1 text-2xl font-bold text-[#4a3728] md:text-3xl">{fdma.titulo || `FDMA ${fdma.anio}`}</h3>
+            {fdma.descripcion && <p className="mx-auto mt-2 max-w-3xl text-[#4a3728]/75">{fdma.descripcion}</p>}
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {fdma.fdma_actividades.map((actividad) => (
+              <article key={actividad.id} className="overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm">
+                {actividad.imagenes[0] && <img src={actividad.imagenes[0]} alt="" className="h-48 w-full object-cover" loading="lazy" />}
+                <div className="p-5">
+                  {actividad.fecha && <p className="text-sm font-bold uppercase tracking-wide text-[#2d6a4f]">{new Date(`${actividad.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}</p>}
+                  <h4 className="mt-1 text-xl font-bold text-[#4a3728]">{actividad.titulo}</h4>
+                  {actividad.descripcion && <p className="mt-2 text-[#4a3728]/75">{actividad.descripcion}</p>}
+                  {actividad.enlace_url && <a href={actividad.enlace_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver actividad</a>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
       {/* Últimas publicaciones de FB / IG (se administran en /admin/publicaciones) */}
       {pagina.mostrar_publicaciones && (
       <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">

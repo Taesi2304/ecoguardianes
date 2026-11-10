@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, ChevronDown, ExternalLink, Loader2, Save, Undo2 } from 'lucide-react';
+import { AlertCircle, ChevronDown, ExternalLink, Loader2, Plus, Save, Trash2, Undo2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,11 +33,24 @@ const TEXTOS: { campo: 'titulo' | 'subtitulo' | 'descripcion'; nombre: string }[
   { campo: 'descripcion', nombre: 'Descripción' },
 ];
 
+type FdmaSeccion = { id: string; anio: number; titulo: string; descripcion: string; activo: boolean };
+type FdmaActividad = { id: string; seccion_id: string; titulo: string; descripcion: string; fecha: string | null; imagenes: string[]; enlace_url: string | null };
+
 // Lista legible de lo que cambió respecto a lo guardado, para confirmar antes de publicar
 function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
   const cambios: string[] = [];
   for (const { campo, nombre } of SECCIONES) {
     if (campo in actual && !!original[campo] !== !!actual[campo]) cambios.push(`${actual[campo] ? 'Mostrar' : 'Ocultar'} «${nombre}»`);
+  }
+
+  async function subirImagenActividad(id: string, archivo: File) {
+    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const ruta = `actividades/${crypto.randomUUID()}.${extension}`;
+    const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+    if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
+    const url = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
+    setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? { ...item, imagenes: [url] } : item));
+    toast.success('Imagen cargada. Pulsa Guardar para publicar el cambio.');
   }
   for (const { campo, nombre } of TEXTOS) {
     if (original[campo].trim() !== actual[campo].trim()) cambios.push(`Cambiar ${nombre.toLowerCase()}`);
@@ -51,6 +64,12 @@ export default function AdminPaginaInicio() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fdmaSecciones, setFdmaSecciones] = useState<FdmaSeccion[]>([]);
+  const [fdmaActividades, setFdmaActividades] = useState<FdmaActividad[]>([]);
+  const [fdmaForm, setFdmaForm] = useState({ anio: new Date().getFullYear(), titulo: '', descripcion: '', activo: true });
+  const [actividadForm, setActividadForm] = useState({ titulo: '', descripcion: '', fecha: '', imagen: '', archivo: null as File | null, enlace_url: '' });
+  const [fdmaSeleccionada, setFdmaSeleccionada] = useState<string | null>(null);
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState(true);
 
   useEffect(() => {
     const cargarPagina = async () => {
@@ -71,7 +90,73 @@ export default function AdminPaginaInicio() {
     };
 
     cargarPagina();
+    void cargarFdma();
   }, []);
+
+  async function cargarFdma() {
+    const { data: secciones } = await supabase.from('fdma_secciones').select('id, anio, titulo, descripcion, activo').order('anio', { ascending: false });
+    const lista = (secciones || []) as FdmaSeccion[];
+    setFdmaSecciones(lista);
+    if (lista[0]) {
+      setFdmaSeleccionada(lista[0].id);
+      setFdmaForm({ anio: lista[0].anio, titulo: lista[0].titulo, descripcion: lista[0].descripcion, activo: lista[0].activo });
+      const { data: actividades } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', lista[0].id).order('orden');
+      setFdmaActividades((actividades || []) as FdmaActividad[]);
+    }
+  }
+
+  async function guardarFdmaSeccion() {
+    const payload = { anio: Number(fdmaForm.anio), titulo: fdmaForm.titulo.trim() || `FDMA ${fdmaForm.anio}`, descripcion: fdmaForm.descripcion.trim(), activo: fdmaForm.activo };
+    const resultado = fdmaSeleccionada
+      ? await supabase.from('fdma_secciones').update(payload).eq('id', fdmaSeleccionada).select().single()
+      : await supabase.from('fdma_secciones').insert(payload).select().single();
+    if (resultado.error) { toast.error(`No se pudo guardar FDMA: ${resultado.error.message}`); return; }
+    toast.success('Edición FDMA guardada.');
+    await cargarFdma();
+  }
+
+  async function seleccionarFdma(seccion: FdmaSeccion) {
+    setFdmaSeleccionada(seccion.id);
+    setFdmaForm({ anio: seccion.anio, titulo: seccion.titulo, descripcion: seccion.descripcion, activo: seccion.activo });
+    const { data } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', seccion.id).order('orden');
+    setFdmaActividades((data || []) as FdmaActividad[]);
+  }
+
+  async function guardarActividad(actividad: FdmaActividad) {
+    const { error: errorActividad } = await supabase.from('fdma_actividades').update({
+      titulo: actividad.titulo.trim(), descripcion: actividad.descripcion.trim(), fecha: actividad.fecha || null,
+      imagenes: actividad.imagenes, enlace_url: actividad.enlace_url?.trim() || null,
+    }).eq('id', actividad.id);
+    if (errorActividad) toast.error(`No se pudo actualizar: ${errorActividad.message}`);
+    else toast.success('Actividad actualizada.');
+  }
+
+  async function eliminarActividad(id: string) {
+    if (!window.confirm('¿Eliminar esta actividad?')) return;
+    const { error: errorActividad } = await supabase.from('fdma_actividades').delete().eq('id', id);
+    if (errorActividad) toast.error(`No se pudo eliminar: ${errorActividad.message}`);
+    else { setFdmaActividades((actuales) => actuales.filter((actividad) => actividad.id !== id)); toast.success('Actividad eliminada.'); }
+  }
+
+  async function agregarActividad() {
+    if (!fdmaSeleccionada || !actividadForm.titulo.trim()) { toast.error('Selecciona una edición y escribe el título de la actividad.'); return; }
+    let imagen = actividadForm.imagen.trim();
+    if (actividadForm.archivo) {
+      const extension = actividadForm.archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const ruta = `actividades/${crypto.randomUUID()}.${extension}`;
+      const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, actividadForm.archivo, { contentType: actividadForm.archivo.type, upsert: false });
+      if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
+      imagen = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
+    }
+    const { error: errorActividad } = await supabase.from('fdma_actividades').insert({
+      seccion_id: fdmaSeleccionada, titulo: actividadForm.titulo.trim(), descripcion: actividadForm.descripcion.trim(),
+      fecha: actividadForm.fecha || null, imagenes: imagen ? [imagen] : [], enlace_url: actividadForm.enlace_url.trim() || null,
+    });
+    if (errorActividad) { toast.error(`No se pudo agregar la actividad: ${errorActividad.message}`); return; }
+    toast.success('Actividad agregada.');
+    setActividadForm({ titulo: '', descripcion: '', fecha: '', imagen: '', archivo: null, enlace_url: '' });
+    await cargarFdma();
+  }
 
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
@@ -144,26 +229,86 @@ export default function AdminPaginaInicio() {
       </div>
 
       <Card className="border-transparent bg-white shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 px-6 py-4"><CardTitle className="text-lg text-gray-800">Secciones visibles</CardTitle></CardHeader>
-        <CardContent className="divide-y divide-gray-100 p-0">
-          {SECCIONES.filter(({ campo }) => campo in pagina).map(({ campo, nombre, detalle }) => (
-            <div key={campo} className="flex items-center justify-between gap-4 px-6 py-4">
-              <div>
-                <p className="font-semibold text-gray-900">{nombre}</p>
-                <p className="text-sm text-gray-500">{detalle}</p>
+        <CardHeader className="border-b bg-gray-50/50 p-0">
+          <button
+            type="button"
+            onClick={() => setSeccionesAbiertas((abierta) => !abierta)}
+            aria-expanded={seccionesAbiertas}
+            className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left hover:bg-gray-100/70"
+          >
+            <CardTitle className="text-lg text-gray-800">Secciones visibles</CardTitle>
+            <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${seccionesAbiertas ? 'rotate-180' : ''}`} />
+          </button>
+        </CardHeader>
+        {seccionesAbiertas && (
+          <CardContent className="divide-y divide-gray-100 p-0">
+            {SECCIONES.filter(({ campo }) => campo in pagina).map(({ campo, nombre, detalle }) => (
+              <div key={campo} className="flex items-center justify-between gap-4 px-6 py-4">
+                <div>
+                  <p className="font-semibold text-gray-900">{nombre}</p>
+                  <p className="text-sm text-gray-500">{detalle}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!!pagina[campo]}
+                  aria-label={`Mostrar ${nombre}`}
+                  onClick={() => alternarSeccion(campo)}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${pagina[campo] ? 'bg-green-600' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${pagina[campo] ? 'left-6' : 'left-1'}`} />
+                </button>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!!pagina[campo]}
-                aria-label={`Mostrar ${nombre}`}
-                onClick={() => alternarSeccion(campo)}
-                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${pagina[campo] ? 'bg-green-600' : 'bg-gray-300'}`}
-              >
-                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${pagina[campo] ? 'left-6' : 'left-1'}`} />
-              </button>
+            ))}
+          </CardContent>
+        )}
+      </Card>
+
+      <Card className="border-transparent bg-white shadow-sm">
+        <CardHeader className="border-b bg-gray-50/50 px-6 py-4">
+          <CardTitle className="text-lg text-gray-800">Ediciones FDMA</CardTitle>
+          <p className="text-sm text-gray-500">Crea FDMA 2024, 2025, 2026 o cualquier edición futura y agrega sus actividades.</p>
+        </CardHeader>
+        <CardContent className="space-y-5 px-6 py-5">
+          <div className="flex flex-wrap gap-2">
+            {fdmaSecciones.map((seccion) => (
+              <button type="button" key={seccion.id} onClick={() => void seleccionarFdma(seccion)} className={`rounded-full px-4 py-2 text-sm font-bold ${fdmaSeleccionada === seccion.id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}`}>FDMA {seccion.anio}</button>
+            ))}
+            <button type="button" onClick={() => { setFdmaSeleccionada(null); setFdmaForm({ anio: new Date().getFullYear(), titulo: '', descripcion: '', activo: true }); setFdmaActividades([]); }} className="rounded-full border border-dashed border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Nueva edición</button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="text-sm font-semibold text-gray-700">Año<input type="number" value={fdmaForm.anio} onChange={(e) => setFdmaForm({ ...fdmaForm, anio: Number(e.target.value) })} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+            <label className="text-sm font-semibold text-gray-700">Título<input value={fdmaForm.titulo} onChange={(e) => setFdmaForm({ ...fdmaForm, titulo: e.target.value })} placeholder={`FDMA ${fdmaForm.anio}`} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+          </div>
+          <label className="block text-sm font-semibold text-gray-700">Descripción<textarea value={fdmaForm.descripcion} onChange={(e) => setFdmaForm({ ...fdmaForm, descripcion: e.target.value })} rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={fdmaForm.activo} onChange={(e) => setFdmaForm({ ...fdmaForm, activo: e.target.checked })} className="h-4 w-4 accent-green-600" /> Mostrar esta edición en la página pública</label>
+          <button type="button" onClick={() => void guardarFdmaSeccion()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Guardar edición</button>
+          {fdmaSeleccionada && <div className="space-y-3 border-t pt-4">
+            <h3 className="font-bold text-gray-800">Actividades ({fdmaActividades.length})</h3>
+            {fdmaActividades.map((actividad) => <div key={actividad.id} className="space-y-2 rounded-lg bg-gray-50 p-3">
+              <div className="grid gap-2 md:grid-cols-2">
+                <input value={actividad.titulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, titulo: e.target.value } : item))} className="rounded-lg border px-3 py-2 text-sm" />
+                <input type="date" value={actividad.fecha || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, fecha: e.target.value || null } : item))} className="rounded-lg border px-3 py-2 text-sm" />
+                <input value={actividad.imagenes[0] || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: e.target.value ? [e.target.value] : [] } : item))} placeholder="URL de imagen" className="rounded-lg border px-3 py-2 text-sm" />
+                <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenActividad(actividad.id, archivo); }} className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                <input value={actividad.enlace_url || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, enlace_url: e.target.value } : item))} placeholder="URL opcional" className="rounded-lg border px-3 py-2 text-sm" />
+              </div>
+              <textarea value={actividad.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, descripcion: e.target.value } : item))} rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar</button>
+                <button type="button" onClick={() => void eliminarActividad(actividad.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Eliminar</button>
+              </div>
+            </div>)}
+            <div className="grid gap-3 md:grid-cols-2">
+              <input value={actividadForm.titulo} onChange={(e) => setActividadForm({ ...actividadForm, titulo: e.target.value })} placeholder="Título de actividad" className="rounded-lg border px-3 py-2" />
+              <input type="date" value={actividadForm.fecha} onChange={(e) => setActividadForm({ ...actividadForm, fecha: e.target.value })} className="rounded-lg border px-3 py-2" />
+              <input value={actividadForm.imagen} onChange={(e) => setActividadForm({ ...actividadForm, imagen: e.target.value })} placeholder="URL de imagen (opcional)" className="rounded-lg border px-3 py-2" />
+              <input type="file" accept="image/*" onChange={(e) => setActividadForm({ ...actividadForm, archivo: e.target.files?.[0] || null })} className="rounded-lg border bg-white px-3 py-2" />
+              <input value={actividadForm.enlace_url} onChange={(e) => setActividadForm({ ...actividadForm, enlace_url: e.target.value })} placeholder="URL opcional" className="rounded-lg border px-3 py-2" />
             </div>
-          ))}
+            <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            <button type="button" onClick={() => void agregarActividad()} className="rounded-lg border border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Agregar actividad</button>
+          </div>}
         </CardContent>
       </Card>
 
