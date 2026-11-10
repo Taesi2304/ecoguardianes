@@ -455,16 +455,15 @@ export const LandingFDMA = () => {
       {tallerSeleccionado && (
         <ModalRegistroTaller taller={tallerSeleccionado} onCerrar={() => setTallerSeleccionado(null)} onRegistrado={cargarTalleres} />
       )}
-                  {pagina.mostrar_convocatorias && (
-                  <section className="mx-auto mt-0 w-full max-w-7xl px-4 pt-6 sm:px-8">
-                  <h3 className="mb-8 text-center text-2xl font-bold text-[#4a3728] md:text-3xl">Convocatorias</h3>
+                  {pagina.mostrar_convocatorias && !cargandoConvocatorias && convocatorias.length > 0 && (
+                  <section id="convocatorias" className="mx-auto mt-0 w-full max-w-7xl scroll-mt-24 px-4 pt-6 sm:px-8">
+                  <h3 className="mb-8 text-center text-2xl font-bold text-[#4a3728] md:text-3xl">
+                    <a href="/#convocatorias" className="transition-colors hover:text-[#2d6a4f]" aria-label="Enlace a Convocatorias">
+                      Convocatorias
+                    </a>
+                  </h3>
                   
-                  {cargandoConvocatorias ? (
-                    <p className="text-center text-[#4a3728]/70">Cargando convocatorias...</p>
-                  ) : convocatorias.length === 0 ? (
-                    <p className="text-center text-[#4a3728]/70">Próximamente habrá nuevas convocatorias.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                       {convocatorias.map((convocatoria) => (
                         <article 
                           key={convocatoria.id} 
@@ -507,8 +506,7 @@ export const LandingFDMA = () => {
                           </div>
                         </article>
                       ))}
-                    </div>
-                  )}
+                  </div>
                   {cartelAbierto && (
                     <VisorImagenes fotos={[cartelAbierto.imagen_url]} indice={0} nombre={cartelAbierto.titulo} onCambiar={() => {}} onCerrar={() => setCartelAbierto(null)} />
                   )}
