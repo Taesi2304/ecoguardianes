@@ -203,7 +203,7 @@ export const LandingFDMA = () => {
         </div>
 
         <div className="flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
-            <Link to="/agendapage" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
+            <Link to="/agenda" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
             Agenda Anual
             </Link>
             {pagina.mostrar_talleres && (

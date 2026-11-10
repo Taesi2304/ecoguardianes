@@ -80,13 +80,13 @@ export default function AgendaPage() {
         </p>
         <nav aria-label="Sección de cartelera" className="mx-auto mt-7 flex w-fit flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-[#0c1f16]/85 p-1.5 shadow-lg backdrop-blur-md">
           <Link
-            to="/agendapage"
+            to="/agenda"
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${!verEdiciones ? 'bg-white/90 text-[#1a1716]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
           >
             Agenda Anual
           </Link>
           <Link
-            to="/agendapage?ediciones=1"
+            to="/agenda?ediciones=1"
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${verEdiciones ? 'bg-white/90 text-[#1a1716]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
           >
            Ediciones anteriores

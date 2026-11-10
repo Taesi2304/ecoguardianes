@@ -92,7 +92,7 @@ export default function App() {
 
         {/* Cartelera a pantalla completa, con su propio diseño oscuro */}
         <Route path="/cartelera" element={<CarteleraPage />} />
-        <Route path="/agendapage" element={<AgendaPage />} />
+        <Route path="/agenda" element={<AgendaPage />} />
 
        
           {/* === RUTAS DEL DASHBOARD (Privadas, con Sidebar) === */}
