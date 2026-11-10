@@ -247,7 +247,7 @@ function CarteleraHistoricaPage() {
         <h1 className="mb-3 truncate text-center text-xs font-medium uppercase tracking-[0.2em] text-white/80 sm:text-sm">{edicion?.nombre ?? 'Cartelera del festival'}</h1>
         <div className="mb-5 flex flex-wrap justify-center gap-2">
           <Link to="/agenda" className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/25">Agenda Anual</Link>
-          <Link to="/cartelera?ediciones=1" className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/25">Cartelera de Ediciones Anteriores</Link>
+          <Link to="/cartelera?ediciones=1" className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/25">Ediciones Anteriores</Link>
         </div>
 
         {edicion && !edicion.es_actual && (
