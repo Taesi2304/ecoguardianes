@@ -34,7 +34,7 @@ const TEXTOS: { campo: 'titulo' | 'subtitulo' | 'descripcion'; nombre: string }[
 ];
 
 type FdmaSeccion = { id: string; anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
-type FdmaGanador = { lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string };
+type FdmaGanador = { lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string; imagen: string };
 type FdmaActividad = { id: string; seccion_id: string; titulo: string; subtitulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
 
 // Lista legible de lo que cambió respecto a lo guardado, para confirmar antes de publicar
@@ -42,6 +42,25 @@ function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
   const cambios: string[] = [];
   for (const { campo, nombre } of SECCIONES) {
     if (campo in actual && !!original[campo] !== !!actual[campo]) cambios.push(`${actual[campo] ? 'Mostrar' : 'Ocultar'} «${nombre}»`);
+  }
+
+  function actualizarGanador(id: string, indice: number, campo: keyof FdmaGanador, valor: string) {
+    setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id
+      ? { ...actividad, ganadores: actividad.ganadores.map((ganador, posicion) => posicion === indice ? { ...ganador, [campo]: valor } : ganador) }
+      : actividad));
+  }
+
+  function agregarGanadores(id: string) {
+    setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id ? { ...actividad, ganadores: crearGanadores() } : actividad));
+  }
+
+  async function subirImagenGanador(id: string, indice: number, archivo: File) {
+    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const ruta = `ganadores/${crypto.randomUUID()}.${extension}`;
+    const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+    if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
+    actualizarGanador(id, indice, 'imagen', supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
+    toast.success('Imagen del lugar cargada. Pulsa Guardar.');
   }
 
   for (const { campo, nombre } of TEXTOS) {
@@ -161,7 +180,14 @@ export default function AdminPaginaInicio() {
       imagenes: actividad.imagenes, videos: actividad.videos, pdfs: actividad.pdfs, ganadores: actividad.ganadores, enlace_url: actividad.enlace_url?.trim() || null,
     }).eq('id', actividad.id);
     if (errorActividad) toast.error(`No se pudo actualizar: ${errorActividad.message}`);
-    else toast.success('Actividad actualizada.');
+    else {
+      toast.success('Actividad actualizada.');
+      await seleccionarFdma(fdmaSecciones.find((seccion) => seccion.id === fdmaSeleccionada) || { id: fdmaSeleccionada!, anio: 0, titulo: '', subtitulo: '', descripcion: '', activo: true });
+    }
+  }
+
+  function crearGanadores() {
+    return [1, 2, 3].map((lugar) => ({ lugar, proyecto: '', participantes: '', asesor: '', organizacion: '', contacto: '', descripcion: '', imagen: '' }));
   }
 
   async function eliminarActividad(id: string) {
@@ -193,7 +219,7 @@ export default function AdminPaginaInicio() {
     }
     const { error: errorActividad } = await supabase.from('fdma_actividades').insert({
       seccion_id: fdmaSeleccionada, titulo: actividadForm.titulo.trim(), subtitulo: actividadForm.subtitulo.trim(), descripcion: actividadForm.descripcion.trim(),
-      fecha: actividadForm.fecha || null, imagenes, videos, pdfs, ganadores: actividadForm.ganadores ? [1, 2, 3].map((lugar) => ({ lugar, proyecto: '', participantes: '', asesor: '', organizacion: '', contacto: '', descripcion: '' })) : [], enlace_url: actividadForm.enlace_url.trim() || null,
+      fecha: actividadForm.fecha || null, imagenes, videos, pdfs, ganadores: actividadForm.ganadores ? crearGanadores() : [], enlace_url: actividadForm.enlace_url.trim() || null,
     });
     if (errorActividad) { toast.error(`No se pudo agregar la actividad: ${errorActividad.message}`); return; }
     toast.success('Actividad agregada.');
@@ -341,12 +367,12 @@ export default function AdminPaginaInicio() {
                 <input value={actividad.subtitulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, subtitulo: e.target.value } : item))} placeholder="Subtítulo: fecha o frase breve" className="rounded-lg border px-3 py-2 text-sm" />
                 <input type="date" value={actividad.fecha || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, fecha: e.target.value || null } : item))} className="rounded-lg border px-3 py-2 text-sm" />
                 <textarea value={actividad.imagenes.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Fotos: una URL por línea" rows={2} className="rounded-lg border px-3 py-2 text-sm" />
-                <input type="file" accept="image/*,video/*,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                <label className="flex items-center rounded-lg border bg-white px-3 py-2 text-xs text-gray-500">Agregar fotos, videos o PDFs<input type="file" accept="image/*,video/*,.pdf,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="ml-2 min-w-0 text-xs text-gray-700" /></label>
                 <input value={actividad.enlace_url || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, enlace_url: e.target.value } : item))} placeholder="URL opcional" className="rounded-lg border px-3 py-2 text-sm" />
               </div>
               <textarea value={actividad.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, descripcion: e.target.value } : item))} rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
-              <textarea value={actividad.videos.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Videos: una URL por línea (YouTube, Vimeo o Storage)" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
-              <textarea value={actividad.pdfs.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, pdfs: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="PDF: una URL por línea" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <textarea value={actividad.videos.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Enlaces de videos: una URL por línea (YouTube, Vimeo o Storage)" aria-label="Enlaces de videos" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <textarea value={actividad.pdfs.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, pdfs: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Enlaces de documentos PDF: una URL por línea" aria-label="Enlaces de documentos PDF" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
               <p className="text-xs text-gray-500">Carrete: {actividad.imagenes.length} foto(s) y {actividad.videos.length} video(s).</p>
               <div className="flex flex-wrap gap-3">
                 {actividad.imagenes.map((url, indice) => <div key={url} className="relative h-20 w-24 overflow-hidden rounded-lg border bg-white shadow-sm"><img src={url} alt={`Foto ${indice + 1}`} className="h-full w-full object-cover" /><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'imagenes', indice)} aria-label={`Quitar foto ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><span className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 text-center text-[10px] text-white">Foto {indice + 1}</span></div>)}
@@ -356,16 +382,22 @@ export default function AdminPaginaInicio() {
               {actividad.ganadores.length > 0 && <div className="space-y-2 rounded-lg border border-green-100 bg-green-50 p-3">
                 <p className="text-sm font-bold text-green-800">Ganadores de la Feria de Proyectos</p>
                 {actividad.ganadores.map((ganador, indice) => (
-                  <div key={ganador.lugar} className="grid gap-2 md:grid-cols-2">
-                    <input value={ganador.proyecto} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, proyecto: e.target.value } : g) } : item))} placeholder={`${ganador.lugar}.º lugar — proyecto`} className="rounded border px-2 py-1 text-sm" />
-                    <input value={ganador.participantes} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, participantes: e.target.value } : g) } : item))} placeholder="Participantes" className="rounded border px-2 py-1 text-sm" />
-                    <input value={ganador.asesor} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, asesor: e.target.value } : g) } : item))} placeholder="Asesor" className="rounded border px-2 py-1 text-sm" />
-                    <input value={ganador.organizacion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, organizacion: e.target.value } : g) } : item))} placeholder="Escuela u organización" className="rounded border px-2 py-1 text-sm" />
-                    <input value={ganador.contacto} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, contacto: e.target.value } : g) } : item))} placeholder="Contacto" className="rounded border px-2 py-1 text-sm" />
-                    <input value={ganador.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, descripcion: e.target.value } : g) } : item))} placeholder="Descripción del proyecto" className="rounded border px-2 py-1 text-sm" />
+                  <div key={ganador.lugar} className="space-y-2 rounded-lg border border-green-100 bg-white p-3">
+                    <p className="text-sm font-bold text-green-800">{ganador.lugar}.º lugar</p>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <input value={ganador.proyecto} onChange={(e) => actualizarGanador(actividad.id, indice, 'proyecto', e.target.value)} placeholder="Nombre del proyecto" className="rounded border px-2 py-1 text-sm" />
+                      <input value={ganador.participantes} onChange={(e) => actualizarGanador(actividad.id, indice, 'participantes', e.target.value)} placeholder="Participantes" className="rounded border px-2 py-1 text-sm" />
+                      <input value={ganador.asesor} onChange={(e) => actualizarGanador(actividad.id, indice, 'asesor', e.target.value)} placeholder="Asesor" className="rounded border px-2 py-1 text-sm" />
+                      <input value={ganador.organizacion} onChange={(e) => actualizarGanador(actividad.id, indice, 'organizacion', e.target.value)} placeholder="Escuela u organización" className="rounded border px-2 py-1 text-sm" />
+                      <input value={ganador.contacto} onChange={(e) => actualizarGanador(actividad.id, indice, 'contacto', e.target.value)} placeholder="Contacto" className="rounded border px-2 py-1 text-sm" />
+                      <input value={ganador.descripcion} onChange={(e) => actualizarGanador(actividad.id, indice, 'descripcion', e.target.value)} placeholder="Descripción del proyecto" className="rounded border px-2 py-1 text-sm" />
+                    </div>
+                    {ganador.imagen && <img src={ganador.imagen} alt={`Imagen del ${ganador.lugar}.º lugar`} className="h-24 w-32 rounded object-cover" />}
+                    <label className="flex items-center rounded border bg-gray-50 px-2 py-1 text-xs text-gray-500">Imagen del proyecto<input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); }} className="ml-2 min-w-0 text-xs text-gray-700" /></label>
                   </div>
                 ))}
               </div>}
+              {actividad.ganadores.length === 0 && <button type="button" onClick={() => agregarGanadores(actividad.id)} className="rounded-lg border border-green-600 px-3 py-1.5 text-xs font-bold text-green-700">Agregar información de los 3 lugares</button>}
               <div className="flex gap-2">
                 <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar</button>
                 <button type="button" onClick={() => void eliminarActividad(actividad.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Eliminar</button>
@@ -381,9 +413,9 @@ export default function AdminPaginaInicio() {
             </div>
             <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
             {archivosVista.length > 0 && <div className="rounded-lg border border-green-100 bg-green-50 p-3"><p className="mb-2 text-sm font-bold text-green-800">Archivos seleccionados: se subirán al pulsar “Agregar actividad”</p><div className="flex flex-wrap gap-3">{archivosVista.map(({ archivo, url }, indice) => <div key={url} className="relative w-32">{archivo.type.startsWith('video/') ? <video src={url} controls className="h-20 w-full rounded object-cover" /> : <img src={url} alt={archivo.name} className="h-20 w-full rounded object-cover" />}<button type="button" onClick={() => setActividadForm((actual) => ({ ...actual, archivos: actual.archivos.filter((_, posicion) => posicion !== indice) }))} aria-label={`Quitar ${archivo.name}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><p className="truncate text-xs text-gray-600">{archivo.name}</p></div>)}</div></div>}
-            <textarea value={actividadForm.videos} onChange={(e) => setActividadForm({ ...actividadForm, videos: e.target.value })} placeholder="Videos: una URL por línea (YouTube, Vimeo o Storage)" rows={2} className="w-full rounded-lg border px-3 py-2" />
-            <textarea value={actividadForm.pdfs} onChange={(e) => setActividadForm({ ...actividadForm, pdfs: e.target.value })} placeholder="PDF: una URL por línea (opcional)" rows={2} className="w-full rounded-lg border px-3 py-2" />
-            <input type="file" accept="application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="rounded-lg border bg-white px-3 py-2" />
+            <textarea value={actividadForm.videos} onChange={(e) => setActividadForm({ ...actividadForm, videos: e.target.value })} placeholder="Enlaces de videos: una URL por línea (YouTube, Vimeo o Storage)" aria-label="Enlaces de videos" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            <textarea value={actividadForm.pdfs} onChange={(e) => setActividadForm({ ...actividadForm, pdfs: e.target.value })} placeholder="Enlaces de documentos PDF: una URL por línea (opcional)" aria-label="Enlaces de documentos PDF" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            <label className="flex items-center rounded-lg border bg-white px-3 py-2 text-xs text-gray-500">Agregar documentos PDF<input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="ml-2 min-w-0 text-xs text-gray-700" /></label>
             {actividadForm.pdfArchivos.length > 0 && <p className="text-sm text-gray-600">PDF seleccionados: {actividadForm.pdfArchivos.map((archivo) => archivo.name).join(', ')}. Se subirán al agregar la actividad.</p>}
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={actividadForm.ganadores} onChange={(e) => setActividadForm({ ...actividadForm, ganadores: e.target.checked })} className="h-4 w-4 accent-green-600" /> Incluir sección de ganadores (1.º, 2.º y 3.º lugar)</label>
             <button type="button" onClick={() => void agregarActividad()} className="rounded-lg border border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Agregar actividad</button>

@@ -84,7 +84,7 @@ interface FdmaActividad {
   imagenes: string[];
   videos: string[];
   pdfs: string[];
-  ganadores: Array<{ lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string }>;
+  ganadores: Array<{ lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string; imagen?: string }>;
   enlace_url: string | null;
 }
 
@@ -103,6 +103,13 @@ function FdmaCarrusel({ actividad }: { actividad: FdmaActividad }) {
     ...actividad.videos.map((url) => ({ url, video: true })),
   ];
   const [indice, setIndice] = useState(0);
+  const [visorIndice, setVisorIndice] = useState(0);
+  const [visorAbierto, setVisorAbierto] = useState(false);
+  useEffect(() => {
+    if (medios.length < 2) return undefined;
+    const intervalo = window.setInterval(() => setIndice((actual) => (actual + 1) % medios.length), 5000);
+    return () => window.clearInterval(intervalo);
+  }, [medios.length]);
   if (medios.length === 0) return null;
   const medio = medios[indice] || medios[0];
   const cambiar = (paso: number) => setIndice((actual) => (actual + paso + medios.length) % medios.length);
@@ -110,7 +117,7 @@ function FdmaCarrusel({ actividad }: { actividad: FdmaActividad }) {
   return (
     <div className="relative overflow-hidden bg-[#d8ece1] p-2">
       <div className="flex h-56 items-center justify-center overflow-hidden rounded-xl bg-black/10">
-        {medio.video ? <video src={medio.url} controls className="h-full w-full object-contain" /> : <img src={medio.url} alt={`${actividad.titulo} — imagen ${indice + 1}`} className="h-full w-full object-cover" loading="lazy" />}
+        {medio.video ? <video src={medio.url} controls className="h-full w-full object-contain" /> : <button type="button" onClick={() => { setVisorIndice(actividad.imagenes.indexOf(medio.url)); setVisorAbierto(true); }} className="h-full w-full cursor-zoom-in"><img src={medio.url} alt={`${actividad.titulo} — imagen ${indice + 1}`} className="h-full w-full object-cover" loading="lazy" /></button>}
       </div>
       {medios.length > 1 && <>
         <button type="button" onClick={() => cambiar(-1)} aria-label="Medio anterior" className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"><ChevronLeft className="h-5 w-5" /></button>
@@ -119,6 +126,7 @@ function FdmaCarrusel({ actividad }: { actividad: FdmaActividad }) {
           {medios.map((item, posicion) => <button key={`${item.url}-${posicion}`} type="button" onClick={() => setIndice(posicion)} aria-label={`Ver medio ${posicion + 1}`} className={`h-2 rounded-full transition-all ${posicion === indice ? 'w-6 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'}`} />)}
         </div>
       </>}
+      {visorAbierto && <VisorImagenes fotos={actividad.imagenes} indice={visorIndice} nombre={actividad.titulo} onCambiar={setVisorIndice} onCerrar={() => setVisorAbierto(false)} />}
     </div>
   );
 }
@@ -129,6 +137,14 @@ function FdmaCarruselGlobal({ actividades, anio }: { actividades: FdmaActividad[
     ...actividad.videos.map((url) => ({ url, video: true, titulo: actividad.titulo })),
   ]);
   const [indice, setIndice] = useState(0);
+  const [visorIndice, setVisorIndice] = useState(0);
+  const [visorAbierto, setVisorAbierto] = useState(false);
+  const fotosGlobales = medios.filter((item) => !item.video).map((item) => item.url);
+  useEffect(() => {
+    if (medios.length < 2) return undefined;
+    const intervalo = window.setInterval(() => setIndice((actual) => (actual + 1) % medios.length), 5000);
+    return () => window.clearInterval(intervalo);
+  }, [medios.length]);
   if (medios.length === 0) return null;
   const medio = medios[indice] || medios[0];
   const cambiar = (paso: number) => setIndice((actual) => (actual + paso + medios.length) % medios.length);
@@ -144,7 +160,7 @@ function FdmaCarruselGlobal({ actividades, anio }: { actividades: FdmaActividad[
       </div>
       <div className="relative overflow-hidden rounded-xl bg-black/10">
         <div className="flex h-72 items-center justify-center bg-[#d8ece1]">
-          {medio.video ? <video src={medio.url} controls className="h-full w-full object-contain" /> : <img src={medio.url} alt={`${medio.titulo} — imagen ${indice + 1}`} className="h-full w-full object-contain" loading="lazy" />}
+          {medio.video ? <video src={medio.url} controls className="h-full w-full object-contain" /> : <button type="button" onClick={() => { setVisorIndice(fotosGlobales.indexOf(medio.url)); setVisorAbierto(true); }} className="h-full w-full cursor-zoom-in"><img src={medio.url} alt={`${medio.titulo} — imagen ${indice + 1}`} className="h-full w-full object-contain" loading="lazy" /></button>}
         </div>
         <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-4 py-2 text-sm font-semibold text-white">{medio.titulo}</div>
         {medios.length > 1 && <>
@@ -153,6 +169,7 @@ function FdmaCarruselGlobal({ actividades, anio }: { actividades: FdmaActividad[
         </>}
       </div>
       {medios.length > 1 && <div className="mt-3 flex max-w-full gap-1.5 overflow-x-auto px-1 pb-1">{medios.map((item, posicion) => <button key={`${item.url}-${posicion}`} type="button" onClick={() => setIndice(posicion)} aria-label={`Ver ${item.titulo}, medio ${posicion + 1}`} className={`h-2 shrink-0 rounded-full transition-all ${posicion === indice ? 'w-7 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'}`} />)}</div>}
+      {visorAbierto && <VisorImagenes fotos={fotosGlobales} indice={visorIndice} nombre={`Galería FDMA ${anio}`} onCambiar={setVisorIndice} onCerrar={() => setVisorAbierto(false)} />}
     </div>
   );
 }
@@ -460,7 +477,7 @@ export const LandingFDMA = () => {
                   {actividad.descripcion && <p className="mt-2 text-[#4a3728]/75">{actividad.descripcion}</p>}
                   {actividad.videos.length > 0 && <div className="mt-4 space-y-3"><p className="text-sm font-bold text-[#2d6a4f]">Videos</p>{actividad.videos.map((video) => /\.(mp4|webm|ogg)(\?|$)/i.test(video) ? <video key={video} src={video} controls className="w-full rounded-xl" /> : <a key={video} href={video} target="_blank" rel="noreferrer" className="block truncate text-sm text-blue-700 underline">Ver video</a>)}</div>}
                   {actividad.pdfs.length > 0 && <div className="mt-4 rounded-xl border border-[#2d6a4f]/20 bg-[#f4f8f2] p-4"><p className="text-sm font-bold text-[#2d6a4f]">Documentos</p><div className="mt-2 flex flex-wrap gap-2">{actividad.pdfs.map((pdf, indice) => <a key={pdf} href={pdf} target="_blank" rel="noreferrer" className="rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver PDF{actividad.pdfs.length > 1 ? ` ${indice + 1}` : ''}</a>)}</div></div>}
-                  {actividad.ganadores.length > 0 && <div className="mt-5 rounded-xl bg-[#d8ece1] p-4"><h5 className="font-bold text-[#4a3728]">Ganadores de la Feria de Proyectos</h5><div className="mt-3 space-y-3">{actividad.ganadores.map((ganador) => <div key={ganador.lugar}><p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar{ganador.proyecto && ` — ${ganador.proyecto}`}</p>{ganador.participantes && <p className="text-sm text-[#4a3728]/75">{ganador.participantes}</p>}</div>)}</div></div>}
+                  {actividad.ganadores.length > 0 && <div className="mt-5 rounded-xl bg-[#d8ece1] p-4"><h5 className="font-bold text-[#4a3728]">Ganadores de la Feria de Proyectos</h5><div className="mt-3 grid gap-3 md:grid-cols-3">{actividad.ganadores.map((ganador) => <div key={ganador.lugar} className="rounded-xl bg-white/70 p-3"><p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar</p>{ganador.imagen && <img src={ganador.imagen} alt={`Proyecto del ${ganador.lugar}.º lugar`} className="mt-2 h-28 w-full rounded-lg object-cover" />}{ganador.proyecto && <p className="mt-2 font-semibold text-[#4a3728]">{ganador.proyecto}</p>}{ganador.participantes && <p className="mt-1 text-sm text-[#4a3728]/75"><strong>Participantes:</strong> {ganador.participantes}</p>}{ganador.asesor && <p className="text-sm text-[#4a3728]/75"><strong>Asesor:</strong> {ganador.asesor}</p>}{ganador.organizacion && <p className="text-sm text-[#4a3728]/75"><strong>Organización:</strong> {ganador.organizacion}</p>}{ganador.contacto && <p className="text-sm text-[#4a3728]/75"><strong>Contacto:</strong> {ganador.contacto}</p>}{ganador.descripcion && <p className="mt-1 text-sm text-[#4a3728]/75">{ganador.descripcion}</p>}</div>)}</div></div>}
                   {actividad.enlace_url && <a href={actividad.enlace_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver actividad</a>}
                 </div>
               </article>
