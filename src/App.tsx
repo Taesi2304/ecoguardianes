@@ -42,6 +42,7 @@ import Talleres from './components/pages/Talleres';
 import Calendario from './components/pages/Calendario';
 import Equipo from './components/pages/Equipo';
 import PerfilEquipo from './components/pages/PerfilEquipo';
+import Organigrama from './components/pages/Organigrama';
 import AdminEquipo from './components/Admin/AdminEquipo';
 import CarteleraPage from './components/Cartelera/CarteleraPage';
 import AgendaPage from './components/Cartelera/AgendaPage';
@@ -87,6 +88,7 @@ export default function App() {
           <Route path="/talleres" element={<Talleres />} />
           <Route path="/calendario" element={<Calendario />} />
           <Route path="/directorio" element={<Equipo />} />
+          <Route path="/organigrama" element={<Organigrama />} />
           <Route path="/directorio/:slug" element={<PerfilEquipo />} />
         </Route>
 
