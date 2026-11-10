@@ -88,6 +88,12 @@ export default function Equipo() {
         <p className="mx-auto max-w-2xl text-lg text-gray-700">
           Conoce a las personas que organizan el Festival del Medio Ambiente, lo que hacen y sus proyectos.
         </p>
+        <Link
+          to="/organigrama"
+          className="mt-5 inline-flex rounded-full bg-[#2d6a4f] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1b4332]"
+        >
+          Ver organigrama
+        </Link>
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-8">

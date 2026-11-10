@@ -22,6 +22,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "file-saver": "^2.0.5",
+    "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.28.0",
@@ -52,6 +53,4 @@
     "typescript-eslint": "^8.65.0",
     "vite": "^8.2.0"
   }
-
-  
 }

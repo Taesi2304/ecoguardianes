@@ -1,0 +1,56 @@
+import html2canvas from 'html2canvas';
+import type { Integrante } from './equipo';
+
+export const ORGANIGRAMA_AREAS = [
+  {
+    id: 'talento',
+    nombre: 'Coordinación de Talento y Expositores',
+    color: 'bg-[#8b5cf6]',
+    ring: 'ring-[#8b5cf6]',
+    texto: 'text-[#6d28d9]',
+    palabrasClave: ['talento', 'expositor', 'taller', 'conferencia', 'alianza'],
+  },
+  {
+    id: 'logistica',
+    nombre: 'Logística y Espacios',
+    color: 'bg-[#21a6c7]',
+    ring: 'ring-[#21a6c7]',
+    texto: 'text-[#087f9d]',
+    palabrasClave: ['logistica', 'logística', 'espacio', 'infraestructura', 'operativa', 'administracion', 'administración'],
+  },
+  {
+    id: 'comunicacion',
+    nombre: 'Comunicación y Marketing',
+    color: 'bg-[#d58b3f]',
+    ring: 'ring-[#d58b3f]',
+    texto: 'text-[#a55b16]',
+    palabrasClave: ['comunicacion', 'comunicación', 'marketing', 'redes', 'digital', 'difusion', 'difusión', 'diseño'],
+  },
+] as const;
+
+export type AreaOrganigrama = typeof ORGANIGRAMA_AREAS[number];
+
+export function agruparParaOrganigrama(integrantes: Integrante[]) {
+  return ORGANIGRAMA_AREAS.map((area) => ({
+    ...area,
+    miembros: integrantes.filter((integrante) => {
+      const nombreArea = integrante.area.toLocaleLowerCase();
+      return area.palabrasClave.some((palabra) => nombreArea.includes(palabra));
+    }),
+  }));
+}
+
+export async function exportarOrganigrama(elemento: HTMLElement, nombreArchivo = 'organigrama-fdma.png') {
+  const canvas = await html2canvas(elemento, {
+    backgroundColor: '#f8f1e4',
+    scale: Math.min(window.devicePixelRatio || 1, 2),
+    useCORS: true,
+    logging: false,
+  });
+
+  const enlace = document.createElement('a');
+  enlace.download = nombreArchivo;
+  enlace.href = canvas.toDataURL('image/png');
+  enlace.click();
+}
+
