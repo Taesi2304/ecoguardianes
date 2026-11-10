@@ -11,7 +11,7 @@ import { Bienvenida } from './Bienvenida';
 import AgendaPage from './AgendaPage';
 
 // Mientras FDMA no suba su propia foto en Admin → Cartelera → Ajustes
-const FONDO_POR_DEFECTO = '/galeria/foto3.jpeg';
+const FONDO_POR_DEFECTO = '/galeria/foto9.jpeg';
 
 // Colores de los días del cartel del festival (15, 16, 17, 18); si hay más días se repiten
 const COLORES_DIA = ['#3fb6c9', '#f2c14e', '#8bc34a', '#e07b39'];
