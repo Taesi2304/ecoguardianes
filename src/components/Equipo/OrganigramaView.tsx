@@ -57,14 +57,14 @@ export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) 
 
       <div ref={contenedorRef} id="organigrama-container" className="overflow-x-auto rounded-3xl bg-[#f8f1e4] p-5 shadow-sm sm:p-8">
         <div className="min-w-[900px]">
-          <div className="relative mx-auto w-fit rounded-xl bg-[#7bc35b] px-10 py-4 text-center text-sm font-extrabold uppercase leading-tight text-white shadow-sm after:absolute after:bottom-0 after:left-1/2 after:h-8 after:w-px after:translate-y-full after:border-l-2 after:border-dotted after:border-[#a9b5b8]">
+          <div className="relative z-10 mx-auto w-fit rounded-xl bg-[#7bc35b] px-10 py-4 text-center text-sm font-extrabold uppercase leading-tight text-white shadow-sm after:absolute after:bottom-0 after:left-1/2 after:h-8 after:w-0 after:translate-y-full after:border-l-2 after:border-dashed after:border-[#84949a]">
             Coordinación
             <br />
             General
           </div>
 
           {general.length > 0 && (
-            <div className="relative mx-auto mt-12 grid max-w-2xl grid-cols-2 gap-4 before:absolute before:left-1/2 before:top-0 before:h-6 before:border-l-2 before:border-dotted before:border-[#a9b5b8]">
+            <div className="relative mx-auto mt-12 grid max-w-2xl grid-cols-2 gap-4 before:absolute before:left-1/2 before:top-0 before:h-6 before:border-l-2 before:border-dashed before:border-[#84949a]">
               {general.map((integrante) => (
                 <TarjetaOrganigrama
                   key={integrante.id}
@@ -75,9 +75,9 @@ export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) 
             </div>
           )}
 
-          <div className="relative mt-16 grid grid-cols-3 gap-8 before:absolute before:left-[16.66%] before:right-[16.66%] before:top-0 before:border-t-2 before:border-dotted before:border-[#a9b5b8]">
+          <div className="relative mt-16 grid grid-cols-3 gap-8 before:absolute before:left-[16.66%] before:right-[16.66%] before:top-0 before:border-t-2 before:border-dashed before:border-[#84949a]">
             {grupos.map((area) => (
-              <section key={area.id} className="relative pt-8 before:absolute before:left-1/2 before:top-0 before:h-8 before:border-l-2 before:border-dotted before:border-[#a9b5b8]">
+              <section key={area.id} className="relative pt-8 before:absolute before:left-1/2 before:top-0 before:h-8 before:border-l-2 before:border-dashed before:border-[#84949a]">
                 <h2 className={`mx-auto flex min-h-14 max-w-[230px] items-center justify-center px-4 py-3 text-center text-sm font-extrabold uppercase leading-tight text-white shadow-sm ${area.color}`}>
                   {area.nombre}
                 </h2>

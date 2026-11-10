@@ -61,11 +61,20 @@ export async function exportarOrganigrama(elemento: HTMLElement, nombreArchivo =
     backgroundColor: '#f8f1e4',
     scale: Math.min(window.devicePixelRatio || 1, 2),
     useCORS: true,
+    allowTaint: false,
     logging: false,
+    onclone: (documento) => {
+      documento.querySelectorAll<HTMLElement>('*').forEach((nodo) => {
+        nodo.style.setProperty('border-color', '#a9b5b8');
+        nodo.style.setProperty('outline-color', '#a9b5b8');
+      });
+    },
   });
 
   const enlace = document.createElement('a');
   enlace.download = nombreArchivo;
   enlace.href = canvas.toDataURL('image/png');
+  document.body.appendChild(enlace);
   enlace.click();
+  enlace.remove();
 }
