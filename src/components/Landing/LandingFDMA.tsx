@@ -208,7 +208,7 @@ export const LandingFDMA = () => {
             </Link>
             {pagina.mostrar_talleres && (
               <Link to="/talleres" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
-                Próximos talleres y registro
+                Talleres y Registro
               </Link>
             )}
         </div>
