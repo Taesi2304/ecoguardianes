@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Download, Map as MapIcon, Menu, X } from 'lucide-react';
 import { FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/redes';
 import type { Edicion } from './cartelera';
@@ -23,6 +23,7 @@ function Logo() {
 
 export function NavCartelera({ edicion }: { edicion: Edicion | null }) {
   const [abierto, setAbierto] = useState(false);
+  const location = useLocation();
   const enlaces = secciones.flatMap((seccion) => (
     seccion.href
       ? [{ ruta: seccion.href, nombre: seccion.label }]
@@ -36,7 +37,14 @@ export function NavCartelera({ edicion }: { edicion: Edicion | null }) {
 
         <nav aria-label="Sitio" className="ml-4 hidden items-center gap-1 md:flex">
           {enlaces.map(({ ruta, nombre }) => (
-            <Link key={ruta} to={ruta} className="rounded-full px-3 py-2 text-sm text-white/75 hover:bg-white/10 hover:text-white">{nombre}</Link>
+            <Link
+              key={ruta}
+              to={ruta}
+              aria-current={location.pathname === ruta ? 'page' : undefined}
+              className={`rounded-full px-3 py-2 text-sm hover:bg-white/10 hover:text-white ${location.pathname === ruta ? 'bg-white/15 font-medium text-white' : 'text-white/75'}`}
+            >
+              {nombre}
+            </Link>
           ))}
         </nav>
 
@@ -67,7 +75,14 @@ export function NavCartelera({ edicion }: { edicion: Edicion | null }) {
       {abierto && (
         <nav aria-label="Sitio" className="mt-2 grid gap-1 border-t border-white/10 pt-2 md:hidden">
           {enlaces.map(({ ruta, nombre }) => (
-            <Link key={ruta} to={ruta} className="rounded-lg px-3 py-2.5 text-white/85 hover:bg-white/10">{nombre}</Link>
+            <Link
+              key={ruta}
+              to={ruta}
+              aria-current={location.pathname === ruta ? 'page' : undefined}
+              className={`rounded-lg px-3 py-2.5 hover:bg-white/10 ${location.pathname === ruta ? 'bg-white/10 font-medium text-white' : 'text-white/85'}`}
+            >
+              {nombre}
+            </Link>
           ))}
         </nav>
       )}
