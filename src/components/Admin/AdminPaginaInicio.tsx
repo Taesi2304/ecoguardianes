@@ -374,20 +374,47 @@ export default function AdminPaginaInicio() {
                 <input value={actividad.titulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, titulo: e.target.value } : item))} placeholder="Título de la actividad" className="rounded-lg border px-3 py-2 text-sm" />
                 <input value={actividad.subtitulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, subtitulo: e.target.value } : item))} placeholder="Subtítulo: fecha o frase breve" className="rounded-lg border px-3 py-2 text-sm" />
                 <input type="date" value={actividad.fecha || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, fecha: e.target.value || null } : item))} className="rounded-lg border px-3 py-2 text-sm" />
-                <textarea value={actividad.imagenes.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Fotos: una URL por línea" rows={2} className="rounded-lg border px-3 py-2 text-sm" />
-                <label className="flex items-center rounded-lg border bg-white px-3 py-2 text-xs text-gray-500">Agregar fotos, videos o PDFs<input type="file" accept="image/*,video/*,.pdf,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="ml-2 min-w-0 text-xs text-gray-700" /></label>
-                <input value={actividad.enlace_url || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, enlace_url: e.target.value } : item))} placeholder="URL opcional" className="rounded-lg border px-3 py-2 text-sm" />
               </div>
               <textarea value={actividad.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, descripcion: e.target.value } : item))} rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
-              <label className="block text-sm font-semibold text-gray-700">Videos externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Pega un enlace de YouTube, Vimeo o Storage por línea.</span><textarea value={actividad.videos.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="https://..." aria-label="Videos externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" /></label>
-              <label className="block text-sm font-semibold text-gray-700">Documentos PDF externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Pega un enlace de PDF por línea. También puedes subir archivos PDF.</span><textarea value={actividad.pdfs.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, pdfs: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="https://..." aria-label="Documentos PDF externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" /></label>
-              <p className="text-xs text-gray-500">Carrete: {actividad.imagenes.length} foto(s) y {actividad.videos.length} video(s).</p>
+              <div className="grid gap-3 lg:grid-cols-3">
+                <div className="rounded-xl border border-green-100 bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div><p className="text-sm font-bold text-gray-800">Fotos</p><p className="text-xs text-gray-500">Imágenes del carrete</p></div>
+                    <span className="rounded-full bg-green-50 px-2 py-1 text-xs font-bold text-green-700">{actividad.imagenes.length}</span>
+                  </div>
+                  <label className="mt-3 block cursor-pointer rounded-lg border border-dashed border-green-300 bg-green-50/50 p-3 text-center text-xs font-semibold text-green-800 hover:bg-green-50">
+                    + Agregar fotos
+                    <input type="file" accept="image/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="sr-only" />
+                  </label>
+                </div>
+                <div className="rounded-xl border border-blue-100 bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div><p className="text-sm font-bold text-gray-800">Videos</p><p className="text-xs text-gray-500">Videos de la actividad</p></div>
+                    <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{actividad.videos.length}</span>
+                  </div>
+                  <label className="mt-3 block cursor-pointer rounded-lg border border-dashed border-blue-300 bg-blue-50/50 p-3 text-center text-xs font-semibold text-blue-800 hover:bg-blue-50">
+                    + Agregar videos
+                    <input type="file" accept="video/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="sr-only" />
+                  </label>
+                </div>
+                <div className="rounded-xl border border-red-100 bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div><p className="text-sm font-bold text-gray-800">Documentos</p><p className="text-xs text-gray-500">Archivos PDF</p></div>
+                    <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-bold text-red-700">{actividad.pdfs.length}</span>
+                  </div>
+                  <label className="mt-3 block cursor-pointer rounded-lg border border-dashed border-red-300 bg-red-50/50 p-3 text-center text-xs font-semibold text-red-800 hover:bg-red-50">
+                    + Agregar PDF
+                    <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="sr-only" />
+                  </label>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">Medios guardados: {actividad.imagenes.length} foto(s), {actividad.videos.length} video(s) y {actividad.pdfs.length} documento(s).</p>
               <div className="flex flex-wrap gap-3">
                 {actividad.imagenes.map((url, indice) => <div key={url} className="relative h-20 w-24 overflow-hidden rounded-lg border bg-white shadow-sm"><img src={url} alt={`Foto ${indice + 1}`} className="h-full w-full object-cover" /><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'imagenes', indice)} aria-label={`Quitar foto ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><span className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 text-center text-[10px] text-white">Foto {indice + 1}</span></div>)}
                 {actividad.videos.map((url, indice) => <div key={url} className="relative flex h-20 w-24 items-center justify-center overflow-hidden rounded-lg border bg-slate-800 text-center text-[10px] text-white shadow-sm"><span>Video {indice + 1}</span><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'videos', indice)} aria-label={`Quitar video ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button></div>)}
                 {actividad.pdfs.map((url, indice) => <div key={url} className="relative flex h-20 w-24 items-center justify-center rounded-lg border bg-red-50 text-center text-xs text-red-700 shadow-sm"><span>PDF {indice + 1}</span><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'pdfs', indice)} aria-label={`Quitar PDF ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button></div>)}
               </div>
-              {actividad.ganadores.length > 0 && <div className="space-y-2 rounded-lg border border-green-100 bg-green-50 p-3">
+              {(actividad.ganadores.length > 0 || actividad.titulo.toLowerCase().includes('feria')) && <div className="space-y-2 rounded-lg border border-green-100 bg-green-50 p-3">
                 <p className="text-sm font-bold text-green-800">Ganadores de la Feria de Proyectos</p>
                 {actividad.ganadores.map((ganador, indice) => (
                   <div key={ganador.lugar} className="space-y-2 rounded-lg border border-green-100 bg-white p-3">
@@ -405,7 +432,7 @@ export default function AdminPaginaInicio() {
                   </div>
                 ))}
               </div>}
-              {actividad.ganadores.length === 0 && <button type="button" onClick={() => agregarGanadores(actividad.id)} className="rounded-lg border border-green-600 px-3 py-1.5 text-xs font-bold text-green-700">Agregar información de los 3 lugares</button>}
+              {actividad.ganadores.length === 0 && actividad.titulo.toLowerCase().includes('feria') && <button type="button" onClick={() => agregarGanadores(actividad.id)} className="rounded-lg border border-green-600 px-3 py-1.5 text-xs font-bold text-green-700">Agregar información de los 3 lugares</button>}
               <div className="flex gap-2">
                 <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar</button>
                 <button type="button" onClick={() => void eliminarActividad(actividad.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Eliminar</button>
