@@ -97,6 +97,30 @@ interface FdmaSeccion {
   fdma_actividades: FdmaActividad[];
 }
 
+function FdmaGanadorCard({ ganador }: { ganador: FdmaActividad['ganadores'][number] }) {
+  const [visorAbierto, setVisorAbierto] = useState(false);
+
+  return (
+    <div className="rounded-xl bg-white/70 p-3">
+      <p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar</p>
+      {ganador.imagen && (
+        <>
+          <button type="button" onClick={() => setVisorAbierto(true)} className="mt-2 block w-full cursor-zoom-in overflow-hidden rounded-lg" aria-label={`Ver imagen del proyecto del ${ganador.lugar}.º lugar`}>
+            <img src={ganador.imagen} alt={`Proyecto del ${ganador.lugar}.º lugar`} className="h-36 w-full object-cover transition hover:scale-105" loading="lazy" />
+          </button>
+          {visorAbierto && <VisorImagenes fotos={[ganador.imagen]} indice={0} nombre={`Proyecto del ${ganador.lugar}.º lugar`} onCambiar={() => {}} onCerrar={() => setVisorAbierto(false)} />}
+        </>
+      )}
+      {ganador.proyecto && <p className="mt-2 font-semibold text-[#4a3728]">{ganador.proyecto}</p>}
+      {ganador.participantes && <p className="mt-1 text-sm text-[#4a3728]/75"><strong>Participantes:</strong> {ganador.participantes}</p>}
+      {ganador.asesor && <p className="text-sm text-[#4a3728]/75"><strong>Asesor:</strong> {ganador.asesor}</p>}
+      {ganador.organizacion && <p className="text-sm text-[#4a3728]/75"><strong>Organización:</strong> {ganador.organizacion}</p>}
+      {ganador.contacto && <p className="text-sm text-[#4a3728]/75"><strong>Contacto:</strong> {ganador.contacto}</p>}
+      {ganador.descripcion && <p className="mt-1 text-sm text-[#4a3728]/75">{ganador.descripcion}</p>}
+    </div>
+  );
+}
+
 function FdmaCarrusel({ actividad }: { actividad: FdmaActividad }) {
   const medios = [
     ...actividad.imagenes.map((url) => ({ url, video: false })),
@@ -477,7 +501,7 @@ export const LandingFDMA = () => {
                   {actividad.descripcion && <p className="mt-2 text-[#4a3728]/75">{actividad.descripcion}</p>}
                   {actividad.videos.length > 0 && <div className="mt-4 space-y-3"><p className="text-sm font-bold text-[#2d6a4f]">Videos</p>{actividad.videos.map((video) => /\.(mp4|webm|ogg)(\?|$)/i.test(video) ? <video key={video} src={video} controls className="w-full rounded-xl" /> : <a key={video} href={video} target="_blank" rel="noreferrer" className="block truncate text-sm text-blue-700 underline">Ver video</a>)}</div>}
                   {actividad.pdfs.length > 0 && <div className="mt-4 rounded-xl border border-[#2d6a4f]/20 bg-[#f4f8f2] p-4"><p className="text-sm font-bold text-[#2d6a4f]">Documentos</p><div className="mt-2 flex flex-wrap gap-2">{actividad.pdfs.map((pdf, indice) => <a key={pdf} href={pdf} target="_blank" rel="noreferrer" className="rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver PDF{actividad.pdfs.length > 1 ? ` ${indice + 1}` : ''}</a>)}</div></div>}
-                  {actividad.ganadores.length > 0 && <div className="mt-5 rounded-xl bg-[#d8ece1] p-4"><h5 className="font-bold text-[#4a3728]">Ganadores de la Feria de Proyectos</h5><div className="mt-3 grid gap-3 md:grid-cols-3">{actividad.ganadores.map((ganador) => <div key={ganador.lugar} className="rounded-xl bg-white/70 p-3"><p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar</p>{ganador.imagen && <img src={ganador.imagen} alt={`Proyecto del ${ganador.lugar}.º lugar`} className="mt-2 h-28 w-full rounded-lg object-cover" />}{ganador.proyecto && <p className="mt-2 font-semibold text-[#4a3728]">{ganador.proyecto}</p>}{ganador.participantes && <p className="mt-1 text-sm text-[#4a3728]/75"><strong>Participantes:</strong> {ganador.participantes}</p>}{ganador.asesor && <p className="text-sm text-[#4a3728]/75"><strong>Asesor:</strong> {ganador.asesor}</p>}{ganador.organizacion && <p className="text-sm text-[#4a3728]/75"><strong>Organización:</strong> {ganador.organizacion}</p>}{ganador.contacto && <p className="text-sm text-[#4a3728]/75"><strong>Contacto:</strong> {ganador.contacto}</p>}{ganador.descripcion && <p className="mt-1 text-sm text-[#4a3728]/75">{ganador.descripcion}</p>}</div>)}</div></div>}
+                  {actividad.ganadores.length > 0 && <div className="mt-5 rounded-xl bg-[#d8ece1] p-4"><h5 className="font-bold text-[#4a3728]">Ganadores de la Feria de Proyectos</h5><div className="mt-3 grid gap-3 md:grid-cols-3">{actividad.ganadores.map((ganador) => <FdmaGanadorCard key={ganador.lugar} ganador={ganador} />)}</div></div>}
                   {actividad.enlace_url && <a href={actividad.enlace_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver actividad</a>}
                 </div>
               </article>

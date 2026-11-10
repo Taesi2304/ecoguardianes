@@ -80,11 +80,20 @@ export default function AdminPaginaInicio() {
   const [fdmaForm, setFdmaForm] = useState({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true });
   const [actividadForm, setActividadForm] = useState({ titulo: '', subtitulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [] as File[], videos: '', pdfs: '', pdfArchivos: [] as File[], ganadores: false, enlace_url: '' });
   const [fdmaSeleccionada, setFdmaSeleccionada] = useState<string | null>(null);
+  const [actividadAbierta, setActividadAbierta] = useState<string | null>(null);
   const [seccionesAbiertas, setSeccionesAbiertas] = useState(true);
   const [fdmaAbierta, setFdmaAbierta] = useState(true);
   const archivosVista = useMemo(() => actividadForm.archivos.map((archivo) => ({ archivo, url: URL.createObjectURL(archivo) })), [actividadForm.archivos]);
 
   useEffect(() => () => archivosVista.forEach(({ url }) => URL.revokeObjectURL(url)), [archivosVista]);
+
+  useEffect(() => {
+    if (!actividadAbierta) return undefined;
+    const temporizador = window.setTimeout(() => {
+      document.querySelector(`[data-actividad-id="${actividadAbierta}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+    return () => window.clearTimeout(temporizador);
+  }, [actividadAbierta, fdmaActividades.length]);
 
   async function subirImagenActividad(id: string, archivo: File) {
     const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
@@ -217,14 +226,15 @@ export default function AdminPaginaInicio() {
       if (errorSubida) { toast.error(`No se pudo subir ${archivo.name}: ${errorSubida.message}`); return; }
       pdfs.push(supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
     }
-    const { error: errorActividad } = await supabase.from('fdma_actividades').insert({
+    const { data: actividadCreada, error: errorActividad } = await supabase.from('fdma_actividades').insert({
       seccion_id: fdmaSeleccionada, titulo: actividadForm.titulo.trim(), subtitulo: actividadForm.subtitulo.trim(), descripcion: actividadForm.descripcion.trim(),
       fecha: actividadForm.fecha || null, imagenes, videos, pdfs, ganadores: actividadForm.ganadores ? crearGanadores() : [], enlace_url: actividadForm.enlace_url.trim() || null,
-    });
+    }).select('id').single();
     if (errorActividad) { toast.error(`No se pudo agregar la actividad: ${errorActividad.message}`); return; }
     toast.success('Actividad agregada.');
     setActividadForm({ titulo: '', subtitulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [], videos: '', pdfs: '', pdfArchivos: [], ganadores: false, enlace_url: '' });
     await cargarFdma();
+    if (actividadCreada) setActividadAbierta(actividadCreada.id);
   }
 
   function manejarCambio(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -364,7 +374,7 @@ export default function AdminPaginaInicio() {
               <div><h3 className="text-xl font-bold text-gray-800">Actividades de esta edición</h3><p className="text-sm text-gray-500">Cada actividad funciona como una tarjeta independiente. Ábrela para editar su contenido.</p></div>
               <span className="text-sm font-semibold text-green-700">{fdmaActividades.length} actividad{fdmaActividades.length === 1 ? '' : 'es'}</span>
             </div>
-            {fdmaActividades.map((actividad) => <details key={actividad.id} className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {fdmaActividades.map((actividad) => <details key={actividad.id} data-actividad-id={actividad.id} open={actividadAbierta === actividad.id} onToggle={(e) => setActividadAbierta(e.currentTarget.open ? actividad.id : null)} className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50">
                 <span className="min-w-0"><span className="block truncate font-bold text-gray-800">{actividad.titulo || 'Actividad sin título'}</span><span className="mt-1 block truncate text-sm text-gray-500">{actividad.subtitulo || actividad.fecha || 'Sin subtítulo'} · {actividad.imagenes.length} foto(s), {actividad.videos.length} video(s), {actividad.pdfs.length} PDF</span></span>
                 <ChevronDown className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
@@ -428,7 +438,11 @@ export default function AdminPaginaInicio() {
                       <input value={ganador.descripcion} onChange={(e) => actualizarGanador(actividad.id, indice, 'descripcion', e.target.value)} placeholder="Descripción del proyecto" className="rounded border px-2 py-1 text-sm" />
                     </div>
                     {ganador.imagen && <img src={ganador.imagen} alt={`Imagen del ${ganador.lugar}.º lugar`} className="h-24 w-32 rounded object-cover" />}
-                    <label className="flex items-center rounded border bg-gray-50 px-2 py-1 text-xs text-gray-500">Imagen del proyecto<input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); }} className="ml-2 min-w-0 text-xs text-gray-700" /></label>
+                    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-xs font-semibold text-green-800 hover:bg-green-50">
+                      <span>{ganador.imagen ? 'Cambiar imagen del proyecto' : 'Agregar imagen del proyecto'}</span>
+                      <span className="rounded-md bg-white px-2 py-1 text-green-700 shadow-sm">Seleccionar imagen</span>
+                      <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); }} className="sr-only" />
+                    </label>
                   </div>
                 ))}
               </div>}
@@ -446,14 +460,19 @@ export default function AdminPaginaInicio() {
               <input value={actividadForm.subtitulo} onChange={(e) => setActividadForm({ ...actividadForm, subtitulo: e.target.value })} placeholder="Subtítulo (ej. Presentación y premiación)" className="rounded-lg border px-3 py-2" />
               <input type="date" value={actividadForm.fecha} onChange={(e) => setActividadForm({ ...actividadForm, fecha: e.target.value })} className="rounded-lg border px-3 py-2" />
               <textarea value={actividadForm.imagenes} onChange={(e) => setActividadForm({ ...actividadForm, imagenes: e.target.value })} placeholder="Fotos: una URL por línea (sin límite)" rows={2} className="rounded-lg border px-3 py-2" />
-              <input type="file" accept="image/*,video/*" multiple onChange={(e) => setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) })} className="rounded-lg border bg-white px-3 py-2" />
-              <input value={actividadForm.enlace_url} onChange={(e) => setActividadForm({ ...actividadForm, enlace_url: e.target.value })} placeholder="URL opcional" className="rounded-lg border px-3 py-2" />
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-sm font-semibold text-green-800 hover:bg-green-50">
+                <span>Fotos y videos de la actividad</span>
+                <span className="rounded-md bg-white px-2 py-1 text-xs text-green-700 shadow-sm">Seleccionar archivos</span>
+                <input type="file" accept="image/*,video/*" multiple onChange={(e) => setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) })} className="sr-only" />
+              </label>
             </div>
             <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
             {archivosVista.length > 0 && <div className="rounded-lg border border-green-100 bg-green-50 p-3"><p className="mb-2 text-sm font-bold text-green-800">Archivos seleccionados: se subirán al pulsar “Agregar actividad”</p><div className="flex flex-wrap gap-3">{archivosVista.map(({ archivo, url }, indice) => <div key={url} className="relative w-32">{archivo.type.startsWith('video/') ? <video src={url} controls className="h-20 w-full rounded object-cover" /> : <img src={url} alt={archivo.name} className="h-20 w-full rounded object-cover" />}<button type="button" onClick={() => setActividadForm((actual) => ({ ...actual, archivos: actual.archivos.filter((_, posicion) => posicion !== indice) }))} aria-label={`Quitar ${archivo.name}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><p className="truncate text-xs text-gray-600">{archivo.name}</p></div>)}</div></div>}
-            <label className="block text-sm font-semibold text-gray-700">Videos externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Opcional: un enlace de YouTube, Vimeo o Storage por línea.</span><textarea value={actividadForm.videos} onChange={(e) => setActividadForm({ ...actividadForm, videos: e.target.value })} placeholder="https://..." aria-label="Videos externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
-            <label className="block text-sm font-semibold text-gray-700">Documentos PDF externos (URLs)<span className="mt-1 block text-xs font-normal text-gray-500">Opcional: un enlace de PDF por línea.</span><textarea value={actividadForm.pdfs} onChange={(e) => setActividadForm({ ...actividadForm, pdfs: e.target.value })} placeholder="https://..." aria-label="Documentos PDF externos" rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
-            <label className="flex items-center rounded-lg border bg-white px-3 py-2 text-xs text-gray-500">Agregar documentos PDF<input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="ml-2 min-w-0 text-xs text-gray-700" /></label>
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-red-300 bg-red-50/60 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-50">
+              <span>Documentos PDF de la actividad</span>
+              <span className="rounded-md bg-white px-2 py-1 text-xs text-red-700 shadow-sm">Seleccionar PDF</span>
+              <input type="file" accept=".pdf,application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="sr-only" />
+            </label>
             {actividadForm.pdfArchivos.length > 0 && <p className="text-sm text-gray-600">PDF seleccionados: {actividadForm.pdfArchivos.map((archivo) => archivo.name).join(', ')}. Se subirán al agregar la actividad.</p>}
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={actividadForm.ganadores} onChange={(e) => setActividadForm({ ...actividadForm, ganadores: e.target.checked })} className="h-4 w-4 accent-green-600" /> Incluir sección de ganadores (1.º, 2.º y 3.º lugar)</label>
                 <button type="button" onClick={() => void agregarActividad()} className="rounded-lg border border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Agregar actividad</button>

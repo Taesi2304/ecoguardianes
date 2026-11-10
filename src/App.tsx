@@ -142,8 +142,8 @@ export default function App() {
           </Route>
         </Route>
 
-
-
+        {/* Cualquier URL inexistente vuelve al inicio en lugar de mostrar un error. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
