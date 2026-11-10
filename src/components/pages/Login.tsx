@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { rutaInicioDe } from '../../lib/sesion';
 import '../Landing/Landing.css';
 
-export const Login = () => {
+export const Login = ({ embedded = false }: { embedded?: boolean }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,7 +66,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="landing-page flex flex-col items-center justify-center px-4 pt-10 pb-12 sm:pt-16">
+    <div className={`${embedded ? '' : 'landing-page'} flex flex-col items-center justify-center px-4 pb-12 pt-10 sm:pt-16`}>
       
       <div className="bg-[#FFF8DF] border border-[#4A2E18]/10 shadow-sm rounded-xl p-3 mb-6">
         <img src="/logo.svg" alt="Logo" className="w-8 h-8 object-contain" />

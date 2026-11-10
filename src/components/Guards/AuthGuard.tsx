@@ -26,5 +26,5 @@ export default function AuthGuard() {
     );
   }
 
-  return sesionActiva ? <Outlet /> : <Navigate to="/login" replace />;
+  return sesionActiva ? <Outlet /> : <Navigate to="/acceso?modo=login" replace />;
 }

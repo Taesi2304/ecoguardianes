@@ -117,16 +117,16 @@ export const Header = () => {
 
         <div className="header-actions">
           {conSesion ? (
-            <Link to="/login" className="header-link-btn header-link-btn--primary">
+            <Link to="/acceso?modo=registro" className="header-link-btn header-link-btn--primary">
               Mi panel
             </Link>
           ) : (
             <>
-              <Link to="/login" className="header-link-btn header-link-btn--ghost" aria-label="Iniciar sesión">
+              <Link to="/acceso?modo=login" className="header-link-btn header-link-btn--ghost" aria-label="Iniciar sesión">
                 Iniciar sesión
               </Link>
 
-              <Link to="/registro" className="header-link-btn header-link-btn--primary" aria-label="Registrarse">
+              <Link to="/acceso?modo=registro" className="header-link-btn header-link-btn--primary" aria-label="Registrarse">
                 Registro
               </Link>
             </>
@@ -193,7 +193,7 @@ export const Header = () => {
 
             {conSesion ? (
               <Link
-                to="/login"
+                to="/acceso?modo=login"
                 className="mobile-nav-link mobile-nav-link--action mobile-nav-link--primary"
                 onClick={cerrarTodo}
               >
@@ -202,7 +202,7 @@ export const Header = () => {
             ) : (
               <>
                 <Link
-                  to="/login"
+                  to="/acceso?modo=login"
                   className="mobile-nav-link mobile-nav-link--action"
                   onClick={cerrarTodo}
                 >
@@ -210,7 +210,7 @@ export const Header = () => {
                 </Link>
 
                 <Link
-                  to="/registro"
+                  to="/acceso?modo=registro"
                   className="mobile-nav-link mobile-nav-link--action mobile-nav-link--primary"
                   onClick={cerrarTodo}
                 >

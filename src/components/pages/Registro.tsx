@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, ClipboardList, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import '../Landing/Landing.css';
 
-export const Registro = () => {
+export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [loading, setLoading] = useState(false);
@@ -104,7 +104,7 @@ export const Registro = () => {
 
       if (insertError) throw insertError;
 
-      navigate('/login');
+      navigate('/acceso?modo=login');
     } catch (err: any) {
       setError(err.message || 'Ocurrió un error durante el registro.');
     } finally {
@@ -113,11 +113,11 @@ export const Registro = () => {
   };
 
   return (
-    <div className="landing-page flex flex-col items-center justify-center px-4 pt-10 pb-12 sm:pt-16">
+    <div className={`${embedded ? '' : 'landing-page'} flex flex-col items-center justify-center px-4 pb-12 pt-10 sm:pt-16`}>
       
       <div className="bg-[#FFF8DF] border border-[#4A2E18]/10 shadow-sm rounded-xl p-3 mb-6">
         {step === 0 ? (
-          <ClipboardList className="h-8 w-8 text-[#4A2E18]" />
+          <img src="/registro.svg" alt="Encuesta de registro" className="h-8 w-8 object-contain" />
         ) : step === 1 ? (
           <img 
             src="/usuarios.svg" /* Cambia esto por el nombre exacto de tu SVG de llave */

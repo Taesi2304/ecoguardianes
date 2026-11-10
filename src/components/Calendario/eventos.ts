@@ -15,6 +15,7 @@ export interface CategoriaCalendario {
 export interface EventoCalendario {
   id: string;
   titulo: string;
+  imagen_url?: string | null;
   fecha: string;
   hora_inicio: string | null;
   hora_fin: string | null;
@@ -118,7 +119,7 @@ export async function cargarEventos(desde: string, hasta: string, categorias?: C
       .lte('fecha', hasta),
     supabase
       .from('talleres_publicos')
-      .select('id, titulo, fecha, hora_inicio, hora_fin, lugar, descripcion')
+      .select('id, titulo, imagen_url, fecha, hora_inicio, hora_fin, lugar, descripcion')
       .gte('fecha', desde)
       .lte('fecha', hasta),
     cargarHorariosFestival(desde, hasta),

@@ -45,7 +45,7 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       }
 
       onClose?.();
-      navigate('/login', { replace: true });
+      navigate('/acceso?modo=login', { replace: true });
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       toast.error('No se pudo cerrar sesión. Intenta de nuevo.');
@@ -104,7 +104,7 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
   // Fijos al pie del menú, fuera de los grupos plegables
   const menuCuenta: ItemMenu[] = [
     { name: 'Mi Perfil', path: isAdmin ? '/admin/perfil' : '/dashboard/Perfil', icon: '/usuarios.svg' },
-    { name: 'Cerrar Sesión', path: '/login', icon: '/salir.svg' },
+    { name: 'Cerrar Sesión', path: '/acceso?modo=login', icon: '/salir.svg' },
   ];
 
   // Super Admin (FDMA): primero la página y el festival; el compostero es una extensión.

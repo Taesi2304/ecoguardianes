@@ -84,7 +84,7 @@ export const LandingFDMA = () => {
           <a href="/info" className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-[#4a3728] font-bold border border-[#4a3728]/20 hover:bg-gray-50 transition-all text-center shadow-sm">
             Conoce el Compostero
           </a>
-          <a href="/registro" className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#2d6a4f] text-white font-bold hover:bg-[#1b4332] transition-all text-center shadow-md">
+          <a href="/acceso?modo=registro" className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#2d6a4f] text-white font-bold hover:bg-[#1b4332] transition-all text-center shadow-md">
             Crear Cuenta en Eco Guardianes
           </a>
         </div>

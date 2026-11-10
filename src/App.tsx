@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { Header } from './components/Header/Header';
 import { Landing } from './components/Landing/Landing';
 import { LandingFDMA } from './components/Landing/LandingFDMA';
@@ -10,8 +10,6 @@ import AvisoPrivacidad from './components/pages/AvisoPrivacidad';
 import TerminosCondiciones from './components/pages/TerminosCondiciones';
 import ConectarRedes from './components/pages/ConectarRedes';
 
-import { Login } from './components/pages/Login';
-import { Registro } from './components/pages/Registro';
 import Acceso from './components/pages/Acceso';
 
 import Inicio from './components/Dashboard/Inicio';
@@ -78,8 +76,8 @@ export default function App() {
           <Route path="/ecoguardianes" element={<Landing />} />
           <Route path="/info" element={<Informacion />} />
           <Route path="/manuales" element={<Manuales />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Registro />} />
+          <Route path="/login" element={<Navigate to="/acceso?modo=login" replace />} />
+          <Route path="/registro" element={<Navigate to="/acceso?modo=registro" replace />} />
           <Route path="/acceso" element={<Acceso />} />
           <Route path="/aviso-privacidad" element={<AvisoPrivacidad />} />
           <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />

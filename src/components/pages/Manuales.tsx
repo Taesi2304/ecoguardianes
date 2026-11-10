@@ -61,7 +61,7 @@ export default function Manuales() {
           </div>
           <ListaPasos pasos={pasosCuenta} />
           <div className="mt-7 flex flex-wrap gap-3">
-            <a href="/registro" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
+            <a href="/acceso?modo=registro" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
               <UserPlus className="h-5 w-5" aria-hidden="true" /> Ir a "Registro"
             </a>
             <a href="https://drive.google.com/file/d/1TKK49tpYLj9iqS6P9gorY7YvCoKO3eMp/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-[#2d6a4f] px-5 py-3 text-base font-bold text-[#2d6a4f] transition hover:bg-[#d8ece1]">
@@ -78,7 +78,7 @@ export default function Manuales() {
           <p className="text-lg leading-relaxed">Seleccione "Iniciar sesión", escriba el correo y la contraseña que registró, y presione "Entrar".</p>
           
            <div className="mt-7 flex flex-wrap gap-3">
-            <a href="/login" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
+            <a href="/acceso?modo=login" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#2d6a4f] px-5 py-3 text-base font-bold text-white transition hover:bg-[#1b4332]">
               <LogIn className="h-5 w-5" aria-hidden="true" /> Ir a "Inicio de sesión"
             </a>
           </div>

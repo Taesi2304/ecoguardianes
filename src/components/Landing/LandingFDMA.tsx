@@ -204,7 +204,7 @@ export const LandingFDMA = () => {
 
         <div className="flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
             <Link to="/cartelera" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
-            Agenda Anual - Cartelera Ediciones Anteriores
+            Agenda Anual - Cartelera
             </Link>
             {pagina.mostrar_talleres && (
               <Link to="/talleres" className="rounded-full border-2 border-[#2d6a4f] px-6 py-2.5 text-center text-sm font-bold text-[#2d6a4f] transition hover:bg-[#2d6a4f] hover:text-white">
@@ -225,7 +225,7 @@ export const LandingFDMA = () => {
             to="/acceso?modo=registro"
             className="px-8 py-3.5 rounded-full bg-[#2d6a4f] text-white font-bold shadow-md hover:bg-[#1b4332] hover:scale-105 transition-all text-center"
           >
-            Crear cuenta / Iniciar sesión
+            Crear Cuenta - Iniciar Sesión
           </Link>
         </div>
       </section>

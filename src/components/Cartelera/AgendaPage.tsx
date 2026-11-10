@@ -74,7 +74,7 @@ export default function AgendaPage() {
         <NavCartelera edicion={null} />
         <header className="px-2 pb-10 pt-10 text-center">
         <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-white/75">Eco Guardianes</p>
-        <h1 className="text-4xl font-extrabold text-white md:text-5xl">Agenda Anual - Cartelera de ediciones anteriores</h1>
+        <h1 className="text-4xl font-extrabold text-white md:text-5xl">Agenda Anual - Cartelera </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80">
           Talleres, cursos, eventos y convocatorias para participar durante todo el año.
         </p>
@@ -160,13 +160,23 @@ export default function AgendaPage() {
                 </h2>
                 <ul className="divide-y divide-white/10">
                   {actividades.map((evento) => (
-                    <li key={evento.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
+                    <li key={evento.id} className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-4">
+                        {evento.imagen_url && (
+                          <img
+                            src={evento.imagen_url}
+                            alt=""
+                            loading="lazy"
+                            className="h-20 w-20 shrink-0 rounded-xl object-cover shadow-sm sm:h-24 sm:w-24"
+                          />
+                        )}
+                        <div className="min-w-0">
                         <span className="text-xs font-bold uppercase tracking-wider text-white/60">{nombreCategoria(evento.categoria)}</span>
-                        <h3 className="mt-1 text-lg font-bold text-white">{evento.titulo}</h3>
+                        <h3 className="mt-1 break-words text-lg font-bold text-white">{evento.titulo}</h3>
                         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/65">
                           {evento.hora_inicio && <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" />{evento.hora_inicio.slice(0, 5)}{evento.hora_fin ? ` - ${evento.hora_fin.slice(0, 5)}` : ''}</span>}
                           {evento.lugar && <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{evento.lugar}</span>}
+                        </div>
                         </div>
                       </div>
                       {evento.enlace_url && (

@@ -20,6 +20,7 @@ const PUBLICAS: Record<string, MetaPagina> = {
   '/manuales': { titulo: 'Manuales', descripcion: 'Manuales y guías de composta del proyecto Eco Guardianes.' },
   '/login': { titulo: 'Iniciar sesión' },
   '/registro': { titulo: 'Registro', descripcion: 'Regístrate como Eco Guardián con el código de tu colonia.' },
+  '/acceso': { titulo: 'Acceso | Eco Guardianes', descripcion: 'Inicia sesión o crea tu cuenta de Eco Guardianes.' },
   '/aviso-privacidad': { titulo: 'Aviso de privacidad' },
   '/terminos-condiciones': { titulo: 'Términos y condiciones' },
   '/conectar-redes': { titulo: 'Conectar redes' },

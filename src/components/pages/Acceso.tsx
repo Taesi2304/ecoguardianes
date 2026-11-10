@@ -20,9 +20,6 @@ export default function Acceso() {
     <div className="landing-page min-h-screen px-4 pb-12 pt-8 sm:pt-12">
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 w-fit rounded-xl border border-[#4A2E18]/10 bg-[#FFF8DF] p-3 shadow-sm">
-            <img src="/logo.svg" alt="Eco Guardianes" className="h-8 w-8 object-contain" />
-          </div>
           <h1 className="section-title text-4xl">Acceso a Eco Guardianes</h1>
           <p className="mt-2 font-medium text-[#4A2E18]/70">Elige cómo quieres continuar.</p>
         </div>
@@ -48,7 +45,7 @@ export default function Acceso() {
           </button>
         </div>
 
-        {modo === 'login' ? <Login /> : <Registro />}
+        {modo === 'login' ? <Login embedded /> : <Registro embedded />}
 
         <p className="mt-2 text-center text-sm font-medium text-[#4A2E18]/70">
           <Link to="/manuales" className="font-bold text-[#2D7A3E] hover:underline">¿Necesitas ayuda? Consulta el manual</Link>

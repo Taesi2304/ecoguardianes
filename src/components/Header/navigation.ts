@@ -24,7 +24,7 @@ export const secciones: Seccion[] = [
   {
     label: 'Eco Guardianes',
     items: [
-      { label: 'El proyecto', href: '/ecoguardianes', detalle: 'Composta comunitaria' },
+      { label: 'Composteros', href: '/ecoguardianes', detalle: 'Composta comunitaria' },
       { label: 'Manuales', href: '/manuales', detalle: 'Guías para composteros' },
       { label: 'Nosotros y contacto', href: '/info', detalle: 'Preguntas frecuentes y ubicación' },
     ],

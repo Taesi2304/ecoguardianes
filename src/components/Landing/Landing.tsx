@@ -119,7 +119,7 @@ export const Landing = () => {
         </p>
 
           <div className="hero-actions">
-            <Link to="/login" className="hero-primary">
+            <Link to="/acceso?modo=login" className="hero-primary">
               <span>Únete a Eco Guardianes</span>
               <img src="/logo.svg" alt="" className="hero-primary-icon" />
             </Link>
