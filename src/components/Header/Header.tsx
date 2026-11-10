@@ -3,39 +3,7 @@ import { ChevronDown, Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import './Header.css';
-
-interface Enlace {
-  label: string;
-  href: string;
-  detalle?: string;
-}
-
-interface Seccion {
-  label: string;
-  href?: string; // enlace directo (sin submenú)
-  items?: Enlace[];
-}
-
-const secciones: Seccion[] = [
-  { label: 'Inicio', href: '/' },
-  {
-    label: 'Festival',
-    items: [
-      { label: 'Cartelera', href: '/cartelera', detalle: 'Programa, horarios y sedes' },
-      { label: 'Talleres', href: '/talleres', detalle: 'Talleres con registro en línea' },
-      { label: 'Calendario', href: '/calendario', detalle: 'Actividades durante todo el año' },
-      { label: 'Directorio', href: '/directorio', detalle: 'Equipo organizador del festival' },
-    ],
-  },
-  {
-    label: 'Eco Guardianes',
-    items: [
-      { label: 'El proyecto', href: '/ecoguardianes', detalle: 'Composta comunitaria' },
-      { label: 'Manuales', href: '/manuales', detalle: 'Guías para composteros' },
-      { label: 'Nosotros y contacto', href: '/info', detalle: 'Preguntas frecuentes y ubicación' },
-    ],
-  },
-];
+import { secciones, type Seccion } from './navigation';
 
 export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);

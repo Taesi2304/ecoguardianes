@@ -149,7 +149,7 @@ export const Login = () => {
         </p>
         <p className="text-sm font-medium text-[#4A2E18]/70">
           ¿No tienes cuenta?{' '}
-          <Link to="/registro" className="text-[#2D7A3E] font-bold hover:underline">
+          <Link to="/acceso?modo=registro" className="text-[#2D7A3E] font-bold hover:underline">
             Regístrate aquí
           </Link>
         </p>

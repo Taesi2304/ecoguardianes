@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ClipboardList, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import '../Landing/Landing.css';
 
 export const Registro = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<0 | 1 | 2>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [codigo, setCodigo] = useState('');
@@ -116,7 +116,9 @@ export const Registro = () => {
     <div className="landing-page flex flex-col items-center justify-center px-4 pt-10 pb-12 sm:pt-16">
       
       <div className="bg-[#FFF8DF] border border-[#4A2E18]/10 shadow-sm rounded-xl p-3 mb-6">
-        {step === 1 ? (
+        {step === 0 ? (
+          <ClipboardList className="h-8 w-8 text-[#4A2E18]" />
+        ) : step === 1 ? (
           <img 
             src="/usuarios.svg" /* Cambia esto por el nombre exacto de tu SVG de llave */
             alt="Código de acceso" 
@@ -134,10 +136,12 @@ export const Registro = () => {
 
       <div className="text-center mb-6">
         <h2 className="section-title text-4xl mb-2">
-          {step === 1 ? 'Código de Acceso' : 'Crea tu cuenta'}
+          {step === 0 ? '¡Vuélvete Eco Guardian!' : step === 1 ? 'Código de Acceso' : 'Crea tu cuenta'}
         </h2>
         <p className="text-[#4A2E18]/70 font-medium">
-          {step === 1 
+          {step === 0
+            ? 'Para crear una cuenta llena la breve encuesta para poder tener el código de acceso.'
+            : step === 1
             ? 'Ingresa el código que te proporcionaron.' 
             : 'Completa tus datos para ser una Eco Guardian'}
         </p>
@@ -149,6 +153,28 @@ export const Registro = () => {
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold border border-red-200 mb-4 text-center">
             {error}
+          </div>
+        )}
+
+        {step === 0 && (
+          <div className="space-y-5 text-center">
+            <p className="leading-relaxed text-[#4A2E18]/80">
+              ¿Te interesa implementar un compostero comunitario en tu colonia o ser parte de nuestra red actual?
+            </p>
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLScG-OcX0Qehprh5PRyD6ThKUM1nsP9vi-msq6x_IgW6XjvKqg/viewform?usp=preview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#2D7A3E] px-6 py-3 font-bold text-white shadow-lg transition-colors hover:bg-[#235E30]"
+            >
+              Llenar encuesta <ExternalLink className="h-5 w-5" />
+            </a>
+            <p className="text-sm text-[#4A2E18]/65">
+              Después de llenar la encuesta y recibir tu código, continúa con el registro.
+            </p>
+            <button type="button" onClick={() => setStep(1)} className="font-bold text-[#2D7A3E] hover:underline">
+              Ya tengo mi código: continuar con el registro
+            </button>
           </div>
         )}
 
@@ -273,7 +299,7 @@ export const Registro = () => {
         </p>
         <p className="text-sm font-medium text-[#4A2E18]/70">
           ¿Ya tienes una cuenta?{' '}
-          <Link to="/login" className="text-[#2D7A3E] font-bold hover:underline">
+          <Link to="/acceso?modo=login" className="text-[#2D7A3E] font-bold hover:underline">
             Inicia sesión aquí
           </Link>
         </p>

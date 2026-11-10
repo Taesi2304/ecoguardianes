@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarDays, Clock, ExternalLink, Loader2, MapPin } from 'lucide-react';
+import { ArrowRight, CalendarDays, Clock, ExternalLink, Loader2, MapPin, Search, X } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { addMonths, format, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { cargarCategorias, cargarEventos } from '@/components/Calendario/eventos';
+import { cargarEventos } from '@/components/Calendario/eventos';
 import { cargarEdiciones } from './cartelera';
 import type { Edicion } from './cartelera';
 import type { CategoriaCalendario, EventoCalendario } from '@/components/Calendario/eventos';
@@ -14,9 +14,10 @@ const FONDO_POR_DEFECTO = '/galeria/foto9.jpeg';
 
 export default function AgendaPage() {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
-  const [categorias, setCategorias] = useState<CategoriaCalendario[]>([]);
   const [ediciones, setEdiciones] = useState<Edicion[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
+  const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
   const [parametros] = useSearchParams();
   const verEdiciones = parametros.has('ediciones');
 
@@ -25,12 +26,10 @@ export default function AgendaPage() {
     const hoy = startOfDay(new Date());
     Promise.all([
       verEdiciones ? Promise.resolve([]) : cargarEventos(clave(hoy), clave(addMonths(hoy, 12))),
-      verEdiciones ? Promise.resolve([]) : cargarCategorias(),
       cargarEdiciones(),
-    ]).then(([resultado, catalogos, anteriores]) => {
+    ]).then(([resultado, anteriores]) => {
       if (!vigente) return;
       setEventos(resultado.filter((evento) => evento.fecha >= clave(hoy)));
-      setCategorias(catalogos);
       setEdiciones(anteriores);
       setCargando(false);
     }).catch(() => {
@@ -39,10 +38,31 @@ export default function AgendaPage() {
     return () => { vigente = false; };
   }, [verEdiciones]);
 
-  const eventosPorFecha = useMemo(() => eventos.reduce<Record<string, EventoCalendario[]>>((grupos, evento) => {
+  const categoriasDisponibles = useMemo(() => {
+    const unicas = new Map<string, CategoriaCalendario>();
+    eventos.forEach((evento) => {
+      if (evento.categoria) unicas.set(evento.categoria.id, evento.categoria);
+    });
+    return [...unicas.values()].sort((a, b) => a.orden - b.orden);
+  }, [eventos]);
+
+  const eventosFiltrados = useMemo(() => {
+    const termino = busqueda.trim().toLocaleLowerCase();
+    return eventos.filter((evento) => {
+      if (categoriaActiva && evento.categoria?.id !== categoriaActiva) return false;
+      if (!termino) return true;
+      return [evento.titulo, evento.descripcion, evento.lugar, evento.categoria?.nombre]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(termino);
+    });
+  }, [eventos, busqueda, categoriaActiva]);
+
+  const eventosPorFecha = useMemo(() => eventosFiltrados.reduce<Record<string, EventoCalendario[]>>((grupos, evento) => {
     (grupos[evento.fecha] ||= []).push(evento);
     return grupos;
-  }, {}), [eventos]);
+  }, {}), [eventosFiltrados]);
 
   const nombreCategoria = (categoria: CategoriaCalendario | null) => categoria?.nombre || 'Actividad';
 
@@ -98,6 +118,40 @@ export default function AgendaPage() {
           </div>
         ) : (
           <div className="space-y-5">
+            <div className="rounded-2xl border border-white/10 bg-[#10241b]/80 p-4 shadow-sm backdrop-blur-md">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/45" />
+                <input
+                  value={busqueda}
+                  onChange={(evento) => setBusqueda(evento.target.value)}
+                  placeholder="Buscar actividad, sede o categoría"
+                  className="w-full rounded-xl border border-white/10 bg-black/25 py-3 pl-11 pr-10 text-white placeholder:text-white/40 outline-none transition focus:border-white/35"
+                />
+                {busqueda && (
+                  <button type="button" onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white" aria-label="Limpiar búsqueda">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <button type="button" onClick={() => setCategoriaActiva(null)} className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${!categoriaActiva ? 'bg-white text-[#1a1716]' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
+                  Todas <span className="ml-1 text-xs opacity-60">{eventos.length}</span>
+                </button>
+                {categoriasDisponibles.map((categoria) => (
+                  <button key={categoria.id} type="button" onClick={() => setCategoriaActiva(categoria.id)} className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${categoriaActiva === categoria.id ? 'bg-white text-[#1a1716]' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
+                    {categoria.nombre}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs font-medium uppercase tracking-wider text-white/45">
+                {eventosFiltrados.length} {eventosFiltrados.length === 1 ? 'actividad encontrada' : 'actividades encontradas'}
+              </p>
+            </div>
+            {eventosFiltrados.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-[#10241b]/80 p-10 text-center text-white/70 backdrop-blur-md">
+                No encontramos actividades con esos filtros.
+              </div>
+            ) : null}
             {Object.entries(eventosPorFecha).map(([fecha, actividades]) => (
               <section key={fecha} className="overflow-hidden rounded-2xl border border-white/10 bg-[#10241b]/80 shadow-sm backdrop-blur-md">
                 <h2 className="flex items-center gap-2 border-b border-white/10 bg-black/20 px-5 py-3 font-bold capitalize text-white/90">

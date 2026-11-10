@@ -3,14 +3,9 @@ import { Link } from 'react-router-dom';
 import { Download, Map as MapIcon, Menu, X } from 'lucide-react';
 import { FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/redes';
 import type { Edicion } from './cartelera';
+import { secciones } from '../Header/navigation';
 
-// Menú y pie propios de la cartelera: mismos enlaces que el sitio, con su estilo oscuro
-
-const ENLACES = [
-  { ruta: '/', nombre: 'Inicio' },
-  { ruta: '/calendario', nombre: 'Calendario' },
-  { ruta: '/talleres', nombre: 'Talleres' },
-];
+// Menú y pie propios de la cartelera, usando la misma configuración del sitio.
 
 const botonArchivo = 'flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-sm text-white/85 hover:bg-white/20 hover:text-white';
 
@@ -28,6 +23,11 @@ function Logo() {
 
 export function NavCartelera({ edicion }: { edicion: Edicion | null }) {
   const [abierto, setAbierto] = useState(false);
+  const enlaces = secciones.flatMap((seccion) => (
+    seccion.href
+      ? [{ ruta: seccion.href, nombre: seccion.label }]
+      : (seccion.items ?? []).map((item) => ({ ruta: item.href, nombre: item.label }))
+  ));
 
   return (
     <header className="relative z-40 mb-4 rounded-2xl border border-white/10 bg-[#0c1f16]/75 px-3 py-2 backdrop-blur-md sm:px-4">
@@ -35,10 +35,9 @@ export function NavCartelera({ edicion }: { edicion: Edicion | null }) {
         <Logo />
 
         <nav aria-label="Sitio" className="ml-4 hidden items-center gap-1 md:flex">
-          {ENLACES.map(({ ruta, nombre }) => (
+          {enlaces.map(({ ruta, nombre }) => (
             <Link key={ruta} to={ruta} className="rounded-full px-3 py-2 text-sm text-white/75 hover:bg-white/10 hover:text-white">{nombre}</Link>
           ))}
-          <span aria-current="page" className="rounded-full bg-white/15 px-3 py-2 text-sm font-medium text-white">Cartelera</span>
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
@@ -67,10 +66,9 @@ export function NavCartelera({ edicion }: { edicion: Edicion | null }) {
       {/* Celular: los enlaces se despliegan bajo la barra */}
       {abierto && (
         <nav aria-label="Sitio" className="mt-2 grid gap-1 border-t border-white/10 pt-2 md:hidden">
-          {ENLACES.map(({ ruta, nombre }) => (
+          {enlaces.map(({ ruta, nombre }) => (
             <Link key={ruta} to={ruta} className="rounded-lg px-3 py-2.5 text-white/85 hover:bg-white/10">{nombre}</Link>
           ))}
-          <span aria-current="page" className="rounded-lg bg-white/10 px-3 py-2.5 font-medium text-white">Cartelera</span>
         </nav>
       )}
     </header>
@@ -98,7 +96,11 @@ export function PieCartelera() {
         </div>
       </div>
       <nav aria-label="Enlaces del pie" className="mt-5 flex flex-wrap gap-x-4 gap-y-2 border-t border-white/10 pt-4">
-        {ENLACES.map(({ ruta, nombre }) => <Link key={ruta} to={ruta} className={enlacePie}>{nombre}</Link>)}
+        {secciones.flatMap((seccion) => (
+          seccion.href
+            ? [{ ruta: seccion.href, nombre: seccion.label }]
+            : (seccion.items ?? []).map((item) => ({ ruta: item.href, nombre: item.label }))
+        )).map(({ ruta, nombre }) => <Link key={ruta} to={ruta} className={enlacePie}>{nombre}</Link>)}
         <Link to="/aviso-privacidad" className={enlacePie}>Aviso de privacidad</Link>
         <Link to="/terminos-condiciones" className={enlacePie}>Términos y condiciones</Link>
       </nav>

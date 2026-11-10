@@ -222,10 +222,10 @@ export const LandingFDMA = () => {
             Conoce el Compostero
           </Link>
           <Link
-            to="/registro"
+            to="/acceso?modo=registro"
             className="px-8 py-3.5 rounded-full bg-[#2d6a4f] text-white font-bold shadow-md hover:bg-[#1b4332] hover:scale-105 transition-all text-center"
           >
-            Crear Cuenta en Eco Guardianes
+            Crear cuenta / Iniciar sesión
           </Link>
         </div>
       </section>

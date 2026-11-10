@@ -12,6 +12,7 @@ import ConectarRedes from './components/pages/ConectarRedes';
 
 import { Login } from './components/pages/Login';
 import { Registro } from './components/pages/Registro';
+import Acceso from './components/pages/Acceso';
 
 import Inicio from './components/Dashboard/Inicio';
 import { DashboardLayout } from './components/Dashboard/DashboardLayout';
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/manuales" element={<Manuales />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/acceso" element={<Acceso />} />
           <Route path="/aviso-privacidad" element={<AvisoPrivacidad />} />
           <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
           {/* Enlace de un solo uso para que FDMA autorice sus redes (Admin → Publicaciones) */}
