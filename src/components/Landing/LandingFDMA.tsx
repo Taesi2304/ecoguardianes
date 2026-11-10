@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { formatearFecha, formatearHora } from '../../lib/utils';
@@ -80,6 +81,9 @@ interface FdmaActividad {
   descripcion: string;
   fecha: string | null;
   imagenes: string[];
+  videos: string[];
+  pdfs: string[];
+  ganadores: Array<{ lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string }>;
   enlace_url: string | null;
 }
 
@@ -89,6 +93,32 @@ interface FdmaSeccion {
   titulo: string;
   descripcion: string;
   fdma_actividades: FdmaActividad[];
+}
+
+function FdmaCarrusel({ actividad }: { actividad: FdmaActividad }) {
+  const medios = [
+    ...actividad.imagenes.map((url) => ({ url, video: false })),
+    ...actividad.videos.map((url) => ({ url, video: true })),
+  ];
+  const [indice, setIndice] = useState(0);
+  if (medios.length === 0) return null;
+  const medio = medios[indice] || medios[0];
+  const cambiar = (paso: number) => setIndice((actual) => (actual + paso + medios.length) % medios.length);
+
+  return (
+    <div className="relative overflow-hidden bg-[#d8ece1] p-2">
+      <div className="flex h-56 items-center justify-center overflow-hidden rounded-xl bg-black/10">
+        {medio.video ? <video src={medio.url} controls className="h-full w-full object-contain" /> : <img src={medio.url} alt={`${actividad.titulo} — imagen ${indice + 1}`} className="h-full w-full object-cover" loading="lazy" />}
+      </div>
+      {medios.length > 1 && <>
+        <button type="button" onClick={() => cambiar(-1)} aria-label="Medio anterior" className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"><ChevronLeft className="h-5 w-5" /></button>
+        <button type="button" onClick={() => cambiar(1)} aria-label="Medio siguiente" className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"><ChevronRight className="h-5 w-5" /></button>
+        <div className="mt-2 flex justify-center gap-1.5">
+          {medios.map((item, posicion) => <button key={`${item.url}-${posicion}`} type="button" onClick={() => setIndice(posicion)} aria-label={`Ver medio ${posicion + 1}`} className={`h-2 rounded-full transition-all ${posicion === indice ? 'w-6 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'}`} />)}
+        </div>
+      </>}
+    </div>
+  );
 }
 
 export const LandingFDMA = () => {
@@ -178,7 +208,7 @@ export const LandingFDMA = () => {
     cargarPublicaciones();
     supabase
       .from('fdma_secciones')
-      .select('id, anio, titulo, descripcion, fdma_actividades(id, titulo, descripcion, fecha, imagenes, enlace_url)')
+      .select('id, anio, titulo, descripcion, fdma_actividades(id, titulo, descripcion, fecha, imagenes, videos, pdfs, ganadores, enlace_url)')
       .eq('activo', true)
       .order('anio', { ascending: false })
       .limit(1)
@@ -384,11 +414,14 @@ export const LandingFDMA = () => {
           <div className="grid gap-6 md:grid-cols-2">
             {fdma.fdma_actividades.map((actividad) => (
               <article key={actividad.id} className="overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm">
-                {actividad.imagenes[0] && <img src={actividad.imagenes[0]} alt="" className="h-48 w-full object-cover" loading="lazy" />}
+                <FdmaCarrusel actividad={actividad} />
                 <div className="p-5">
                   {actividad.fecha && <p className="text-sm font-bold uppercase tracking-wide text-[#2d6a4f]">{new Date(`${actividad.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}</p>}
                   <h4 className="mt-1 text-xl font-bold text-[#4a3728]">{actividad.titulo}</h4>
                   {actividad.descripcion && <p className="mt-2 text-[#4a3728]/75">{actividad.descripcion}</p>}
+                  {actividad.videos.length > 0 && <div className="mt-4 space-y-3"><p className="text-sm font-bold text-[#2d6a4f]">Videos</p>{actividad.videos.map((video) => /\.(mp4|webm|ogg)(\?|$)/i.test(video) ? <video key={video} src={video} controls className="w-full rounded-xl" /> : <a key={video} href={video} target="_blank" rel="noreferrer" className="block truncate text-sm text-blue-700 underline">Ver video</a>)}</div>}
+                  {actividad.pdfs.length > 0 && <div className="mt-4 rounded-xl border border-[#2d6a4f]/20 bg-[#f4f8f2] p-4"><p className="text-sm font-bold text-[#2d6a4f]">Documentos</p><div className="mt-2 flex flex-wrap gap-2">{actividad.pdfs.map((pdf, indice) => <a key={pdf} href={pdf} target="_blank" rel="noreferrer" className="rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver PDF{actividad.pdfs.length > 1 ? ` ${indice + 1}` : ''}</a>)}</div></div>}
+                  {actividad.ganadores.length > 0 && <div className="mt-5 rounded-xl bg-[#d8ece1] p-4"><h5 className="font-bold text-[#4a3728]">Ganadores de la Feria de Proyectos</h5><div className="mt-3 space-y-3">{actividad.ganadores.map((ganador) => <div key={ganador.lugar}><p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar{ganador.proyecto && ` — ${ganador.proyecto}`}</p>{ganador.participantes && <p className="text-sm text-[#4a3728]/75">{ganador.participantes}</p>}</div>)}</div></div>}
                   {actividad.enlace_url && <a href={actividad.enlace_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver actividad</a>}
                 </div>
               </article>

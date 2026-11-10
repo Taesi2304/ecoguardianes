@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, ChevronDown, ExternalLink, Loader2, Plus, Save, Trash2, Undo2 } from 'lucide-react';
+import { AlertCircle, ChevronDown, ExternalLink, Loader2, Plus, Save, Trash2, Undo2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,8 @@ const TEXTOS: { campo: 'titulo' | 'subtitulo' | 'descripcion'; nombre: string }[
 ];
 
 type FdmaSeccion = { id: string; anio: number; titulo: string; descripcion: string; activo: boolean };
-type FdmaActividad = { id: string; seccion_id: string; titulo: string; descripcion: string; fecha: string | null; imagenes: string[]; enlace_url: string | null };
+type FdmaGanador = { lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string };
+type FdmaActividad = { id: string; seccion_id: string; titulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
 
 // Lista legible de lo que cambió respecto a lo guardado, para confirmar antes de publicar
 function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
@@ -49,7 +50,7 @@ function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
     const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
     if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
     const url = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
-    setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? { ...item, imagenes: [url] } : item));
+    setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? (archivo.type.startsWith('video/') ? { ...item, videos: [...item.videos, url] } : { ...item, imagenes: [...item.imagenes, url] }) : item));
     toast.success('Imagen cargada. Pulsa Guardar para publicar el cambio.');
   }
   for (const { campo, nombre } of TEXTOS) {
@@ -67,9 +68,10 @@ export default function AdminPaginaInicio() {
   const [fdmaSecciones, setFdmaSecciones] = useState<FdmaSeccion[]>([]);
   const [fdmaActividades, setFdmaActividades] = useState<FdmaActividad[]>([]);
   const [fdmaForm, setFdmaForm] = useState({ anio: new Date().getFullYear(), titulo: '', descripcion: '', activo: true });
-  const [actividadForm, setActividadForm] = useState({ titulo: '', descripcion: '', fecha: '', imagen: '', archivo: null as File | null, enlace_url: '' });
+  const [actividadForm, setActividadForm] = useState({ titulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [] as File[], videos: '', pdfs: '', pdfArchivos: [] as File[], ganadores: false, enlace_url: '' });
   const [fdmaSeleccionada, setFdmaSeleccionada] = useState<string | null>(null);
   const [seccionesAbiertas, setSeccionesAbiertas] = useState(true);
+  const [fdmaAbierta, setFdmaAbierta] = useState(true);
 
   useEffect(() => {
     const cargarPagina = async () => {
@@ -125,7 +127,7 @@ export default function AdminPaginaInicio() {
   async function guardarActividad(actividad: FdmaActividad) {
     const { error: errorActividad } = await supabase.from('fdma_actividades').update({
       titulo: actividad.titulo.trim(), descripcion: actividad.descripcion.trim(), fecha: actividad.fecha || null,
-      imagenes: actividad.imagenes, enlace_url: actividad.enlace_url?.trim() || null,
+      imagenes: actividad.imagenes, videos: actividad.videos, pdfs: actividad.pdfs, ganadores: actividad.ganadores, enlace_url: actividad.enlace_url?.trim() || null,
     }).eq('id', actividad.id);
     if (errorActividad) toast.error(`No se pudo actualizar: ${errorActividad.message}`);
     else toast.success('Actividad actualizada.');
@@ -140,21 +142,31 @@ export default function AdminPaginaInicio() {
 
   async function agregarActividad() {
     if (!fdmaSeleccionada || !actividadForm.titulo.trim()) { toast.error('Selecciona una edición y escribe el título de la actividad.'); return; }
-    let imagen = actividadForm.imagen.trim();
-    if (actividadForm.archivo) {
-      const extension = actividadForm.archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const imagenes = actividadForm.imagenes.split('\n').map((url) => url.trim()).filter(Boolean);
+    const videos = actividadForm.videos.split('\n').map((url) => url.trim()).filter(Boolean);
+    const pdfs = actividadForm.pdfs.split('\n').map((url) => url.trim()).filter(Boolean);
+    for (const archivo of actividadForm.archivos) {
+      const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
       const ruta = `actividades/${crypto.randomUUID()}.${extension}`;
-      const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, actividadForm.archivo, { contentType: actividadForm.archivo.type, upsert: false });
-      if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
-      imagen = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
+      const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+      if (errorSubida) { toast.error(`No se pudo subir ${archivo.name}: ${errorSubida.message}`); return; }
+      const url = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
+      if (archivo.type.startsWith('video/')) videos.push(url);
+      else imagenes.push(url);
+    }
+    for (const archivo of actividadForm.pdfArchivos) {
+      const ruta = `documentos/${crypto.randomUUID()}.pdf`;
+      const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: 'application/pdf', upsert: false });
+      if (errorSubida) { toast.error(`No se pudo subir ${archivo.name}: ${errorSubida.message}`); return; }
+      pdfs.push(supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
     }
     const { error: errorActividad } = await supabase.from('fdma_actividades').insert({
       seccion_id: fdmaSeleccionada, titulo: actividadForm.titulo.trim(), descripcion: actividadForm.descripcion.trim(),
-      fecha: actividadForm.fecha || null, imagenes: imagen ? [imagen] : [], enlace_url: actividadForm.enlace_url.trim() || null,
+      fecha: actividadForm.fecha || null, imagenes, videos, pdfs, ganadores: actividadForm.ganadores ? [1, 2, 3].map((lugar) => ({ lugar, proyecto: '', participantes: '', asesor: '', organizacion: '', contacto: '', descripcion: '' })) : [], enlace_url: actividadForm.enlace_url.trim() || null,
     });
     if (errorActividad) { toast.error(`No se pudo agregar la actividad: ${errorActividad.message}`); return; }
     toast.success('Actividad agregada.');
-    setActividadForm({ titulo: '', descripcion: '', fecha: '', imagen: '', archivo: null, enlace_url: '' });
+    setActividadForm({ titulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [], videos: '', pdfs: '', pdfArchivos: [], ganadores: false, enlace_url: '' });
     await cargarFdma();
   }
 
@@ -265,11 +277,13 @@ export default function AdminPaginaInicio() {
       </Card>
 
       <Card className="border-transparent bg-white shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 px-6 py-4">
-          <CardTitle className="text-lg text-gray-800">Ediciones FDMA</CardTitle>
-          <p className="text-sm text-gray-500">Crea FDMA 2024, 2025, 2026 o cualquier edición futura y agrega sus actividades.</p>
+        <CardHeader className="border-b bg-gray-50/50 p-0">
+          <button type="button" onClick={() => setFdmaAbierta((abierta) => !abierta)} aria-expanded={fdmaAbierta} className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left hover:bg-gray-100/70">
+            <span><CardTitle className="text-lg text-gray-800">Ediciones FDMA</CardTitle><span className="mt-1 block text-sm font-normal text-gray-500">Crea FDMA 2024, 2025, 2026 o cualquier edición futura y administra sus carretes.</span></span>
+            <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${fdmaAbierta ? 'rotate-180' : ''}`} />
+          </button>
         </CardHeader>
-        <CardContent className="space-y-5 px-6 py-5">
+        {fdmaAbierta && <CardContent className="space-y-5 px-6 py-5">
           <div className="flex flex-wrap gap-2">
             {fdmaSecciones.map((seccion) => (
               <button type="button" key={seccion.id} onClick={() => void seleccionarFdma(seccion)} className={`rounded-full px-4 py-2 text-sm font-bold ${fdmaSeleccionada === seccion.id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}`}>FDMA {seccion.anio}</button>
@@ -290,10 +304,30 @@ export default function AdminPaginaInicio() {
                 <input value={actividad.titulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, titulo: e.target.value } : item))} className="rounded-lg border px-3 py-2 text-sm" />
                 <input type="date" value={actividad.fecha || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, fecha: e.target.value || null } : item))} className="rounded-lg border px-3 py-2 text-sm" />
                 <input value={actividad.imagenes[0] || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: e.target.value ? [e.target.value] : [] } : item))} placeholder="URL de imagen" className="rounded-lg border px-3 py-2 text-sm" />
-                <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenActividad(actividad.id, archivo); }} className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                <input type="file" accept="image/*,video/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="rounded-lg border bg-white px-3 py-2 text-sm" />
                 <input value={actividad.enlace_url || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, enlace_url: e.target.value } : item))} placeholder="URL opcional" className="rounded-lg border px-3 py-2 text-sm" />
               </div>
               <textarea value={actividad.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, descripcion: e.target.value } : item))} rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <textarea value={actividad.videos.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Videos: una URL por línea (YouTube, Vimeo o Storage)" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <textarea value={actividad.pdfs.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, pdfs: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="PDF: una URL por línea" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <p className="text-xs text-gray-500">Carrete: {actividad.imagenes.length} foto(s) y {actividad.videos.length} video(s).</p>
+              <div className="flex flex-wrap gap-2">
+                {actividad.imagenes.map((url, indice) => <span key={url} className="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-2 py-1 text-xs text-gray-600 shadow-sm"><span className="max-w-[180px] truncate">Foto {indice + 1}</span><button type="button" onClick={() => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: item.imagenes.filter((_, posicion) => posicion !== indice) } : item))} aria-label={`Quitar foto ${indice + 1}`}><X className="h-3 w-3 text-red-500" /></button></span>)}
+                {actividad.videos.map((url, indice) => <span key={url} className="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-2 py-1 text-xs text-gray-600 shadow-sm"><span className="max-w-[180px] truncate">Video {indice + 1}</span><button type="button" onClick={() => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: item.videos.filter((_, posicion) => posicion !== indice) } : item))} aria-label={`Quitar video ${indice + 1}`}><X className="h-3 w-3 text-red-500" /></button></span>)}
+              </div>
+              {actividad.ganadores.length > 0 && <div className="space-y-2 rounded-lg border border-green-100 bg-green-50 p-3">
+                <p className="text-sm font-bold text-green-800">Ganadores de la Feria de Proyectos</p>
+                {actividad.ganadores.map((ganador, indice) => (
+                  <div key={ganador.lugar} className="grid gap-2 md:grid-cols-2">
+                    <input value={ganador.proyecto} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, proyecto: e.target.value } : g) } : item))} placeholder={`${ganador.lugar}.º lugar — proyecto`} className="rounded border px-2 py-1 text-sm" />
+                    <input value={ganador.participantes} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, participantes: e.target.value } : g) } : item))} placeholder="Participantes" className="rounded border px-2 py-1 text-sm" />
+                    <input value={ganador.asesor} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, asesor: e.target.value } : g) } : item))} placeholder="Asesor" className="rounded border px-2 py-1 text-sm" />
+                    <input value={ganador.organizacion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, organizacion: e.target.value } : g) } : item))} placeholder="Escuela u organización" className="rounded border px-2 py-1 text-sm" />
+                    <input value={ganador.contacto} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, contacto: e.target.value } : g) } : item))} placeholder="Contacto" className="rounded border px-2 py-1 text-sm" />
+                    <input value={ganador.descripcion} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, ganadores: item.ganadores.map((g, i) => i === indice ? { ...g, descripcion: e.target.value } : g) } : item))} placeholder="Descripción del proyecto" className="rounded border px-2 py-1 text-sm" />
+                  </div>
+                ))}
+              </div>}
               <div className="flex gap-2">
                 <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar</button>
                 <button type="button" onClick={() => void eliminarActividad(actividad.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Eliminar</button>
@@ -302,14 +336,18 @@ export default function AdminPaginaInicio() {
             <div className="grid gap-3 md:grid-cols-2">
               <input value={actividadForm.titulo} onChange={(e) => setActividadForm({ ...actividadForm, titulo: e.target.value })} placeholder="Título de actividad" className="rounded-lg border px-3 py-2" />
               <input type="date" value={actividadForm.fecha} onChange={(e) => setActividadForm({ ...actividadForm, fecha: e.target.value })} className="rounded-lg border px-3 py-2" />
-              <input value={actividadForm.imagen} onChange={(e) => setActividadForm({ ...actividadForm, imagen: e.target.value })} placeholder="URL de imagen (opcional)" className="rounded-lg border px-3 py-2" />
-              <input type="file" accept="image/*" onChange={(e) => setActividadForm({ ...actividadForm, archivo: e.target.files?.[0] || null })} className="rounded-lg border bg-white px-3 py-2" />
+              <textarea value={actividadForm.imagenes} onChange={(e) => setActividadForm({ ...actividadForm, imagenes: e.target.value })} placeholder="Fotos: una URL por línea (sin límite)" rows={2} className="rounded-lg border px-3 py-2" />
+              <input type="file" accept="image/*,video/*" multiple onChange={(e) => setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) })} className="rounded-lg border bg-white px-3 py-2" />
               <input value={actividadForm.enlace_url} onChange={(e) => setActividadForm({ ...actividadForm, enlace_url: e.target.value })} placeholder="URL opcional" className="rounded-lg border px-3 py-2" />
             </div>
             <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            <textarea value={actividadForm.videos} onChange={(e) => setActividadForm({ ...actividadForm, videos: e.target.value })} placeholder="Videos: una URL por línea (YouTube, Vimeo o Storage)" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            <textarea value={actividadForm.pdfs} onChange={(e) => setActividadForm({ ...actividadForm, pdfs: e.target.value })} placeholder="PDF: una URL por línea (opcional)" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            <input type="file" accept="application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="rounded-lg border bg-white px-3 py-2" />
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={actividadForm.ganadores} onChange={(e) => setActividadForm({ ...actividadForm, ganadores: e.target.checked })} className="h-4 w-4 accent-green-600" /> Incluir sección de ganadores (1.º, 2.º y 3.º lugar)</label>
             <button type="button" onClick={() => void agregarActividad()} className="rounded-lg border border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Agregar actividad</button>
           </div>}
-        </CardContent>
+        </CardContent>}
       </Card>
 
       {/* Plegado: se edita poco y un cambio accidental se ve en la portada */}
