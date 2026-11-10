@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, ExternalLink, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 
@@ -8,6 +8,7 @@ interface ItemMenu {
   name: string;
   path: string;
   icon: string;
+  publicPath?: string;
 }
 
 interface GrupoMenu {
@@ -116,9 +117,9 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
           {
             titulo: 'Página web',
             items: [
-              { name: 'Página de inicio', path: '/admin/pagina', icon: '/inicio.svg' },
+              { name: 'Página de inicio', path: '/admin/pagina', icon: '/inicio.svg', publicPath: '/' },
               { name: 'Publicaciones', path: '/admin/publicaciones', icon: '/foto-camara.svg' },
-              { name: 'Directorio', path: '/admin/directorio', icon: '/usuarios.svg' },
+              { name: 'Directorio', path: '/admin/directorio', icon: '/usuarios.svg', publicPath: '/directorio' },
               { name: 'Aliados', path: '/admin/aliados', icon: '/corazon.svg' },
             ],
           },
@@ -126,9 +127,9 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
             titulo: 'Festival',
             items: [
               { name: 'Convocatorias', path: '/admin/convocatorias', icon: '/reporte.svg' },
-              { name: 'Cartelera', path: '/admin/cartelera', icon: '/mapa.svg' },
-              { name: 'Talleres', path: '/admin/talleres', icon: '/planta-tierra.svg' },
-              { name: 'Calendario', path: '/admin/calendario', icon: '/historial.svg' },
+              { name: 'Cartelera', path: '/admin/cartelera', icon: '/mapa.svg', publicPath: '/cartelera' },
+              { name: 'Talleres', path: '/admin/talleres', icon: '/planta-tierra.svg', publicPath: '/talleres' },
+              { name: 'Calendario', path: '/admin/calendario', icon: '/historial.svg', publicPath: '/calendario' },
             ],
           },
           { titulo: 'Eco Guardianes', items: menuCompostero },
@@ -179,25 +180,45 @@ export const Sidebar = ({ onClose }: { onClose?: () => void }) => {
       );
     }
 
-    return (
-      <Link
-        key={item.name}
-        to={item.path}
-        onClick={onClose} // Cierra el menú al hacer clic (útil en celular)
-        aria-current={isActive ? 'page' : undefined}
-        className={`flex items-center gap-3 rounded-xl px-4 font-medium transition-colors ${compacto ? 'py-2' : 'py-2.5'} ${
-          isActive
-            ? 'bg-[#EBF3E8] text-[#2D7A3E] border border-[#2D7A3E]/20 shadow-sm'
-            : 'text-[#4A2E18]/70 hover:bg-[#4A2E18]/5 hover:text-[#4A2E18]'
-        }`}
-      >
+    const clases = `flex items-center gap-3 rounded-xl px-4 font-medium transition-colors ${compacto ? 'py-2' : 'py-2.5'} ${
+      isActive
+        ? 'bg-[#EBF3E8] text-[#2D7A3E] border border-[#2D7A3E]/20 shadow-sm'
+        : 'text-[#4A2E18]/70 hover:bg-[#4A2E18]/5 hover:text-[#4A2E18]'
+    }`;
+    const contenido = (
+      <>
         <img
           src={item.icon}
           alt=""
           className={`w-5 h-5 object-contain transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}
         />
-        {item.name}
-      </Link>
+        <span className="min-w-0 flex-1">{item.name}</span>
+      </>
+    );
+
+    return (
+      <div key={item.name} className="flex items-center gap-1">
+        <Link
+          to={item.path}
+          onClick={onClose}
+          aria-current={isActive ? 'page' : undefined}
+          className={`${clases} min-w-0 flex-1`}
+        >
+          {contenido}
+        </Link>
+        {item.publicPath && (
+          <a
+            href={item.publicPath}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Ver ${item.name} en la página pública`}
+            title="Ver página pública"
+            className="rounded-lg p-2 text-[#4A2E18]/45 transition-colors hover:bg-[#4A2E18]/5 hover:text-[#2D7A3E]"
+          >
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          </a>
+        )}
+      </div>
     );
   };
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { AlertCircle, ChevronDown, ExternalLink, Loader2, Plus, Save, Trash2, Undo2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -152,39 +152,7 @@ export default function AdminPaginaInicio() {
     toast.success('Elemento quitado. Pulsa Guardar para confirmar.');
   }
 
-  async function eliminarFdmaSeccion() {
-    if (!fdmaSeleccionada || !window.confirm('Se eliminará esta edición y todas sus actividades. ¿Continuar?')) return;
-    const { error: errorEliminacion } = await supabase.from('fdma_secciones').delete().eq('id', fdmaSeleccionada);
-    if (errorEliminacion) { toast.error(`No se pudo eliminar la edición: ${errorEliminacion.message}`); return; }
-    toast.success('Edición eliminada.');
-    setFdmaSeleccionada(null);
-    setFdmaActividades([]);
-    await cargarFdma();
-  }
-
-  useEffect(() => {
-    const cargarPagina = async () => {
-      const { data, error: errorConsulta } = await supabase
-        .from('pagina_inicio')
-        .select('*')
-        .eq('id', 1)
-        .single();
-
-      if (errorConsulta) {
-        setError('No se pudo cargar la configuración de la página.');
-        console.error(errorConsulta);
-      } else {
-        setPagina(data as PaginaInicio);
-        setOriginal(data as PaginaInicio);
-      }
-      setCargando(false);
-    };
-
-    cargarPagina();
-    void cargarFdma();
-  }, []);
-
-  async function cargarFdma(preferredId?: string) {
+  const cargarFdma = useCallback(async (preferredId?: string) => {
     const { data: secciones, error: errorSecciones } = await supabase.from('fdma_secciones').select('id, anio, titulo, subtitulo, descripcion, activo').order('anio', { ascending: false });
     if (errorSecciones) {
       toast.error(`No se pudieron cargar las ediciones FDMA: ${errorSecciones.message}`);
@@ -215,7 +183,39 @@ export default function AdminPaginaInicio() {
       setFdmaActividadesOriginales(actividadesCargadas);
       setFdmaCambiosPendientes(false);
     }
+  }, [fdmaSeleccionada]);
+
+  async function eliminarFdmaSeccion() {
+    if (!fdmaSeleccionada || !window.confirm('Se eliminará esta edición y todas sus actividades. ¿Continuar?')) return;
+    const { error: errorEliminacion } = await supabase.from('fdma_secciones').delete().eq('id', fdmaSeleccionada);
+    if (errorEliminacion) { toast.error(`No se pudo eliminar la edición: ${errorEliminacion.message}`); return; }
+    toast.success('Edición eliminada.');
+    setFdmaSeleccionada(null);
+    setFdmaActividades([]);
+    await cargarFdma();
   }
+
+  useEffect(() => {
+    const cargarPagina = async () => {
+      const { data, error: errorConsulta } = await supabase
+        .from('pagina_inicio')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+      if (errorConsulta) {
+        setError('No se pudo cargar la configuración de la página.');
+        console.error(errorConsulta);
+      } else {
+        setPagina(data as PaginaInicio);
+        setOriginal(data as PaginaInicio);
+      }
+      setCargando(false);
+    };
+
+    cargarPagina();
+    void Promise.resolve().then(() => cargarFdma());
+  }, [cargarFdma]);
 
   async function guardarFdmaSeccion() {
     const payload = { anio: Number(fdmaForm.anio), titulo: fdmaForm.titulo.trim() || `FDMA ${fdmaForm.anio}`, subtitulo: fdmaForm.subtitulo.trim(), descripcion: fdmaForm.descripcion.trim(), activo: fdmaForm.activo };
@@ -311,6 +311,54 @@ export default function AdminPaginaInicio() {
     setPagina((actual) => actual && { ...actual, [campo]: !actual[campo] });
   }
 
+  async function publicarCambiosFdma() {
+    let seccionId = fdmaSeleccionada;
+    const payload = {
+      anio: Number(fdmaForm.anio),
+      titulo: fdmaForm.titulo.trim() || `FDMA ${fdmaForm.anio}`,
+      subtitulo: fdmaForm.subtitulo.trim(),
+      descripcion: fdmaForm.descripcion.trim(),
+      activo: fdmaForm.activo,
+    };
+
+    if (seccionId) {
+      const { error: errorSeccion } = await supabase.from('fdma_secciones').update(payload).eq('id', seccionId);
+      if (errorSeccion) {
+        toast.error(`No se pudo publicar la edición FDMA: ${errorSeccion.message}`);
+        return false;
+      }
+    } else {
+      const { data, error: errorSeccion } = await supabase.from('fdma_secciones').insert(payload).select('id').single();
+      if (errorSeccion || !data) {
+        toast.error(`No se pudo publicar la nueva edición FDMA: ${errorSeccion?.message || 'No se recibió el identificador de la edición.'}`);
+        return false;
+      }
+      seccionId = data.id;
+    }
+
+    for (const actividad of fdmaActividades) {
+      const { error: errorActividad } = await supabase.from('fdma_actividades').update({
+        titulo: actividad.titulo.trim(),
+        subtitulo: actividad.subtitulo.trim(),
+        descripcion: actividad.descripcion.trim(),
+        fecha: actividad.fecha || null,
+        imagenes: actividad.imagenes,
+        videos: actividad.videos,
+        pdfs: actividad.pdfs,
+        ganadores: actividad.ganadores,
+        enlace_url: actividad.enlace_url?.trim() || null,
+      }).eq('id', actividad.id).eq('seccion_id', seccionId);
+      if (errorActividad) {
+        toast.error(`No se pudo publicar la actividad «${actividad.titulo || 'Sin título'}»: ${errorActividad.message}`);
+        return false;
+      }
+    }
+
+    setFdmaSeleccionada(seccionId);
+    await cargarFdma(seccionId);
+    return true;
+  }
+
   async function guardar(e: FormEvent) {
     e.preventDefault();
     if (!pagina || !original) return;
@@ -319,32 +367,44 @@ export default function AdminPaginaInicio() {
       return;
     }
     const cambios = describirCambios(original, pagina);
-    if (cambios.length === 0) return;
+    if (cambios.length === 0 && !fdmaTieneCambios) return;
     // Los cambios se publican al instante en la página pública
-    if (!window.confirm(`Estos cambios se verán de inmediato en la página pública:\n\n• ${cambios.join('\n• ')}\n\n¿Publicarlos?`)) return;
+    const resumenCambios = [
+      ...cambios,
+      ...(fdmaTieneCambios ? ['Actualizar edición y actividades FDMA'] : []),
+    ];
+    if (!window.confirm(`Estos cambios se verán de inmediato en la página pública:\n\n• ${resumenCambios.join('\n• ')}\n\n¿Publicarlos?`)) return;
 
     setGuardando(true);
-    // Solo los interruptores existentes; los ajustes de la cartelera se guardan en su propio panel
-    const interruptores = Object.fromEntries(
-      SECCIONES.filter(({ campo }) => campo in pagina).map(({ campo }) => [campo, pagina[campo]]),
-    );
-    const { error: errorGuardado } = await supabase
-      .from('pagina_inicio')
-      .update({
-        ...interruptores,
-        titulo: pagina.titulo.trim(),
-        subtitulo: pagina.subtitulo.trim(),
-        descripcion: pagina.descripcion.trim(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', 1);
+    let todoPublicado = true;
+    if (hayCambios) {
+      const interruptores = Object.fromEntries(
+        SECCIONES.filter(({ campo }) => campo in pagina).map(({ campo }) => [campo, pagina[campo]]),
+      );
+      const { error: errorGuardado } = await supabase
+        .from('pagina_inicio')
+        .update({
+          ...interruptores,
+          titulo: pagina.titulo.trim(),
+          subtitulo: pagina.subtitulo.trim(),
+          descripcion: pagina.descripcion.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', 1);
 
-    if (errorGuardado) {
-      console.error(errorGuardado);
-      toast.error('No se pudieron guardar los cambios.');
-    } else {
-      toast.success('Página de inicio actualizada.');
-      setOriginal(pagina);
+      if (errorGuardado) {
+        console.error(errorGuardado);
+        toast.error('No se pudieron guardar los cambios de la página.');
+        todoPublicado = false;
+      } else {
+        setOriginal(pagina);
+      }
+    }
+    if (fdmaTieneCambios) {
+      todoPublicado = (await publicarCambiosFdma()) && todoPublicado;
+    }
+    if (todoPublicado) {
+      toast.success('Cambios publicados correctamente.');
     }
     setGuardando(false);
   }
@@ -448,8 +508,8 @@ export default function AdminPaginaInicio() {
           <label className="block text-sm font-semibold text-gray-700">Subtítulo de la edición<input value={fdmaForm.subtitulo} onChange={(e) => setFdmaForm({ ...fdmaForm, subtitulo: e.target.value })} placeholder="Ej. Actividades, encuentros y comunidad" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
           <label className="block text-sm font-semibold text-gray-700">Descripción general de la edición<textarea value={fdmaForm.descripcion} onChange={(e) => setFdmaForm({ ...fdmaForm, descripcion: e.target.value })} placeholder="Explica de qué trata esta edición." rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={fdmaForm.activo} onChange={(e) => setFdmaForm({ ...fdmaForm, activo: e.target.checked })} className="h-4 w-4 accent-green-600" /> Mostrar esta edición en la página pública</label>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => void guardarFdmaSeccion()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Guardar edición</button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => void guardarFdmaSeccion()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Guardar edición FDMA</button>
             {fdmaSeleccionada && <button type="button" onClick={() => void eliminarFdmaSeccion()} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"><Trash2 className="mr-1 inline h-4 w-4" /> Eliminar edición</button>}
           </div>
           {fdmaSeleccionada && <div className="space-y-4 border-t pt-5">
@@ -531,7 +591,7 @@ export default function AdminPaginaInicio() {
               </div>}
               {actividad.ganadores.length === 0 && actividad.titulo.toLowerCase().includes('feria') && <button type="button" onClick={() => agregarGanadores(actividad.id)} className="rounded-lg border border-green-600 px-3 py-1.5 text-xs font-bold text-green-700">Agregar información de los 3 lugares</button>}
               <div className="flex gap-2">
-                <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar</button>
+                <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar actividad</button>
                 <button type="button" onClick={() => void eliminarActividad(actividad.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Eliminar</button>
               </div>
               </div>
@@ -595,7 +655,7 @@ export default function AdminPaginaInicio() {
           {hayCambios
             ? `Cambios sin publicar: ${cambios.join(', ')}`
             : fdmaTieneCambios
-              ? 'Hay cambios FDMA sin publicar. Pulsa “Guardar edición” o “Guardar” dentro de la actividad para publicarlos.'
+              ? 'Hay cambios FDMA sin publicar. Puedes usar “Publicar cambios” aquí o guardar directamente la edición/actividad.'
               : 'Sin cambios pendientes. Lo que ves es lo que está publicado.'}
         </p>
         <div className="flex shrink-0 gap-2">
@@ -604,7 +664,7 @@ export default function AdminPaginaInicio() {
               <Undo2 className="h-4 w-4" /> Descartar
             </button>
           )}
-          <button type="submit" disabled={guardando || !hayCambios} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="submit" disabled={guardando || (!hayCambios && !fdmaTieneCambios)} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
             {guardando ? <><Loader2 className="h-4 w-4 animate-spin" /> Publicando...</> : <><Save className="h-4 w-4" /> Publicar cambios</>}
           </button>
         </div>
