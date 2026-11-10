@@ -302,9 +302,14 @@ export default function AdminEquipo() {
             Directorio público en <a href="/directorio" target="_blank" rel="noreferrer" className="underline hover:text-green-900">/directorio</a>, agrupado por área
           </p>
         </div>
-        <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
-          <Plus className="h-5 w-5" /> Nuevo integrante
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <a href="/directorio" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <ExternalLink className="h-4 w-4" /> Ver directorio
+          </a>
+          <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
+            <Plus className="h-5 w-5" /> Nuevo integrante
+          </button>
+        </div>
       </div>
 
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}

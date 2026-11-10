@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, Download, Edit, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { AlertCircle, Download, Edit, ExternalLink, Eye, EyeOff, Image, Loader2, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
@@ -372,9 +372,14 @@ export default function AdminTalleres() {
           <h1 className="text-3xl font-bold text-gray-900">Talleres extraordinarios</h1>
           <p className="mt-1 font-medium text-green-700">Talleres fuera del festival con registro en línea</p>
         </div>
-        <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
-          <Plus className="h-5 w-5" /> Nuevo taller
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <a href="/talleres" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <ExternalLink className="h-4 w-4" /> Ver talleres
+          </a>
+          <button onClick={abrirNuevo} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
+            <Plus className="h-5 w-5" /> Nuevo taller
+          </button>
+        </div>
       </div>
 
       {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700"><AlertCircle className="h-5 w-5" />{error}</div>}

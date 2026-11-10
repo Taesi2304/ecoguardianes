@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { AlertCircle, ArrowRight, Edit, Eye, EyeOff, Loader2, Plus, Save, Tags, Trash2, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, Edit, ExternalLink, Eye, EyeOff, Loader2, Plus, Save, Tags, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
@@ -275,6 +275,9 @@ export default function AdminCalendario() {
           <p className="mt-1 font-medium text-green-700">Actividades del equipo a lo largo del año. Los talleres extraordinarios aparecen solos.</p>
         </div>
         <div className="flex gap-2">
+          <a href="/calendario" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <ExternalLink className="h-4 w-4" /> Ver calendario
+          </a>
           <button onClick={() => setEditandoCategorias((actual) => !actual)} className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
             <Tags className="h-5 w-5" /> Categorías
           </button>
