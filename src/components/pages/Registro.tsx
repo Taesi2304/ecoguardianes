@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import '../Landing/Landing.css';
 
@@ -206,6 +206,17 @@ export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
               </button>
             </div>
           </form>
+          <div className="mt-4 border-t border-[#2D7A3E]/15 pt-4 text-center">
+            <p className="mb-3 text-sm text-[#4A2E18]/70">¿Todavía no tienes código?</p>
+            <button
+              type="button"
+              onClick={() => setStep(0)}
+              className="group flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#2D7A3E] bg-white px-5 py-3 font-extrabold text-[#2D7A3E] shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#2D7A3E] hover:text-white hover:shadow-lg"
+            >
+              <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
+              No tengo código — obtenerlo
+            </button>
+          </div>
         )}
 
         {step === 2 && (
