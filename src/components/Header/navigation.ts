@@ -16,7 +16,6 @@ export const secciones: Seccion[] = [
     label: 'Festival',
     items: [
       { label: 'Cartelera', href: '/cartelera', detalle: 'Programa, horarios y sedes' },
-      { label: 'Convocatorias', href: '/#convocatorias', detalle: 'Convocatorias y registros abiertos' },
       { label: 'Talleres', href: '/talleres', detalle: 'Talleres con registro en línea' },
       { label: 'Calendario', href: '/calendario', detalle: 'Actividades durante todo el año' },
       { label: 'Directorio', href: '/directorio', detalle: 'Equipo organizador del festival' },
