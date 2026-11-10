@@ -78,6 +78,7 @@ interface Publicacion {
 interface FdmaActividad {
   id: string;
   titulo: string;
+  subtitulo: string;
   descripcion: string;
   fecha: string | null;
   imagenes: string[];
@@ -91,6 +92,7 @@ interface FdmaSeccion {
   id: string;
   anio: number;
   titulo: string;
+  subtitulo: string;
   descripcion: string;
   fdma_actividades: FdmaActividad[];
 }
@@ -208,7 +210,7 @@ export const LandingFDMA = () => {
     cargarPublicaciones();
     supabase
       .from('fdma_secciones')
-      .select('id, anio, titulo, descripcion, fdma_actividades(id, titulo, descripcion, fecha, imagenes, videos, pdfs, ganadores, enlace_url)')
+      .select('id, anio, titulo, subtitulo, descripcion, fdma_actividades(id, titulo, subtitulo, descripcion, fecha, imagenes, videos, pdfs, ganadores, enlace_url)')
       .eq('activo', true)
       .order('anio', { ascending: false })
       .limit(1)
@@ -409,6 +411,7 @@ export const LandingFDMA = () => {
           <div className="mb-7 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#2d6a4f]">Edición {fdma.anio}</p>
             <h3 className="mt-1 text-2xl font-bold text-[#4a3728] md:text-3xl">{fdma.titulo || `FDMA ${fdma.anio}`}</h3>
+            {fdma.subtitulo && <p className="mt-1 font-semibold text-[#2d6a4f]">{fdma.subtitulo}</p>}
             {fdma.descripcion && <p className="mx-auto mt-2 max-w-3xl text-[#4a3728]/75">{fdma.descripcion}</p>}
           </div>
           <div className="grid gap-6 md:grid-cols-2">
@@ -418,6 +421,7 @@ export const LandingFDMA = () => {
                 <div className="p-5">
                   {actividad.fecha && <p className="text-sm font-bold uppercase tracking-wide text-[#2d6a4f]">{new Date(`${actividad.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}</p>}
                   <h4 className="mt-1 text-xl font-bold text-[#4a3728]">{actividad.titulo}</h4>
+                  {actividad.subtitulo && <p className="mt-1 font-semibold text-[#2d6a4f]">{actividad.subtitulo}</p>}
                   {actividad.descripcion && <p className="mt-2 text-[#4a3728]/75">{actividad.descripcion}</p>}
                   {actividad.videos.length > 0 && <div className="mt-4 space-y-3"><p className="text-sm font-bold text-[#2d6a4f]">Videos</p>{actividad.videos.map((video) => /\.(mp4|webm|ogg)(\?|$)/i.test(video) ? <video key={video} src={video} controls className="w-full rounded-xl" /> : <a key={video} href={video} target="_blank" rel="noreferrer" className="block truncate text-sm text-blue-700 underline">Ver video</a>)}</div>}
                   {actividad.pdfs.length > 0 && <div className="mt-4 rounded-xl border border-[#2d6a4f]/20 bg-[#f4f8f2] p-4"><p className="text-sm font-bold text-[#2d6a4f]">Documentos</p><div className="mt-2 flex flex-wrap gap-2">{actividad.pdfs.map((pdf, indice) => <a key={pdf} href={pdf} target="_blank" rel="noreferrer" className="rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver PDF{actividad.pdfs.length > 1 ? ` ${indice + 1}` : ''}</a>)}</div></div>}

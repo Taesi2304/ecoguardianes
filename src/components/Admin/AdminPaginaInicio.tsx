@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { AlertCircle, ChevronDown, ExternalLink, Loader2, Plus, Save, Trash2, Undo2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -33,9 +33,9 @@ const TEXTOS: { campo: 'titulo' | 'subtitulo' | 'descripcion'; nombre: string }[
   { campo: 'descripcion', nombre: 'Descripción' },
 ];
 
-type FdmaSeccion = { id: string; anio: number; titulo: string; descripcion: string; activo: boolean };
+type FdmaSeccion = { id: string; anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
 type FdmaGanador = { lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string };
-type FdmaActividad = { id: string; seccion_id: string; titulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
+type FdmaActividad = { id: string; seccion_id: string; titulo: string; subtitulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
 
 // Lista legible de lo que cambió respecto a lo guardado, para confirmar antes de publicar
 function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
@@ -53,6 +53,19 @@ function describirCambios(original: PaginaInicio, actual: PaginaInicio) {
     setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? (archivo.type.startsWith('video/') ? { ...item, videos: [...item.videos, url] } : { ...item, imagenes: [...item.imagenes, url] }) : item));
     toast.success('Imagen cargada. Pulsa Guardar para publicar el cambio.');
   }
+
+  async function quitarMediaActividad(id: string, tipo: 'imagenes' | 'videos' | 'pdfs', indice: number) {
+    const actividad = fdmaActividades.find((item) => item.id === id);
+    if (!actividad) return;
+    const url = actividad[tipo][indice];
+    const marcador = '/storage/v1/object/public/fdma-media/';
+    const posicion = url.indexOf(marcador);
+    if (posicion >= 0) {
+      await supabase.storage.from('fdma-media').remove([decodeURIComponent(url.slice(posicion + marcador.length))]);
+    }
+    setFdmaActividades((actuales) => actuales.map((item) => item.id === id ? { ...item, [tipo]: item[tipo].filter((_, actual) => actual !== indice) } : item));
+    toast.success('Elemento quitado. Pulsa Guardar para confirmar.');
+  }
   for (const { campo, nombre } of TEXTOS) {
     if (original[campo].trim() !== actual[campo].trim()) cambios.push(`Cambiar ${nombre.toLowerCase()}`);
   }
@@ -67,11 +80,14 @@ export default function AdminPaginaInicio() {
   const [error, setError] = useState<string | null>(null);
   const [fdmaSecciones, setFdmaSecciones] = useState<FdmaSeccion[]>([]);
   const [fdmaActividades, setFdmaActividades] = useState<FdmaActividad[]>([]);
-  const [fdmaForm, setFdmaForm] = useState({ anio: new Date().getFullYear(), titulo: '', descripcion: '', activo: true });
-  const [actividadForm, setActividadForm] = useState({ titulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [] as File[], videos: '', pdfs: '', pdfArchivos: [] as File[], ganadores: false, enlace_url: '' });
+  const [fdmaForm, setFdmaForm] = useState({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true });
+  const [actividadForm, setActividadForm] = useState({ titulo: '', subtitulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [] as File[], videos: '', pdfs: '', pdfArchivos: [] as File[], ganadores: false, enlace_url: '' });
   const [fdmaSeleccionada, setFdmaSeleccionada] = useState<string | null>(null);
   const [seccionesAbiertas, setSeccionesAbiertas] = useState(true);
   const [fdmaAbierta, setFdmaAbierta] = useState(true);
+  const archivosVista = useMemo(() => actividadForm.archivos.map((archivo) => ({ archivo, url: URL.createObjectURL(archivo) })), [actividadForm.archivos]);
+
+  useEffect(() => () => archivosVista.forEach(({ url }) => URL.revokeObjectURL(url)), [archivosVista]);
 
   useEffect(() => {
     const cargarPagina = async () => {
@@ -101,14 +117,14 @@ export default function AdminPaginaInicio() {
     setFdmaSecciones(lista);
     if (lista[0]) {
       setFdmaSeleccionada(lista[0].id);
-      setFdmaForm({ anio: lista[0].anio, titulo: lista[0].titulo, descripcion: lista[0].descripcion, activo: lista[0].activo });
+      setFdmaForm({ anio: lista[0].anio, titulo: lista[0].titulo, subtitulo: lista[0].subtitulo || '', descripcion: lista[0].descripcion, activo: lista[0].activo });
       const { data: actividades } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', lista[0].id).order('orden');
       setFdmaActividades((actividades || []) as FdmaActividad[]);
     }
   }
 
   async function guardarFdmaSeccion() {
-    const payload = { anio: Number(fdmaForm.anio), titulo: fdmaForm.titulo.trim() || `FDMA ${fdmaForm.anio}`, descripcion: fdmaForm.descripcion.trim(), activo: fdmaForm.activo };
+    const payload = { anio: Number(fdmaForm.anio), titulo: fdmaForm.titulo.trim() || `FDMA ${fdmaForm.anio}`, subtitulo: fdmaForm.subtitulo.trim(), descripcion: fdmaForm.descripcion.trim(), activo: fdmaForm.activo };
     const resultado = fdmaSeleccionada
       ? await supabase.from('fdma_secciones').update(payload).eq('id', fdmaSeleccionada).select().single()
       : await supabase.from('fdma_secciones').insert(payload).select().single();
@@ -119,14 +135,14 @@ export default function AdminPaginaInicio() {
 
   async function seleccionarFdma(seccion: FdmaSeccion) {
     setFdmaSeleccionada(seccion.id);
-    setFdmaForm({ anio: seccion.anio, titulo: seccion.titulo, descripcion: seccion.descripcion, activo: seccion.activo });
+    setFdmaForm({ anio: seccion.anio, titulo: seccion.titulo, subtitulo: seccion.subtitulo || '', descripcion: seccion.descripcion, activo: seccion.activo });
     const { data } = await supabase.from('fdma_actividades').select('*').eq('seccion_id', seccion.id).order('orden');
     setFdmaActividades((data || []) as FdmaActividad[]);
   }
 
   async function guardarActividad(actividad: FdmaActividad) {
     const { error: errorActividad } = await supabase.from('fdma_actividades').update({
-      titulo: actividad.titulo.trim(), descripcion: actividad.descripcion.trim(), fecha: actividad.fecha || null,
+      titulo: actividad.titulo.trim(), subtitulo: actividad.subtitulo.trim(), descripcion: actividad.descripcion.trim(), fecha: actividad.fecha || null,
       imagenes: actividad.imagenes, videos: actividad.videos, pdfs: actividad.pdfs, ganadores: actividad.ganadores, enlace_url: actividad.enlace_url?.trim() || null,
     }).eq('id', actividad.id);
     if (errorActividad) toast.error(`No se pudo actualizar: ${errorActividad.message}`);
@@ -161,12 +177,12 @@ export default function AdminPaginaInicio() {
       pdfs.push(supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
     }
     const { error: errorActividad } = await supabase.from('fdma_actividades').insert({
-      seccion_id: fdmaSeleccionada, titulo: actividadForm.titulo.trim(), descripcion: actividadForm.descripcion.trim(),
+      seccion_id: fdmaSeleccionada, titulo: actividadForm.titulo.trim(), subtitulo: actividadForm.subtitulo.trim(), descripcion: actividadForm.descripcion.trim(),
       fecha: actividadForm.fecha || null, imagenes, videos, pdfs, ganadores: actividadForm.ganadores ? [1, 2, 3].map((lugar) => ({ lugar, proyecto: '', participantes: '', asesor: '', organizacion: '', contacto: '', descripcion: '' })) : [], enlace_url: actividadForm.enlace_url.trim() || null,
     });
     if (errorActividad) { toast.error(`No se pudo agregar la actividad: ${errorActividad.message}`); return; }
     toast.success('Actividad agregada.');
-    setActividadForm({ titulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [], videos: '', pdfs: '', pdfArchivos: [], ganadores: false, enlace_url: '' });
+    setActividadForm({ titulo: '', subtitulo: '', descripcion: '', fecha: '', imagenes: '', archivos: [], videos: '', pdfs: '', pdfArchivos: [], ganadores: false, enlace_url: '' });
     await cargarFdma();
   }
 
@@ -288,22 +304,24 @@ export default function AdminPaginaInicio() {
             {fdmaSecciones.map((seccion) => (
               <button type="button" key={seccion.id} onClick={() => void seleccionarFdma(seccion)} className={`rounded-full px-4 py-2 text-sm font-bold ${fdmaSeleccionada === seccion.id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}`}>FDMA {seccion.anio}</button>
             ))}
-            <button type="button" onClick={() => { setFdmaSeleccionada(null); setFdmaForm({ anio: new Date().getFullYear(), titulo: '', descripcion: '', activo: true }); setFdmaActividades([]); }} className="rounded-full border border-dashed border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Nueva edición</button>
+            <button type="button" onClick={() => { setFdmaSeleccionada(null); setFdmaForm({ anio: new Date().getFullYear(), titulo: '', subtitulo: '', descripcion: '', activo: true }); setFdmaActividades([]); }} className="rounded-full border border-dashed border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Nueva edición</button>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-semibold text-gray-700">Año<input type="number" value={fdmaForm.anio} onChange={(e) => setFdmaForm({ ...fdmaForm, anio: Number(e.target.value) })} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
-            <label className="text-sm font-semibold text-gray-700">Título<input value={fdmaForm.titulo} onChange={(e) => setFdmaForm({ ...fdmaForm, titulo: e.target.value })} placeholder={`FDMA ${fdmaForm.anio}`} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+            <label className="text-sm font-semibold text-gray-700">Título de la edición<input value={fdmaForm.titulo} onChange={(e) => setFdmaForm({ ...fdmaForm, titulo: e.target.value })} placeholder={`FDMA ${fdmaForm.anio}`} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
           </div>
-          <label className="block text-sm font-semibold text-gray-700">Descripción<textarea value={fdmaForm.descripcion} onChange={(e) => setFdmaForm({ ...fdmaForm, descripcion: e.target.value })} rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+          <label className="block text-sm font-semibold text-gray-700">Subtítulo de la edición<input value={fdmaForm.subtitulo} onChange={(e) => setFdmaForm({ ...fdmaForm, subtitulo: e.target.value })} placeholder="Ej. Actividades, encuentros y comunidad" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+          <label className="block text-sm font-semibold text-gray-700">Descripción general de la edición<textarea value={fdmaForm.descripcion} onChange={(e) => setFdmaForm({ ...fdmaForm, descripcion: e.target.value })} placeholder="Explica de qué trata esta edición." rows={2} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={fdmaForm.activo} onChange={(e) => setFdmaForm({ ...fdmaForm, activo: e.target.checked })} className="h-4 w-4 accent-green-600" /> Mostrar esta edición en la página pública</label>
           <button type="button" onClick={() => void guardarFdmaSeccion()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Guardar edición</button>
           {fdmaSeleccionada && <div className="space-y-3 border-t pt-4">
             <h3 className="font-bold text-gray-800">Actividades ({fdmaActividades.length})</h3>
             {fdmaActividades.map((actividad) => <div key={actividad.id} className="space-y-2 rounded-lg bg-gray-50 p-3">
               <div className="grid gap-2 md:grid-cols-2">
-                <input value={actividad.titulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, titulo: e.target.value } : item))} className="rounded-lg border px-3 py-2 text-sm" />
+                <input value={actividad.titulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, titulo: e.target.value } : item))} placeholder="Título de la actividad" className="rounded-lg border px-3 py-2 text-sm" />
+                <input value={actividad.subtitulo} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, subtitulo: e.target.value } : item))} placeholder="Subtítulo: fecha o frase breve" className="rounded-lg border px-3 py-2 text-sm" />
                 <input type="date" value={actividad.fecha || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, fecha: e.target.value || null } : item))} className="rounded-lg border px-3 py-2 text-sm" />
-                <input value={actividad.imagenes[0] || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: e.target.value ? [e.target.value] : [] } : item))} placeholder="URL de imagen" className="rounded-lg border px-3 py-2 text-sm" />
+                <textarea value={actividad.imagenes.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Fotos: una URL por línea" rows={2} className="rounded-lg border px-3 py-2 text-sm" />
                 <input type="file" accept="image/*,video/*" multiple onChange={(e) => Array.from(e.target.files || []).forEach((archivo) => void subirImagenActividad(actividad.id, archivo))} className="rounded-lg border bg-white px-3 py-2 text-sm" />
                 <input value={actividad.enlace_url || ''} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, enlace_url: e.target.value } : item))} placeholder="URL opcional" className="rounded-lg border px-3 py-2 text-sm" />
               </div>
@@ -311,9 +329,10 @@ export default function AdminPaginaInicio() {
               <textarea value={actividad.videos.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="Videos: una URL por línea (YouTube, Vimeo o Storage)" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
               <textarea value={actividad.pdfs.join('\n')} onChange={(e) => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, pdfs: e.target.value.split('\n').map((url) => url.trim()).filter(Boolean) } : item))} placeholder="PDF: una URL por línea" rows={2} className="w-full rounded-lg border px-3 py-2 text-sm" />
               <p className="text-xs text-gray-500">Carrete: {actividad.imagenes.length} foto(s) y {actividad.videos.length} video(s).</p>
-              <div className="flex flex-wrap gap-2">
-                {actividad.imagenes.map((url, indice) => <span key={url} className="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-2 py-1 text-xs text-gray-600 shadow-sm"><span className="max-w-[180px] truncate">Foto {indice + 1}</span><button type="button" onClick={() => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, imagenes: item.imagenes.filter((_, posicion) => posicion !== indice) } : item))} aria-label={`Quitar foto ${indice + 1}`}><X className="h-3 w-3 text-red-500" /></button></span>)}
-                {actividad.videos.map((url, indice) => <span key={url} className="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-2 py-1 text-xs text-gray-600 shadow-sm"><span className="max-w-[180px] truncate">Video {indice + 1}</span><button type="button" onClick={() => setFdmaActividades((actuales) => actuales.map((item) => item.id === actividad.id ? { ...item, videos: item.videos.filter((_, posicion) => posicion !== indice) } : item))} aria-label={`Quitar video ${indice + 1}`}><X className="h-3 w-3 text-red-500" /></button></span>)}
+              <div className="flex flex-wrap gap-3">
+                {actividad.imagenes.map((url, indice) => <div key={url} className="relative h-20 w-24 overflow-hidden rounded-lg border bg-white shadow-sm"><img src={url} alt={`Foto ${indice + 1}`} className="h-full w-full object-cover" /><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'imagenes', indice)} aria-label={`Quitar foto ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><span className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 text-center text-[10px] text-white">Foto {indice + 1}</span></div>)}
+                {actividad.videos.map((url, indice) => <div key={url} className="relative flex h-20 w-24 items-center justify-center overflow-hidden rounded-lg border bg-slate-800 text-center text-[10px] text-white shadow-sm"><span>Video {indice + 1}</span><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'videos', indice)} aria-label={`Quitar video ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button></div>)}
+                {actividad.pdfs.map((url, indice) => <div key={url} className="relative flex h-20 w-24 items-center justify-center rounded-lg border bg-red-50 text-center text-xs text-red-700 shadow-sm"><span>PDF {indice + 1}</span><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'pdfs', indice)} aria-label={`Quitar PDF ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button></div>)}
               </div>
               {actividad.ganadores.length > 0 && <div className="space-y-2 rounded-lg border border-green-100 bg-green-50 p-3">
                 <p className="text-sm font-bold text-green-800">Ganadores de la Feria de Proyectos</p>
@@ -334,16 +353,19 @@ export default function AdminPaginaInicio() {
               </div>
             </div>)}
             <div className="grid gap-3 md:grid-cols-2">
-              <input value={actividadForm.titulo} onChange={(e) => setActividadForm({ ...actividadForm, titulo: e.target.value })} placeholder="Título de actividad" className="rounded-lg border px-3 py-2" />
+              <input value={actividadForm.titulo} onChange={(e) => setActividadForm({ ...actividadForm, titulo: e.target.value })} placeholder="Título de la actividad (ej. Feria de proyectos)" className="rounded-lg border px-3 py-2" />
+              <input value={actividadForm.subtitulo} onChange={(e) => setActividadForm({ ...actividadForm, subtitulo: e.target.value })} placeholder="Subtítulo (ej. Presentación y premiación)" className="rounded-lg border px-3 py-2" />
               <input type="date" value={actividadForm.fecha} onChange={(e) => setActividadForm({ ...actividadForm, fecha: e.target.value })} className="rounded-lg border px-3 py-2" />
               <textarea value={actividadForm.imagenes} onChange={(e) => setActividadForm({ ...actividadForm, imagenes: e.target.value })} placeholder="Fotos: una URL por línea (sin límite)" rows={2} className="rounded-lg border px-3 py-2" />
               <input type="file" accept="image/*,video/*" multiple onChange={(e) => setActividadForm({ ...actividadForm, archivos: Array.from(e.target.files || []) })} className="rounded-lg border bg-white px-3 py-2" />
               <input value={actividadForm.enlace_url} onChange={(e) => setActividadForm({ ...actividadForm, enlace_url: e.target.value })} placeholder="URL opcional" className="rounded-lg border px-3 py-2" />
             </div>
             <textarea value={actividadForm.descripcion} onChange={(e) => setActividadForm({ ...actividadForm, descripcion: e.target.value })} placeholder="Descripción de la actividad" rows={2} className="w-full rounded-lg border px-3 py-2" />
+            {archivosVista.length > 0 && <div className="rounded-lg border border-green-100 bg-green-50 p-3"><p className="mb-2 text-sm font-bold text-green-800">Archivos seleccionados: se subirán al pulsar “Agregar actividad”</p><div className="flex flex-wrap gap-3">{archivosVista.map(({ archivo, url }, indice) => <div key={url} className="relative w-32">{archivo.type.startsWith('video/') ? <video src={url} controls className="h-20 w-full rounded object-cover" /> : <img src={url} alt={archivo.name} className="h-20 w-full rounded object-cover" />}<button type="button" onClick={() => setActividadForm((actual) => ({ ...actual, archivos: actual.archivos.filter((_, posicion) => posicion !== indice) }))} aria-label={`Quitar ${archivo.name}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button><p className="truncate text-xs text-gray-600">{archivo.name}</p></div>)}</div></div>}
             <textarea value={actividadForm.videos} onChange={(e) => setActividadForm({ ...actividadForm, videos: e.target.value })} placeholder="Videos: una URL por línea (YouTube, Vimeo o Storage)" rows={2} className="w-full rounded-lg border px-3 py-2" />
             <textarea value={actividadForm.pdfs} onChange={(e) => setActividadForm({ ...actividadForm, pdfs: e.target.value })} placeholder="PDF: una URL por línea (opcional)" rows={2} className="w-full rounded-lg border px-3 py-2" />
             <input type="file" accept="application/pdf" multiple onChange={(e) => setActividadForm({ ...actividadForm, pdfArchivos: Array.from(e.target.files || []) })} className="rounded-lg border bg-white px-3 py-2" />
+            {actividadForm.pdfArchivos.length > 0 && <p className="text-sm text-gray-600">PDF seleccionados: {actividadForm.pdfArchivos.map((archivo) => archivo.name).join(', ')}. Se subirán al agregar la actividad.</p>}
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={actividadForm.ganadores} onChange={(e) => setActividadForm({ ...actividadForm, ganadores: e.target.checked })} className="h-4 w-4 accent-green-600" /> Incluir sección de ganadores (1.º, 2.º y 3.º lugar)</label>
             <button type="button" onClick={() => void agregarActividad()} className="rounded-lg border border-green-600 px-4 py-2 text-sm font-bold text-green-700"><Plus className="mr-1 inline h-4 w-4" /> Agregar actividad</button>
           </div>}
