@@ -183,7 +183,8 @@ export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
         )}
 
         {step === 1 && (
-          <form onSubmit={handleValidarCodigo} className="mt-4">
+          <>
+            <form onSubmit={handleValidarCodigo} className="mt-4">
             <label className="contact-field block">
               <span className="contact-label text-center text-lg block mb-2 text-[#2D7A3E]">Tu código:</span>
               <input
@@ -205,8 +206,8 @@ export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
                 {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
               </button>
             </div>
-          </form>
-          <div className="mt-4 border-t border-[#2D7A3E]/15 pt-4 text-center">
+            </form>
+            <div className="mt-4 border-t border-[#2D7A3E]/15 pt-4 text-center">
             <p className="mb-3 text-sm text-[#4A2E18]/70">¿Todavía no tienes código?</p>
             <button
               type="button"
@@ -216,7 +217,8 @@ export const Registro = ({ embedded = false }: { embedded?: boolean }) => {
               <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
               No tengo código — obtenerlo
             </button>
-          </div>
+            </div>
+          </>
         )}
 
         {step === 2 && (
