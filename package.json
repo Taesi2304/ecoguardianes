@@ -21,6 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "dom-to-image-more": "^3.11.0",
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",

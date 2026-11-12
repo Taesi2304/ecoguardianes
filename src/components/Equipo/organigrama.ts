@@ -1,4 +1,5 @@
 import html2canvas from 'html2canvas';
+import domToImage from 'dom-to-image-more';
 import type { Integrante } from './equipo';
 
 export const ORGANIGRAMA_AREAS = [
@@ -56,35 +57,90 @@ export function agruparParaOrganigrama(integrantes: Integrante[]) {
   return { general, grupos };
 }
 
-export async function exportarOrganigrama(elemento: HTMLElement, nombreArchivo = 'organigrama-fdma.png') {
-  await document.fonts.ready;
-
-  const canvas = await html2canvas(elemento, {
-    backgroundColor: '#f8f1e4',
-    scale: 2,
-    x: 0,
-    y: 0,
-    width: elemento.scrollWidth,
-    height: elemento.scrollHeight,
-    windowWidth: elemento.scrollWidth,
-    windowHeight: elemento.scrollHeight,
-    scrollX: 0,
-    scrollY: -window.scrollY,
-    useCORS: true,
-    allowTaint: false,
-    logging: false,
-    onclone: (documento) => {
-      documento.querySelectorAll<HTMLElement>('*').forEach((nodo) => {
-        nodo.style.setProperty('border-color', '#a9b5b8');
-        nodo.style.setProperty('outline-color', '#a9b5b8');
-      });
-    },
-  });
-
+function descargarDataUrl(dataUrl: string, nombreArchivo: string) {
   const enlace = document.createElement('a');
   enlace.download = nombreArchivo;
-  enlace.href = canvas.toDataURL('image/png');
+  enlace.href = dataUrl;
   document.body.appendChild(enlace);
   enlace.click();
   enlace.remove();
+}
+
+export async function exportarOrganigrama(elemento: HTMLElement, nombreArchivo = 'organigrama-fdma.png') {
+  await document.fonts.ready;
+
+  const ancho = elemento.scrollWidth;
+  const alto = elemento.scrollHeight;
+  const png = await domToImage.toPng(elemento, {
+    bgcolor: '#f8f1e4',
+    width: ancho,
+    height: alto,
+    scale: 2,
+    pixelRatio: 1,
+    cacheBust: true,
+    preserveScroll: false,
+    style: {
+      width: `${ancho}px`,
+      height: `${alto}px`,
+      overflow: 'visible',
+    },
+    onclone: (clon) => {
+      if (clon instanceof HTMLElement) {
+        clon.style.overflow = 'visible';
+      }
+    },
+  });
+
+  descargarDataUrl(png, nombreArchivo);
+}
+
+export async function exportarOrganigramaConHtml2Canvas(elemento: HTMLElement, nombreArchivo = 'organigrama-fdma.png') {
+  await document.fonts.ready;
+
+  const desplazable = elemento.parentElement;
+  const estilosOriginales = {
+    overflow: desplazable?.style.overflow ?? '',
+    overflowX: desplazable?.style.overflowX ?? '',
+    width: elemento.style.width,
+    bodyWidth: document.body.style.width,
+    bodyOverflow: document.body.style.overflow,
+  };
+
+  try {
+    const ancho = elemento.scrollWidth;
+    const alto = elemento.scrollHeight;
+    if (desplazable) {
+      desplazable.style.overflow = 'visible';
+      desplazable.style.overflowX = 'visible';
+    }
+    elemento.style.width = `${ancho}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'visible';
+
+    const canvas = await html2canvas(elemento, {
+      backgroundColor: '#f8f1e4',
+      scale: 2,
+      x: 0,
+      y: 0,
+      width: ancho,
+      height: alto,
+      windowWidth: ancho,
+      windowHeight: alto,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+    });
+
+    descargarDataUrl(canvas.toDataURL('image/png'), nombreArchivo);
+  } finally {
+    if (desplazable) {
+      desplazable.style.overflow = estilosOriginales.overflow;
+      desplazable.style.overflowX = estilosOriginales.overflowX;
+    }
+    elemento.style.width = estilosOriginales.width;
+    document.body.style.width = estilosOriginales.bodyWidth;
+    document.body.style.overflow = estilosOriginales.bodyOverflow;
+  }
 }
