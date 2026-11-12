@@ -79,7 +79,8 @@ export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) 
                   </marker>
                 </defs>
                 <path d="M550 0 V12 M382 12 H718 M382 12 V38 M718 12 V38" fill="none" stroke="#84949a" strokeWidth="3" strokeDasharray="8 6" />
-                <path d="M382 38 V40 M718 38 V40" fill="none" stroke="#84949a" strokeWidth="3" markerEnd="url(#flecha-general)" />
+                <path d="M382 38 V40" fill="none" stroke="#84949a" strokeWidth="3" markerEnd="url(#flecha-general)" />
+                <path d="M718 38 V40" fill="none" stroke="#84949a" strokeWidth="3" markerEnd="url(#flecha-general)" />
               </svg>
               <div className="mx-auto grid max-w-2xl grid-cols-2 gap-4">
               {general.map((integrante) => (
@@ -106,7 +107,9 @@ export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) 
               </marker>
             </defs>
             <path d="M550 0 V16 M173 16 H927 M173 16 V60 M550 16 V60 M927 16 V60" fill="none" stroke="#84949a" strokeWidth="3" strokeDasharray="8 6" />
-            <path d="M173 58 V64 M550 58 V64 M927 58 V64" fill="none" stroke="#84949a" strokeWidth="3" markerEnd="url(#flecha-ramas)" />
+            <path d="M173 58 V64" fill="none" stroke="#84949a" strokeWidth="3" markerEnd="url(#flecha-ramas)" />
+            <path d="M550 58 V64" fill="none" stroke="#84949a" strokeWidth="3" markerEnd="url(#flecha-ramas)" />
+            <path d="M927 58 V64" fill="none" stroke="#84949a" strokeWidth="3" markerEnd="url(#flecha-ramas)" />
           </svg>
 
           <div className="grid grid-cols-3 gap-8">
