@@ -57,9 +57,17 @@ export function agruparParaOrganigrama(integrantes: Integrante[]) {
 }
 
 export async function exportarOrganigrama(elemento: HTMLElement, nombreArchivo = 'organigrama-fdma.png') {
+  await document.fonts.ready;
+
   const canvas = await html2canvas(elemento, {
     backgroundColor: '#f8f1e4',
-    scale: Math.min(window.devicePixelRatio || 1, 2),
+    scale: 2,
+    width: elemento.scrollWidth,
+    height: elemento.scrollHeight,
+    windowWidth: elemento.scrollWidth,
+    windowHeight: elemento.scrollHeight,
+    scrollX: 0,
+    scrollY: 0,
     useCORS: true,
     allowTaint: false,
     logging: false,

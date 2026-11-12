@@ -10,9 +10,9 @@ function TarjetaOrganigrama({ integrante, area }: { integrante: Integrante; area
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-[#d8ece1]">
         <FotoIntegrante integrante={integrante} className="h-full w-full" />
       </div>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-bold text-[#4a3728]">{integrante.nombre}</p>
-        <p className={`mt-1 text-[0.65rem] font-extrabold uppercase leading-tight ${area.texto}`}>{integrante.cargo}</p>
+      <div className="min-w-0 pb-2">
+        <p className="truncate pb-1 text-sm font-bold leading-relaxed text-[#4a3728]">{integrante.nombre}</p>
+        <p className={`mt-1 pb-1 text-[0.65rem] font-extrabold uppercase leading-relaxed ${area.texto}`}>{integrante.cargo}</p>
       </div>
     </article>
   );
@@ -20,15 +20,16 @@ function TarjetaOrganigrama({ integrante, area }: { integrante: Integrante; area
 
 export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const lienzoRef = useRef<HTMLDivElement>(null);
   const { general, grupos } = useMemo(() => agruparParaOrganigrama(integrantes), [integrantes]);
   const [descargando, setDescargando] = useState(false);
 
   const descargar = async () => {
-    if (!contenedorRef.current || descargando) return;
+    if (!lienzoRef.current || descargando) return;
 
     setDescargando(true);
     try {
-      await exportarOrganigrama(contenedorRef.current);
+      await exportarOrganigrama(lienzoRef.current);
     } catch (error) {
       console.error('No se pudo exportar el organigrama.', error);
       window.alert('No se pudo descargar el organigrama. Intenta nuevamente.');
@@ -56,15 +57,31 @@ export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) 
       </div>
 
       <div ref={contenedorRef} id="organigrama-container" className="overflow-x-auto rounded-3xl bg-[#f8f1e4] p-5 shadow-sm sm:p-8">
-        <div className="min-w-[900px]">
-          <div className="relative z-10 mx-auto w-fit rounded-xl bg-[#7bc35b] px-10 py-4 text-center text-sm font-extrabold uppercase leading-tight text-white shadow-sm after:absolute after:bottom-0 after:left-1/2 after:h-8 after:w-0 after:translate-y-full after:border-l-2 after:border-dashed after:border-[#84949a]">
+        <div ref={lienzoRef} className="min-w-[1100px] bg-[#f8f1e4]">
+          <div className="relative z-10 mx-auto w-fit rounded-xl bg-[#7bc35b] px-10 py-4 text-center text-sm font-extrabold uppercase leading-tight text-white shadow-sm">
             Coordinación
             <br />
             General
           </div>
 
           {general.length > 0 && (
-            <div className="relative mx-auto mt-12 grid max-w-2xl grid-cols-2 gap-4 before:absolute before:left-1/2 before:top-0 before:h-6 before:border-l-2 before:border-dashed before:border-[#84949a]">
+            <>
+              <svg
+                className="mt-4 block h-10 w-full"
+                viewBox="0 0 1100 40"
+                role="img"
+                aria-label="Conexiones de Coordinación General"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <marker id="flecha-general" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                    <path d="M0,0 L6,3 L0,6 Z" fill="#84949a" />
+                  </marker>
+                </defs>
+                <path d="M550 0 V12 M382 12 H718 M382 12 V38 M718 12 V38" fill="none" stroke="#84949a" strokeWidth="2" strokeDasharray="5 5" />
+                <path d="M382 38 V40 M718 38 V40" fill="none" stroke="#84949a" strokeWidth="2" markerEnd="url(#flecha-general)" />
+              </svg>
+              <div className="mx-auto grid max-w-2xl grid-cols-2 gap-4">
               {general.map((integrante) => (
                 <TarjetaOrganigrama
                   key={integrante.id}
@@ -72,12 +89,29 @@ export function OrganigramaView({ integrantes }: { integrantes: Integrante[] }) 
                   area={AREA_GENERAL}
                 />
               ))}
-            </div>
+              </div>
+            </>
           )}
 
-          <div className="relative mt-16 grid grid-cols-3 gap-8 before:absolute before:left-[16.66%] before:right-[16.66%] before:top-0 before:border-t-2 before:border-dashed before:border-[#84949a]">
+          <svg
+            className="mt-12 block h-16 w-full"
+            viewBox="0 0 1100 64"
+            role="img"
+            aria-label="Conexiones hacia las coordinaciones"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <marker id="flecha-ramas" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#84949a" />
+              </marker>
+            </defs>
+            <path d="M550 0 V16 M173 16 H927 M173 16 V60 M550 16 V60 M927 16 V60" fill="none" stroke="#84949a" strokeWidth="2" strokeDasharray="5 5" />
+            <path d="M173 58 V64 M550 58 V64 M927 58 V64" fill="none" stroke="#84949a" strokeWidth="2" markerEnd="url(#flecha-ramas)" />
+          </svg>
+
+          <div className="grid grid-cols-3 gap-8">
             {grupos.map((area) => (
-              <section key={area.id} className="relative pt-8 before:absolute before:left-1/2 before:top-0 before:h-8 before:border-l-2 before:border-dashed before:border-[#84949a]">
+              <section key={area.id}>
                 <h2 className={`mx-auto flex min-h-14 max-w-[230px] items-center justify-center px-4 py-3 text-center text-sm font-extrabold uppercase leading-tight text-white shadow-sm ${area.color}`}>
                   {area.nombre}
                 </h2>
