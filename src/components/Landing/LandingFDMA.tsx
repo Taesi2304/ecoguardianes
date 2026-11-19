@@ -84,7 +84,7 @@ interface FdmaActividad {
   imagenes: string[];
   videos: string[];
   pdfs: string[];
-  ganadores: Array<{ lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string; imagen?: string }>;
+  ganadores: Array<{ lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string; imagen?: string; imagenes?: string[] }>;
   enlace_url: string | null;
 }
 
@@ -115,26 +115,68 @@ function ordenarActividades(actividades: FdmaActividad[]) {
     .map(({ actividad }) => actividad);
 }
 
+function normalizarGanadores(ganadores: FdmaActividad['ganadores']) {
+  if (!Array.isArray(ganadores)) return [];
+  return ganadores
+    .map((ganador) => {
+      const imagenes = Array.isArray(ganador.imagenes)
+        ? ganador.imagenes.filter(Boolean)
+        : ganador.imagen
+          ? [ganador.imagen]
+          : [];
+      return {
+        ...ganador,
+        lugar: Number(ganador.lugar) || 1,
+        proyecto: ganador.proyecto || '',
+        participantes: ganador.participantes || '',
+        asesor: ganador.asesor || '',
+        organizacion: ganador.organizacion || '',
+        contacto: ganador.contacto || '',
+        descripcion: ganador.descripcion || '',
+        imagen: imagenes[0] || '',
+        imagenes,
+      };
+    })
+    .sort((a, b) => a.lugar - b.lugar);
+}
+
 function FdmaGanadorCard({ ganador }: { ganador: FdmaActividad['ganadores'][number] }) {
   const [visorAbierto, setVisorAbierto] = useState(false);
+  const [fotoActiva, setFotoActiva] = useState(0);
+  const fotos = Array.isArray(ganador.imagenes) && ganador.imagenes.length > 0
+    ? ganador.imagenes.filter(Boolean)
+    : ganador.imagen
+      ? [ganador.imagen]
+      : [];
 
   return (
-    <div className="rounded-xl bg-white/70 p-3">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-[#2d6a4f]/15 bg-white/85 p-3.5 shadow-sm">
       <p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar</p>
-      {ganador.imagen && (
+      {fotos.length > 0 && (
         <>
-          <button type="button" onClick={() => setVisorAbierto(true)} className="mt-2 block w-full cursor-zoom-in overflow-hidden rounded-lg" aria-label={`Ver imagen del proyecto del ${ganador.lugar}.º lugar`}>
-            <img src={ganador.imagen} alt={`Proyecto del ${ganador.lugar}.º lugar`} className="h-36 w-full object-cover transition hover:scale-105" loading="lazy" />
-          </button>
-          {visorAbierto && <VisorImagenes fotos={[ganador.imagen]} indice={0} nombre={`Proyecto del ${ganador.lugar}.º lugar`} onCambiar={() => {}} onCerrar={() => setVisorAbierto(false)} />}
+          <div className="mt-2 grid grid-cols-1 gap-2">
+            <button type="button" onClick={() => { setFotoActiva(0); setVisorAbierto(true); }} className="block w-full cursor-zoom-in overflow-hidden rounded-lg bg-[#f8f5f2]" aria-label={`Ver imagen del proyecto del ${ganador.lugar}.º lugar`}>
+              <img src={fotos[0]} alt={`Proyecto del ${ganador.lugar}.º lugar`} className="h-36 w-full object-cover transition hover:scale-105" loading="lazy" />
+            </button>
+            {fotos.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
+                {fotos.slice(1).map((fotoUrl, idx) => (
+                  <button key={`${fotoUrl}-${idx}`} type="button" onClick={() => { setFotoActiva(idx + 1); setVisorAbierto(true); }} className="h-12 w-14 overflow-hidden rounded border border-[#4a3728]/15" aria-label={`Ver foto ${idx + 2} del ${ganador.lugar}.º lugar`}>
+                    <img src={fotoUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {visorAbierto && <VisorImagenes fotos={fotos} indice={fotoActiva} nombre={`Proyecto del ${ganador.lugar}.º lugar`} onCambiar={setFotoActiva} onCerrar={() => setVisorAbierto(false)} />}
         </>
       )}
-      {ganador.proyecto && <p className="mt-2 font-semibold text-[#4a3728]">{ganador.proyecto}</p>}
-      {ganador.participantes && <p className="mt-1 text-sm text-[#4a3728]/75"><strong>Participantes:</strong> {ganador.participantes}</p>}
-      {ganador.asesor && <p className="text-sm text-[#4a3728]/75"><strong>Asesor:</strong> {ganador.asesor}</p>}
-      {ganador.organizacion && <p className="text-sm text-[#4a3728]/75"><strong>Organización:</strong> {ganador.organizacion}</p>}
-      {ganador.contacto && <p className="text-sm text-[#4a3728]/75"><strong>Contacto:</strong> {ganador.contacto}</p>}
-      {ganador.descripcion && <p className="mt-1 text-sm text-[#4a3728]/75">{ganador.descripcion}</p>}
+      {ganador.proyecto && <p className="mt-2 break-words font-semibold text-[#4a3728]">{ganador.proyecto}</p>}
+      {ganador.participantes && <p className="mt-1 break-words text-sm text-[#4a3728]/80"><strong>Participantes:</strong> {ganador.participantes}</p>}
+      {ganador.asesor && <p className="mt-0.5 break-words text-sm text-[#4a3728]/80"><strong>Asesor:</strong> {ganador.asesor}</p>}
+      {ganador.organizacion && <p className="mt-0.5 break-words text-sm text-[#4a3728]/80"><strong>Organización:</strong> {ganador.organizacion}</p>}
+      {ganador.contacto && <p className="mt-0.5 break-all text-sm text-[#4a3728]/80"><strong>Contacto:</strong> {ganador.contacto}</p>}
+      {ganador.descripcion && <p className="mt-1.5 break-words text-sm leading-relaxed text-[#4a3728]/80">{ganador.descripcion}</p>}
     </div>
   );
 }
@@ -321,7 +363,7 @@ export const LandingFDMA = () => {
               imagenes: Array.isArray(actividad.imagenes) ? actividad.imagenes : [],
               videos: Array.isArray(actividad.videos) ? actividad.videos : [],
               pdfs: Array.isArray(actividad.pdfs) ? actividad.pdfs : [],
-              ganadores: Array.isArray(actividad.ganadores) ? actividad.ganadores : [],
+              ganadores: normalizarGanadores(actividad.ganadores),
             }))),
           });
         }
@@ -517,23 +559,99 @@ export const LandingFDMA = () => {
             {fdma.descripcion && <p className="mx-auto mt-2 max-w-3xl text-[#4a3728]/75">{fdma.descripcion}</p>}
           </div>
           <FdmaCarruselGlobal actividades={fdma.fdma_actividades} anio={fdma.anio} />
-          <div className="grid gap-6 md:grid-cols-2">
-            {fdma.fdma_actividades.map((actividad) => (
-              <article key={actividad.id} className="overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm">
+          {(() => {
+            const actividadesNormales = fdma.fdma_actividades.filter(
+              (act) => act.ganadores.length === 0 && act.pdfs.length === 0
+            );
+            const actividadesEspeciales = fdma.fdma_actividades.filter(
+              (act) => act.ganadores.length > 0 || act.pdfs.length > 0
+            );
+
+            const renderTarjeta = (actividad: FdmaActividad, anchoCompleto = false) => (
+              <article
+                key={actividad.id}
+                className={`min-w-0 overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm ${
+                  anchoCompleto ? 'md:col-span-2' : ''
+                }`}
+              >
                 <FdmaCarrusel actividad={actividad} />
                 <div className="p-5">
-                  {actividad.fecha && <p className="text-sm font-bold uppercase tracking-wide text-[#2d6a4f]">{new Date(`${actividad.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}</p>}
-                  <h4 className="mt-1 text-xl font-bold text-[#4a3728]">{actividad.titulo}</h4>
-                  {actividad.subtitulo && <p className="mt-1 font-semibold text-[#2d6a4f]">{actividad.subtitulo}</p>}
-                  {actividad.descripcion && <p className="mt-2 text-[#4a3728]/75">{actividad.descripcion}</p>}
-                  {actividad.videos.length > 0 && <div className="mt-4 space-y-3"><p className="text-sm font-bold text-[#2d6a4f]">Videos</p>{actividad.videos.map((video) => /\.(mp4|webm|ogg)(\?|$)/i.test(video) ? <video key={video} src={video} controls className="w-full rounded-xl" /> : <a key={video} href={video} target="_blank" rel="noreferrer" className="block truncate text-sm text-blue-700 underline">Ver video</a>)}</div>}
-                  {actividad.pdfs.length > 0 && <div className="mt-4 rounded-xl border border-[#2d6a4f]/20 bg-[#f4f8f2] p-4"><p className="text-sm font-bold text-[#2d6a4f]">Documentos</p><div className="mt-2 flex flex-wrap gap-2">{actividad.pdfs.map((pdf, indice) => <a key={pdf} href={pdf} target="_blank" rel="noreferrer" className="rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver PDF{actividad.pdfs.length > 1 ? ` ${indice + 1}` : ''}</a>)}</div></div>}
-                  {actividad.ganadores.length > 0 && <div className="mt-5 rounded-xl bg-[#d8ece1] p-4"><h5 className="font-bold text-[#4a3728]">Ganadores de la Feria de Proyectos</h5><div className="mt-3 grid gap-3 md:grid-cols-3">{actividad.ganadores.map((ganador) => <FdmaGanadorCard key={ganador.lugar} ganador={ganador} />)}</div></div>}
-                  {actividad.enlace_url && <a href={actividad.enlace_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">Ver actividad</a>}
+                  {actividad.fecha && (
+                    <p className="text-sm font-bold uppercase tracking-wide text-[#2d6a4f]">
+                      {new Date(`${actividad.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}
+                    </p>
+                  )}
+                  <h4 className="mt-1 break-words text-xl font-bold text-[#4a3728]">{actividad.titulo}</h4>
+                  {actividad.subtitulo && (
+                    <p className="mt-1 break-words font-semibold text-[#2d6a4f]">{actividad.subtitulo}</p>
+                  )}
+                  {actividad.descripcion && (
+                    <p className="mt-2 break-words text-[#4a3728]/75">{actividad.descripcion}</p>
+                  )}
+
+                  {actividad.videos.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      <p className="text-sm font-bold text-[#2d6a4f]">Videos</p>
+                      {actividad.videos.map((video) =>
+                        /\.(mp4|webm|ogg)(\?|$)/i.test(video) ? (
+                          <video key={video} src={video} controls className="w-full rounded-xl" />
+                        ) : (
+                          <a key={video} href={video} target="_blank" rel="noreferrer" className="block truncate text-sm text-blue-700 underline">
+                            Ver video
+                          </a>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {actividad.pdfs.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-[#2d6a4f]/20 bg-[#f4f8f2] p-4">
+                      <p className="text-sm font-bold text-[#2d6a4f]">Documentos</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {actividad.pdfs.map((pdf, indice) => (
+                          <a key={pdf} href={pdf} target="_blank" rel="noreferrer" className="rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">
+                            Ver PDF{actividad.pdfs.length > 1 ? ` ${indice + 1}` : ''}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {actividad.ganadores.length > 0 && (
+                    <div className="mt-5 rounded-xl bg-[#d8ece1] p-4">
+                      <h5 className="font-bold text-[#4a3728]">Ganadores de la Feria de Proyectos</h5>
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {actividad.ganadores.map((ganador, idx) => (
+                          <FdmaGanadorCard key={`${ganador.lugar}-${idx}`} ganador={ganador} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {actividad.enlace_url && (
+                    <a href={actividad.enlace_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-[#2d6a4f] px-4 py-2 text-sm font-bold text-white hover:bg-[#1b4332]">
+                      Ver actividad
+                    </a>
+                  )}
                 </div>
               </article>
-            ))}
-          </div>
+            );
+
+            return (
+              <div className="space-y-6">
+                {actividadesNormales.length > 0 && (
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {actividadesNormales.map((act) => renderTarjeta(act, false))}
+                  </div>
+                )}
+                {actividadesEspeciales.length > 0 && (
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {actividadesEspeciales.map((act) => renderTarjeta(act, true))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </section>
       )}
       {/* Últimas publicaciones de FB / IG (se administran en /admin/publicaciones) */}

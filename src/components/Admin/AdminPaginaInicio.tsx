@@ -34,9 +34,28 @@ const TEXTOS: { campo: 'titulo' | 'subtitulo' | 'descripcion'; nombre: string }[
 ];
 
 type FdmaSeccion = { id: string; anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
-type FdmaGanador = { lugar: number; proyecto: string; participantes: string; asesor: string; organizacion: string; contacto: string; descripcion: string; imagen: string };
+type FdmaGanador = {
+  lugar: number;
+  proyecto: string;
+  participantes: string;
+  asesor: string;
+  organizacion: string;
+  contacto: string;
+  descripcion: string;
+  imagen: string;
+  imagenes?: string[];
+};
+
+type FdmaOrganizacion = { id: string; nombre: string; descripcion: string; logo: string };
 type FdmaActividad = { id: string; seccion_id: string; titulo: string; subtitulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
 type FdmaFormulario = { anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
+
+function obtenerFotosGanador(ganador: FdmaGanador): string[] {
+  if (Array.isArray(ganador.imagenes) && ganador.imagenes.length > 0) {
+    return ganador.imagenes.filter(Boolean);
+  }
+  return ganador.imagen ? [ganador.imagen] : [];
+}
 
 function normalizarActividad(actividad: FdmaActividad): FdmaActividad {
   return {
@@ -47,16 +66,20 @@ function normalizarActividad(actividad: FdmaActividad): FdmaActividad {
     imagenes: Array.isArray(actividad.imagenes) ? actividad.imagenes : [],
     videos: Array.isArray(actividad.videos) ? actividad.videos : [],
     pdfs: Array.isArray(actividad.pdfs) ? actividad.pdfs : [],
-    ganadores: Array.isArray(actividad.ganadores) ? actividad.ganadores.map((ganador) => ({
-      lugar: ganador.lugar,
-      proyecto: ganador.proyecto || '',
-      participantes: ganador.participantes || '',
-      asesor: ganador.asesor || '',
-      organizacion: ganador.organizacion || '',
-      contacto: ganador.contacto || '',
-      descripcion: ganador.descripcion || '',
-      imagen: ganador.imagen || '',
-    })) : [],
+    ganadores: Array.isArray(actividad.ganadores) ? actividad.ganadores.map((ganador) => {
+      const fotos = obtenerFotosGanador(ganador);
+      return {
+        lugar: Number(ganador.lugar) || 1,
+        proyecto: ganador.proyecto || '',
+        participantes: ganador.participantes || '',
+        asesor: ganador.asesor || '',
+        organizacion: ganador.organizacion || '',
+        contacto: ganador.contacto || '',
+        descripcion: ganador.descripcion || '',
+        imagen: fotos[0] || '',
+        imagenes: fotos,
+      };
+    }) : [],
   };
 }
 
@@ -114,13 +137,89 @@ export default function AdminPaginaInicio() {
     setFdmaCambiosPendientes(true);
   }
 
-  async function subirImagenGanador(id: string, indice: number, archivo: File) {
-    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const ruta = `ganadores/${crypto.randomUUID()}.${extension}`;
-    const { error: errorSubida } = await supabase.storage.from('fdma-media').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
-    if (errorSubida) { toast.error(`No se pudo subir la imagen: ${errorSubida.message}`); return; }
-    actualizarGanador(id, indice, 'imagen', supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
-    toast.success('Imagen del lugar cargada. Pulsa Guardar.');
+  function agregarGanadorEnLugar(id: string, lugar: number) {
+    setFdmaActividades((actuales) => actuales.map((actividad) => {
+      if (actividad.id !== id) return actividad;
+      const nuevo: FdmaGanador = {
+        lugar,
+        proyecto: '',
+        participantes: '',
+        asesor: '',
+        organizacion: '',
+        contacto: '',
+        descripcion: '',
+        imagen: '',
+        imagenes: [],
+      };
+      return {
+        ...actividad,
+        ganadores: [...actividad.ganadores, nuevo].sort((a, b) => a.lugar - b.lugar),
+      };
+    }));
+    setFdmaCambiosPendientes(true);
+  }
+
+  function eliminarGanador(id: string, indice: number) {
+    setFdmaActividades((actuales) => actuales.map((actividad) => actividad.id === id
+      ? { ...actividad, ganadores: actividad.ganadores.filter((_, posicion) => posicion !== indice) }
+      : actividad));
+    setFdmaCambiosPendientes(true);
+  }
+
+  async function subirImagenesGanador(id: string, indice: number, archivos: File[]) {
+    const nuevasUrls: string[] = [];
+    for (const archivo of archivos) {
+      const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const ruta = `ganadores/${crypto.randomUUID()}.${extension}`;
+      const { error: errorSubida } = await supabase.storage
+        .from('fdma-media')
+        .upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+      if (errorSubida) {
+        toast.error(`No se pudo subir ${archivo.name}: ${errorSubida.message}`);
+        return;
+      }
+      nuevasUrls.push(supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl);
+    }
+
+    setFdmaActividades((actuales) => actuales.map((actividad) => {
+      if (actividad.id !== id) return actividad;
+      return {
+        ...actividad,
+        ganadores: actividad.ganadores.map((ganador, posicion) => {
+          if (posicion !== indice) return ganador;
+          const fotosCombinadas = [...obtenerFotosGanador(ganador), ...nuevasUrls];
+          return { ...ganador, imagenes: fotosCombinadas, imagen: fotosCombinadas[0] || '' };
+        }),
+      };
+    }));
+    setFdmaCambiosPendientes(true);
+    toast.success(nuevasUrls.length > 1 ? 'Imágenes cargadas. Pulsa Guardar.' : 'Imagen cargada. Pulsa Guardar.');
+  }
+
+  async function quitarFotoGanador(id: string, indiceGanador: number, indiceFoto: number) {
+    const actividad = fdmaActividades.find((item) => item.id === id);
+    const ganador = actividad?.ganadores[indiceGanador];
+    if (!actividad || !ganador) return;
+
+    const fotosActuales = obtenerFotosGanador(ganador);
+    const url = fotosActuales[indiceFoto];
+    const marcador = '/storage/v1/object/public/fdma-media/';
+    const posicion = url?.indexOf(marcador) ?? -1;
+    if (posicion >= 0 && url) {
+      await supabase.storage.from('fdma-media').remove([decodeURIComponent(url.slice(posicion + marcador.length))]);
+    }
+
+    const fotosRestantes = fotosActuales.filter((_, pos) => pos !== indiceFoto);
+    setFdmaActividades((actuales) => actuales.map((item) => item.id === id
+      ? {
+          ...item,
+          ganadores: item.ganadores.map((g, pos) => pos === indiceGanador
+            ? { ...g, imagenes: fotosRestantes, imagen: fotosRestantes[0] || '' }
+            : g),
+        }
+      : item));
+    setFdmaCambiosPendientes(true);
+    toast.success('Foto quitada. Pulsa Guardar.');
   }
 
   async function subirImagenActividad(id: string, archivo: File) {
@@ -260,7 +359,17 @@ export default function AdminPaginaInicio() {
   }
 
   function crearGanadores() {
-    return [1, 2, 3].map((lugar) => ({ lugar, proyecto: '', participantes: '', asesor: '', organizacion: '', contacto: '', descripcion: '', imagen: '' }));
+    return [1, 2, 3].map((lugar) => ({
+      lugar,
+      proyecto: '',
+      participantes: '',
+      asesor: '',
+      organizacion: '',
+      contacto: '',
+      descripcion: '',
+      imagen: '',
+      imagenes: [],
+    }));
   }
 
   async function eliminarActividad(id: string) {
@@ -567,28 +676,75 @@ export default function AdminPaginaInicio() {
                 {actividad.videos.map((url, indice) => <div key={url} className="relative flex h-20 w-24 items-center justify-center overflow-hidden rounded-lg border bg-slate-800 text-center text-[10px] text-white shadow-sm"><span>Video {indice + 1}</span><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'videos', indice)} aria-label={`Quitar video ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button></div>)}
                 {actividad.pdfs.map((url, indice) => <div key={url} className="relative flex h-20 w-24 items-center justify-center rounded-lg border bg-red-50 text-center text-xs text-red-700 shadow-sm"><span>PDF {indice + 1}</span><button type="button" onClick={() => void quitarMediaActividad(actividad.id, 'pdfs', indice)} aria-label={`Quitar PDF ${indice + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"><X className="h-3 w-3" /></button></div>)}
               </div>
-              {(actividad.ganadores.length > 0 || actividad.titulo.toLowerCase().includes('feria')) && <div className="space-y-2 rounded-lg border border-green-100 bg-green-50 p-3">
-                <p className="text-sm font-bold text-green-800">Ganadores de la Feria de Proyectos</p>
-                {actividad.ganadores.map((ganador, indice) => (
-                  <div key={ganador.lugar} className="space-y-2 rounded-lg border border-green-100 bg-white p-3">
-                    <p className="text-sm font-bold text-green-800">{ganador.lugar}.º lugar</p>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      <input value={ganador.proyecto} onChange={(e) => actualizarGanador(actividad.id, indice, 'proyecto', e.target.value)} placeholder="Nombre del proyecto" className="rounded border px-2 py-1 text-sm" />
-                      <input value={ganador.participantes} onChange={(e) => actualizarGanador(actividad.id, indice, 'participantes', e.target.value)} placeholder="Participantes" className="rounded border px-2 py-1 text-sm" />
-                      <input value={ganador.asesor} onChange={(e) => actualizarGanador(actividad.id, indice, 'asesor', e.target.value)} placeholder="Asesor" className="rounded border px-2 py-1 text-sm" />
-                      <input value={ganador.organizacion} onChange={(e) => actualizarGanador(actividad.id, indice, 'organizacion', e.target.value)} placeholder="Escuela u organización" className="rounded border px-2 py-1 text-sm" />
-                      <input value={ganador.contacto} onChange={(e) => actualizarGanador(actividad.id, indice, 'contacto', e.target.value)} placeholder="Contacto" className="rounded border px-2 py-1 text-sm" />
-                      <input value={ganador.descripcion} onChange={(e) => actualizarGanador(actividad.id, indice, 'descripcion', e.target.value)} placeholder="Descripción del proyecto" className="rounded border px-2 py-1 text-sm" />
+              {(actividad.ganadores.length > 0 || actividad.titulo.toLowerCase().includes('feria')) && (
+                <div className="space-y-3 rounded-lg border border-green-100 bg-green-50 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-green-800">Ganadores de la Feria de Proyectos</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[1, 2, 3].map((lugar) => (
+                        <button key={lugar} type="button" onClick={() => agregarGanadorEnLugar(actividad.id, lugar)} className="rounded-md border border-green-600 bg-white px-2.5 py-1 text-xs font-bold text-green-700 hover:bg-green-100">
+                          + {lugar}.º lugar
+                        </button>
+                      ))}
                     </div>
-                    {ganador.imagen && <img src={ganador.imagen} alt={`Imagen del ${ganador.lugar}.º lugar`} className="h-24 w-32 rounded object-cover" />}
-                    <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-xs font-semibold text-green-800 hover:bg-green-50">
-                      <span>{ganador.imagen ? 'Cambiar imagen del proyecto' : 'Agregar imagen del proyecto'}</span>
-                      <span className="rounded-md bg-white px-2 py-1 text-green-700 shadow-sm">Seleccionar imagen</span>
-                      <input type="file" accept="image/*" onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) void subirImagenGanador(actividad.id, indice, archivo); e.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
-                    </label>
                   </div>
-                ))}
-              </div>}
+                  {actividad.ganadores.map((ganador, indice) => {
+                    const fotos = obtenerFotosGanador(ganador);
+                    return (
+                      <div key={`${ganador.lugar}-${indice}`} className="space-y-2 rounded-lg border border-green-100 bg-white p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-green-800">{ganador.lugar}.º lugar</span>
+                            <select aria-label="Lugar obtenido" value={ganador.lugar} onChange={(e) => {
+                              const nuevoLugar = Number(e.target.value);
+                              setFdmaActividades((actuales) => actuales.map((act) => act.id === actividad.id
+                                ? { ...act, ganadores: act.ganadores.map((g, pos) => pos === indice ? { ...g, lugar: nuevoLugar } : g).sort((a, b) => a.lugar - b.lugar) }
+                                : act));
+                              setFdmaCambiosPendientes(true);
+                            }} className="rounded border px-2 py-0.5 text-xs font-semibold text-gray-700">
+                              <option value={1}>1.º lugar</option>
+                              <option value={2}>2.º lugar</option>
+                              <option value={3}>3.º lugar</option>
+                            </select>
+                          </div>
+                          <button type="button" onClick={() => eliminarGanador(actividad.id, indice)} className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold text-red-600 hover:bg-red-50">
+                            <Trash2 className="h-3.5 w-3.5" /> Quitar este ganador
+                          </button>
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <input value={ganador.proyecto} onChange={(e) => actualizarGanador(actividad.id, indice, 'proyecto', e.target.value)} placeholder="Nombre del proyecto" className="rounded border px-2 py-1.5 text-sm" />
+                          <input value={ganador.participantes} onChange={(e) => actualizarGanador(actividad.id, indice, 'participantes', e.target.value)} placeholder="Participantes" className="rounded border px-2 py-1.5 text-sm" />
+                          <input value={ganador.asesor} onChange={(e) => actualizarGanador(actividad.id, indice, 'asesor', e.target.value)} placeholder="Asesor" className="rounded border px-2 py-1.5 text-sm" />
+                          <input value={ganador.organizacion} onChange={(e) => actualizarGanador(actividad.id, indice, 'organizacion', e.target.value)} placeholder="Escuela u organización" className="rounded border px-2 py-1.5 text-sm" />
+                          <input value={ganador.contacto} onChange={(e) => actualizarGanador(actividad.id, indice, 'contacto', e.target.value)} placeholder="Contacto (correo, teléfono o red)" className="rounded border px-2 py-1.5 text-sm" />
+                          <textarea value={ganador.descripcion} onChange={(e) => actualizarGanador(actividad.id, indice, 'descripcion', e.target.value)} placeholder="Descripción del proyecto" rows={2} className="rounded border px-2 py-1.5 text-sm md:col-span-2" />
+                        </div>
+                        {fotos.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {fotos.map((url, idxFoto) => (
+                              <div key={`${url}-${idxFoto}`} className="relative h-24 w-32 overflow-hidden rounded border bg-gray-50">
+                                <img src={url} alt={`Foto ${idxFoto + 1} del ${ganador.lugar}.º lugar`} className="h-full w-full object-cover" />
+                                <button type="button" onClick={() => void quitarFotoGanador(actividad.id, indice, idxFoto)} aria-label={`Quitar foto ${idxFoto + 1}`} className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white shadow">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-green-50/60 px-3 py-2 text-xs font-semibold text-green-800 hover:bg-green-50">
+                          <span>{fotos.length > 0 ? 'Agregar más fotos del proyecto' : 'Agregar fotos del proyecto'}</span>
+                          <span className="rounded-md bg-white px-2 py-1 text-green-700 shadow-sm">Seleccionar imágenes</span>
+                          <input type="file" accept="image/*" multiple onChange={(e) => {
+                            const archivos = Array.from(e.target.files || []);
+                            if (archivos.length > 0) void subirImagenesGanador(actividad.id, indice, archivos);
+                            e.currentTarget.value = '';
+                          }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {actividad.ganadores.length === 0 && actividad.titulo.toLowerCase().includes('feria') && <button type="button" onClick={() => agregarGanadores(actividad.id)} className="rounded-lg border border-green-600 px-3 py-1.5 text-xs font-bold text-green-700">Agregar información de los 3 lugares</button>}
               <div className="flex gap-2">
                 <button type="button" onClick={() => void guardarActividad(actividad)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar actividad</button>
