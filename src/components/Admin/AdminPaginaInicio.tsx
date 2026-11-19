@@ -70,6 +70,7 @@ function obtenerFotosGanador(ganador: FdmaGanador): string[] {
   return ganador.imagen ? [ganador.imagen] : [];
 }
 
+
 function generarSlug(texto: string) {
   return texto
     .normalize('NFD')
@@ -79,6 +80,7 @@ function generarSlug(texto: string) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
 }
+
 
 function normalizarActividad(actividad: FdmaActividad): FdmaActividad {
   return {
