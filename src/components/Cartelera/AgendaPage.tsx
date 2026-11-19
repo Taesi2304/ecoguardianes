@@ -8,6 +8,7 @@ import { cargarEdiciones } from './cartelera';
 import type { Edicion } from './cartelera';
 import type { CategoriaCalendario, EventoCalendario } from '@/components/Calendario/eventos';
 import { NavCartelera, PieCartelera } from './MarcoCartelera';
+import { FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/redes';
 
 const clave = (fecha: Date) => format(fecha, 'yyyy-MM-dd');
 const FONDO_POR_DEFECTO = '/galeria/foto9.jpeg';
@@ -115,6 +116,14 @@ export default function AgendaPage() {
             <CalendarDays className="mx-auto mb-3 h-10 w-10 text-white/75" />
             <p className="text-lg font-semibold">Aún no hay actividades programadas.</p>
             <p className="mt-2 text-white/65">Vuelve pronto para conocer las próximas actividades.</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-pink-500/20">
+                <img src="/ig-icon.svg" alt="" className="h-5 w-5" /> Instagram
+              </a>
+              <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-500/20">
+                <img src="/fb-icon.svg" alt="" className="h-5 w-5" /> Facebook
+              </a>
+            </div>
           </div>
         ) : (
           <div className="space-y-5">

@@ -5,6 +5,7 @@ import { TarjetaTaller } from '@/components/Talleres/TarjetaTaller';
 import { CAMPOS_TALLER_PUBLICO } from '@/components/Talleres/talleres';
 import type { TallerPublico } from '@/components/Talleres/talleres';
 import { ModalRegistroTaller } from '@/components/Talleres/ModalRegistroTaller';
+import { FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/redes';
 
 export default function Talleres() {
   const [talleres, setTalleres] = useState<TallerPublico[]>([]);
@@ -39,7 +40,17 @@ export default function Talleres() {
         {cargando ? (
           <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-green-600" /></div>
         ) : talleres.length === 0 ? (
-          <p className="py-12 text-center text-[#4a3728]/70">Por ahora no hay talleres programados. Síguenos en redes para enterarte de los próximos.</p>
+          <div className="py-12 text-center">
+            <p className="text-[#4a3728]/70">Por ahora no hay talleres programados. Síguenos en redes para enterarte de los próximos.</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full border border-[#4a3728]/10 bg-white px-5 py-2.5 text-sm font-bold text-[#4a3728] shadow-sm transition hover:bg-pink-50">
+                <img src="/ig-icon.svg" alt="" className="h-5 w-5" /> Instagram
+              </a>
+              <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-full border border-[#4a3728]/10 bg-white px-5 py-2.5 text-sm font-bold text-[#4a3728] shadow-sm transition hover:bg-blue-50">
+                <img src="/fb-icon.svg" alt="" className="h-5 w-5" /> Facebook
+              </a>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {talleres.map((taller) => (
