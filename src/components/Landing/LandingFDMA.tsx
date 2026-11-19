@@ -143,35 +143,102 @@ function normalizarGanadores(ganadores: FdmaActividad['ganadores']) {
 function FdmaGanadorCard({ ganador }: { ganador: FdmaActividad['ganadores'][number] }) {
   const [visorAbierto, setVisorAbierto] = useState(false);
   const [fotoActiva, setFotoActiva] = useState(0);
+
   const fotos = Array.isArray(ganador.imagenes) && ganador.imagenes.length > 0
     ? ganador.imagenes.filter(Boolean)
     : ganador.imagen
       ? [ganador.imagen]
       : [];
 
+  const indiceSeguro = fotos.length > 0 ? fotoActiva % fotos.length : 0;
+  const fotoActual = fotos[indiceSeguro];
+
+  const cambiarFoto = (paso: number) => {
+    if (fotos.length < 2) return;
+    setFotoActiva((actual) => (actual + paso + fotos.length) % fotos.length);
+  };
+
   return (
-    <div className="min-w-0 overflow-hidden rounded-xl border border-[#2d6a4f]/15 bg-white/85 p-3.5 shadow-sm">
-      <p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar</p>
-      {fotos.length > 0 && (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-[#2d6a4f]/15 bg-white/90 p-3.5 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-bold text-[#2d6a4f]">{ganador.lugar}.º lugar</p>
+        {fotos.length > 1 && (
+          <span className="text-xs font-semibold text-[#4a3728]/60">
+            {indiceSeguro + 1} / {fotos.length}
+          </span>
+        )}
+      </div>
+
+      {fotoActual && (
         <>
-          <div className="mt-2 grid grid-cols-1 gap-2">
-            <button type="button" onClick={() => { setFotoActiva(0); setVisorAbierto(true); }} className="block w-full cursor-zoom-in overflow-hidden rounded-lg bg-[#f8f5f2]" aria-label={`Ver imagen del proyecto del ${ganador.lugar}.º lugar`}>
-              <img src={fotos[0]} alt={`Proyecto del ${ganador.lugar}.º lugar`} className="h-36 w-full object-cover transition hover:scale-105" loading="lazy" />
-            </button>
+          <div className="relative mt-2 overflow-hidden rounded-lg bg-[#f4f8f5]">
+            <div className="flex h-48 w-full items-center justify-center p-1.5 sm:h-52">
+              <button
+                type="button"
+                onClick={() => setVisorAbierto(true)}
+                className="flex h-full w-full cursor-zoom-in items-center justify-center"
+                aria-label={`Ampliar foto ${indiceSeguro + 1} del ${ganador.lugar}.º lugar`}
+              >
+                <img
+                  src={fotoActual}
+                  alt={`Proyecto del ${ganador.lugar}.º lugar — foto ${indiceSeguro + 1}`}
+                  className="max-h-full max-w-full rounded object-contain transition hover:scale-[1.02]"
+                  loading="lazy"
+                />
+              </button>
+            </div>
+
             {fotos.length > 1 && (
-              <div className="flex flex-wrap gap-1.5">
-                {fotos.slice(1).map((fotoUrl, idx) => (
-                  <button key={`${fotoUrl}-${idx}`} type="button" onClick={() => { setFotoActiva(idx + 1); setVisorAbierto(true); }} className="h-12 w-14 overflow-hidden rounded border border-[#4a3728]/15" aria-label={`Ver foto ${idx + 2} del ${ganador.lugar}.º lugar`}>
-                    <img src={fotoUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                  </button>
-                ))}
-              </div>
+              <>
+                <button
+                  type="button"
+                  onClick={() => cambiarFoto(-1)}
+                  aria-label="Foto anterior del ganador"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-1.5 text-[#2d6a4f] shadow hover:bg-white"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cambiarFoto(1)}
+                  aria-label="Foto siguiente del ganador"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-1.5 text-[#2d6a4f] shadow hover:bg-white"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
             )}
           </div>
-          {visorAbierto && <VisorImagenes fotos={fotos} indice={fotoActiva} nombre={`Proyecto del ${ganador.lugar}.º lugar`} onCambiar={setFotoActiva} onCerrar={() => setVisorAbierto(false)} />}
+
+          {fotos.length > 1 && (
+            <div className="mt-2 flex justify-center gap-1.5">
+              {fotos.map((url, pos) => (
+                <button
+                  key={`${url}-${pos}`}
+                  type="button"
+                  onClick={() => setFotoActiva(pos)}
+                  aria-label={`Ver foto ${pos + 1}`}
+                  className={`h-2 rounded-full transition-all ${
+                    pos === indiceSeguro ? 'w-5 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
+          {visorAbierto && (
+            <VisorImagenes
+              fotos={fotos}
+              indice={indiceSeguro}
+              nombre={`Proyecto del ${ganador.lugar}.º lugar`}
+              onCambiar={setFotoActiva}
+              onCerrar={() => setVisorAbierto(false)}
+            />
+          )}
         </>
       )}
-      {ganador.proyecto && <p className="mt-2 break-words font-semibold text-[#4a3728]">{ganador.proyecto}</p>}
+
+      {ganador.proyecto && <p className="mt-2.5 break-words font-semibold text-[#4a3728]">{ganador.proyecto}</p>}
       {ganador.participantes && <p className="mt-1 break-words text-sm text-[#4a3728]/80"><strong>Participantes:</strong> {ganador.participantes}</p>}
       {ganador.asesor && <p className="mt-0.5 break-words text-sm text-[#4a3728]/80"><strong>Asesor:</strong> {ganador.asesor}</p>}
       {ganador.organizacion && <p className="mt-0.5 break-words text-sm text-[#4a3728]/80"><strong>Organización:</strong> {ganador.organizacion}</p>}
@@ -189,28 +256,90 @@ function FdmaCarrusel({ actividad }: { actividad: FdmaActividad }) {
   const [indice, setIndice] = useState(0);
   const [visorIndice, setVisorIndice] = useState(0);
   const [visorAbierto, setVisorAbierto] = useState(false);
+
   useEffect(() => {
     if (medios.length < 2) return undefined;
-    const intervalo = window.setInterval(() => setIndice((actual) => (actual + 1) % medios.length), 5000);
+    const intervalo = window.setInterval(
+      () => setIndice((actual) => (actual + 1) % medios.length),
+      5000
+    );
     return () => window.clearInterval(intervalo);
   }, [medios.length]);
+
   if (medios.length === 0) return null;
+
   const medio = medios[indice] || medios[0];
-  const cambiar = (paso: number) => setIndice((actual) => (actual + paso + medios.length) % medios.length);
+  const cambiar = (paso: number) =>
+    setIndice((actual) => (actual + paso + medios.length) % medios.length);
 
   return (
-    <div className="relative overflow-hidden bg-[#d8ece1] p-2">
-      <div className="flex h-56 items-center justify-center overflow-hidden rounded-xl bg-black/10">
-        {medio.video ? <video src={medio.url} controls className="h-full w-full object-contain" /> : <button type="button" onClick={() => { setVisorIndice(actividad.imagenes.indexOf(medio.url)); setVisorAbierto(true); }} className="h-full w-full cursor-zoom-in"><img src={medio.url} alt={`${actividad.titulo} — imagen ${indice + 1}`} className="h-full w-full object-cover" loading="lazy" /></button>}
+    <div className="relative overflow-hidden bg-[#d8ece1] p-2.5 sm:p-3">
+      <div className="flex h-64 w-full items-center justify-center overflow-hidden rounded-xl bg-[#eef6f1] sm:h-96 lg:h-[28rem]">
+        {medio.video ? (
+          <video src={medio.url} controls className="h-full w-full object-contain" />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setVisorIndice(Math.max(0, actividad.imagenes.indexOf(medio.url)));
+              setVisorAbierto(true);
+            }}
+            className="flex h-full w-full cursor-zoom-in items-center justify-center p-2"
+            aria-label={`Ampliar imagen ${indice + 1} de ${actividad.titulo}`}
+          >
+            <img
+              src={medio.url}
+              alt={`${actividad.titulo} — imagen ${indice + 1}`}
+              className="max-h-full max-w-full rounded-lg object-contain"
+              loading="lazy"
+            />
+          </button>
+        )}
       </div>
-      {medios.length > 1 && <>
-        <button type="button" onClick={() => cambiar(-1)} aria-label="Medio anterior" className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"><ChevronLeft className="h-5 w-5" /></button>
-        <button type="button" onClick={() => cambiar(1)} aria-label="Medio siguiente" className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"><ChevronRight className="h-5 w-5" /></button>
-        <div className="mt-2 flex justify-center gap-1.5">
-          {medios.map((item, posicion) => <button key={`${item.url}-${posicion}`} type="button" onClick={() => setIndice(posicion)} aria-label={`Ver medio ${posicion + 1}`} className={`h-2 rounded-full transition-all ${posicion === indice ? 'w-6 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'}`} />)}
-        </div>
-      </>}
-      {visorAbierto && <VisorImagenes fotos={actividad.imagenes} indice={visorIndice} nombre={actividad.titulo} onCambiar={setVisorIndice} onCerrar={() => setVisorAbierto(false)} />}
+
+      {medios.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => cambiar(-1)}
+            aria-label="Medio anterior"
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => cambiar(1)}
+            aria-label="Medio siguiente"
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-[#2d6a4f] shadow hover:bg-white"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <div className="mt-2.5 flex justify-center gap-1.5">
+            {medios.map((item, posicion) => (
+              <button
+                key={`${item.url}-${posicion}`}
+                type="button"
+                onClick={() => setIndice(posicion)}
+                aria-label={`Ver medio ${posicion + 1}`}
+                className={`h-2 rounded-full transition-all ${
+                  posicion === indice ? 'w-6 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {visorAbierto && (
+        <VisorImagenes
+          fotos={actividad.imagenes}
+          indice={visorIndice}
+          nombre={actividad.titulo}
+          onCambiar={setVisorIndice}
+          onCerrar={() => setVisorAbierto(false)}
+        />
+      )}
     </div>
   );
 }
