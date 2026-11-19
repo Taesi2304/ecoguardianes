@@ -46,6 +46,18 @@ type FdmaGanador = {
   imagenes?: string[];
 };
 
+type ActividadRealizada = {
+  id: string;
+  tipo_actividad: string;
+  organizacion: string;
+  proyecto_tema: string;
+  descripcion: string;
+  fecha: string | null;
+  imagenes: string[];
+  videos: string[];
+  activo: boolean;
+};
+
 type FdmaOrganizacion = { id: string; nombre: string; descripcion: string; logo: string };
 type FdmaActividad = { id: string; seccion_id: string; titulo: string; subtitulo: string; descripcion: string; fecha: string | null; imagenes: string[]; videos: string[]; pdfs: string[]; ganadores: FdmaGanador[]; enlace_url: string | null };
 type FdmaFormulario = { anio: number; titulo: string; subtitulo: string; descripcion: string; activo: boolean };
@@ -113,6 +125,17 @@ export default function AdminPaginaInicio() {
   const [fdmaCambiosPendientes, setFdmaCambiosPendientes] = useState(false);
   const [seccionesAbiertas, setSeccionesAbiertas] = useState(true);
   const [fdmaAbierta, setFdmaAbierta] = useState(true);
+  const [realizadas, setRealizadas] = useState<ActividadRealizada[]>([]);
+  const [realizadasAbierta, setRealizadasAbierta] = useState(true);
+  const [realizadaAbiertaId, setRealizadaAbiertaId] = useState<string | null>(null);
+  const [realizadaForm, setRealizadaForm] = useState({
+    tipo_actividad: '',
+    organizacion: '',
+    proyecto_tema: '',
+    descripcion: '',
+    fecha: '',
+    archivos: [] as File[],
+  });
   const archivosVista = useMemo(() => actividadForm.archivos.map((archivo) => ({ archivo, url: URL.createObjectURL(archivo) })), [actividadForm.archivos]);
 
   useEffect(() => () => archivosVista.forEach(({ url }) => URL.revokeObjectURL(url)), [archivosVista]);
@@ -294,6 +317,135 @@ export default function AdminPaginaInicio() {
     await cargarFdma();
   }
 
+  const cargarRealizadas = useCallback(async () => {
+    const { data, error: err } = await supabase
+      .from('actividades_realizadas')
+      .select('*')
+      .order('orden', { ascending: true })
+      .order('fecha', { ascending: false });
+
+    if (err) {
+      toast.error(`No se pudieron cargar las actividades realizadas: ${err.message}`);
+      return;
+    }
+
+    setRealizadas(((data || []) as ActividadRealizada[]).map((item) => ({
+      ...item,
+      imagenes: Array.isArray(item.imagenes) ? item.imagenes : [],
+      videos: Array.isArray(item.videos) ? item.videos : [],
+    })));
+  }, []);
+
+  async function agregarActividadRealizada() {
+    if (!realizadaForm.proyecto_tema.trim() || !realizadaForm.organizacion.trim()) {
+      toast.error('Escribe al menos la organización y el nombre del proyecto o tema.');
+      return;
+    }
+
+    const imagenes: string[] = [];
+    const videos: string[] = [];
+
+    for (const archivo of realizadaForm.archivos) {
+      const ext = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const ruta = `realizadas/${crypto.randomUUID()}.${ext}`;
+      const { error: errSubida } = await supabase.storage
+        .from('fdma-media')
+        .upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+      if (errSubida) {
+        toast.error(`No se pudo subir ${archivo.name}: ${errSubida.message}`);
+        return;
+      }
+      const url = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
+      if (archivo.type.startsWith('video/')) videos.push(url);
+      else imagenes.push(url);
+    }
+
+    const { error: errInsert } = await supabase.from('actividades_realizadas').insert({
+      tipo_actividad: realizadaForm.tipo_actividad.trim(),
+      organizacion: realizadaForm.organizacion.trim(),
+      proyecto_tema: realizadaForm.proyecto_tema.trim(),
+      descripcion: realizadaForm.descripcion.trim(),
+      fecha: realizadaForm.fecha || null,
+      imagenes,
+      videos,
+      activo: true,
+      orden: realizadas.length + 1,
+    });
+    if (errInsert) {
+      toast.error(`No se pudo guardar: ${errInsert.message}`);
+      return;
+    }
+
+    toast.success('Actividad realizada agregada.');
+    setRealizadaForm({ tipo_actividad: '', organizacion: '', proyecto_tema: '', descripcion: '', fecha: '', archivos: [] });
+    await cargarRealizadas();
+  }
+
+  async function guardarActividadRealizada(item: ActividadRealizada) {
+    const { error: errUpdate } = await supabase
+      .from('actividades_realizadas')
+      .update({
+        tipo_actividad: item.tipo_actividad.trim(),
+        organizacion: item.organizacion.trim(),
+        proyecto_tema: item.proyecto_tema.trim(),
+        descripcion: item.descripcion.trim(),
+        fecha: item.fecha || null,
+        imagenes: item.imagenes,
+        videos: item.videos,
+        activo: item.activo,
+      })
+      .eq('id', item.id);
+
+    if (errUpdate) toast.error(`Error al actualizar: ${errUpdate.message}`);
+    else {
+      toast.success('Actividad actualizada.');
+      await cargarRealizadas();
+    }
+  }
+
+  async function subirMediaRealizada(id: string, archivo: File) {
+    const ext = archivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const ruta = `realizadas/${crypto.randomUUID()}.${ext}`;
+    const { error: errSubida } = await supabase.storage
+      .from('fdma-media')
+      .upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+    if (errSubida) {
+      toast.error(`No se pudo subir: ${errSubida.message}`);
+      return;
+    }
+    const url = supabase.storage.from('fdma-media').getPublicUrl(ruta).data.publicUrl;
+    setRealizadas((prev) => prev.map((act) => act.id === id
+      ? archivo.type.startsWith('video/')
+        ? { ...act, videos: [...act.videos, url] }
+        : { ...act, imagenes: [...act.imagenes, url] }
+      : act));
+    toast.success('Archivo cargado. Pulsa Guardar cambios en la tarjeta.');
+  }
+
+  async function quitarMediaRealizada(id: string, tipo: 'imagenes' | 'videos', indice: number) {
+    const act = realizadas.find((item) => item.id === id);
+    if (!act) return;
+    const url = act[tipo][indice];
+    const marcador = '/storage/v1/object/public/fdma-media/';
+    const pos = url.indexOf(marcador);
+    if (pos >= 0) {
+      await supabase.storage.from('fdma-media').remove([decodeURIComponent(url.slice(pos + marcador.length))]);
+    }
+    setRealizadas((prev) => prev.map((item) => item.id === id
+      ? { ...item, [tipo]: item[tipo].filter((_, idx) => idx !== indice) }
+      : item));
+  }
+
+  async function eliminarActividadRealizada(id: string) {
+    if (!window.confirm('¿Eliminar esta actividad realizada?')) return;
+    const { error: errDel } = await supabase.from('actividades_realizadas').delete().eq('id', id);
+    if (errDel) toast.error(`No se pudo eliminar: ${errDel.message}`);
+    else {
+      setRealizadas((prev) => prev.filter((item) => item.id !== id));
+      toast.success('Actividad eliminada.');
+    }
+  }
+
   useEffect(() => {
     const cargarPagina = async () => {
       const { data, error: errorConsulta } = await supabase
@@ -314,7 +466,8 @@ export default function AdminPaginaInicio() {
 
     cargarPagina();
     void Promise.resolve().then(() => cargarFdma());
-  }, [cargarFdma]);
+    void cargarRealizadas();
+  }, [cargarFdma, cargarRealizadas]);
 
   async function guardarFdmaSeccion() {
     const payload = { anio: Number(fdmaForm.anio), titulo: fdmaForm.titulo.trim() || `FDMA ${fdmaForm.anio}`, subtitulo: fdmaForm.subtitulo.trim(), descripcion: fdmaForm.descripcion.trim(), activo: fdmaForm.activo };
@@ -591,6 +744,95 @@ export default function AdminPaginaInicio() {
                 </button>
               </div>
             ))}
+          </CardContent>
+        )}
+      </Card>
+
+      <Card className="border-transparent bg-white shadow-sm">
+        <CardHeader className="border-b bg-gray-50/50 p-0">
+          <button type="button" onClick={() => setRealizadasAbierta((abierta) => !abierta)} aria-expanded={realizadasAbierta} className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left hover:bg-gray-100/70">
+            <span>
+              <CardTitle className="text-lg text-gray-800">Actividades realizadas 🔥</CardTitle>
+              <span className="mt-1 block text-sm font-normal text-gray-500">Gestión corporativa, servicio comunitario, exposiciones y colaboraciones fuera del festival.</span>
+            </span>
+            <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${realizadasAbierta ? 'rotate-180' : ''}`} />
+          </button>
+        </CardHeader>
+        {realizadasAbierta && (
+          <CardContent className="space-y-4 px-6 py-5">
+            {realizadas.map((item) => (
+              <details key={item.id} open={realizadaAbiertaId === item.id} onToggle={(event) => setRealizadaAbiertaId(event.currentTarget.open ? item.id : null)} className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3.5 hover:bg-gray-50">
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold text-gray-800">{item.organizacion} — {item.proyecto_tema}</span>
+                    <span className="block truncate text-xs text-gray-500">{item.tipo_actividad} · {item.imagenes.length} foto(s), {item.videos.length} video(s)</span>
+                  </span>
+                  <ChevronDown className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="space-y-3 border-t bg-gray-50/60 p-4">
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <input value={item.tipo_actividad} onChange={(event) => setRealizadas((prev) => prev.map((row) => row.id === item.id ? { ...row, tipo_actividad: event.target.value } : row))} placeholder="Tipo de actividad" className="rounded-lg border px-3 py-2 text-sm" />
+                    <input value={item.organizacion} onChange={(event) => setRealizadas((prev) => prev.map((row) => row.id === item.id ? { ...row, organizacion: event.target.value } : row))} placeholder="Nombre de organización" className="rounded-lg border px-3 py-2 text-sm" />
+                    <input value={item.proyecto_tema} onChange={(event) => setRealizadas((prev) => prev.map((row) => row.id === item.id ? { ...row, proyecto_tema: event.target.value } : row))} placeholder="Proyecto o tema" className="rounded-lg border px-3 py-2 text-sm" />
+                    <input type="date" value={item.fecha || ''} onChange={(event) => setRealizadas((prev) => prev.map((row) => row.id === item.id ? { ...row, fecha: event.target.value || null } : row))} className="rounded-lg border px-3 py-2 text-sm" />
+                  </div>
+                  <textarea value={item.descripcion} onChange={(event) => setRealizadas((prev) => prev.map((row) => row.id === item.id ? { ...row, descripcion: event.target.value } : row))} placeholder="Descripción de la actividad" rows={3} className="w-full rounded-lg border px-3 py-2 text-sm" />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="relative block cursor-pointer rounded-lg border border-dashed border-green-300 bg-green-50/50 p-2.5 text-center text-xs font-semibold text-green-800 hover:bg-green-50">
+                      + Agregar fotos ({item.imagenes.length})
+                      <input type="file" accept="image/*" multiple onChange={(event) => { Array.from(event.target.files || []).forEach((file) => void subirMediaRealizada(item.id, file)); event.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                    </label>
+                    <label className="relative block cursor-pointer rounded-lg border border-dashed border-blue-300 bg-blue-50/50 p-2.5 text-center text-xs font-semibold text-blue-800 hover:bg-blue-50">
+                      + Agregar videos ({item.videos.length})
+                      <input type="file" accept="video/*" multiple onChange={(event) => { Array.from(event.target.files || []).forEach((file) => void subirMediaRealizada(item.id, file)); event.currentTarget.value = ''; }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                    </label>
+                  </div>
+                  {(item.imagenes.length > 0 || item.videos.length > 0) && (
+                    <div className="flex flex-wrap gap-2">
+                      {item.imagenes.map((url, index) => (
+                        <div key={url} className="relative h-16 w-20 overflow-hidden rounded border bg-white">
+                          <img src={url} alt="" className="h-full w-full object-cover" />
+                          <button type="button" onClick={() => void quitarMediaRealizada(item.id, 'imagenes', index)} className="absolute right-1 top-1 rounded-full bg-red-600 p-0.5 text-white"><X className="h-3 w-3" /></button>
+                        </div>
+                      ))}
+                      {item.videos.map((url, index) => (
+                        <div key={url} className="relative flex h-16 w-20 items-center justify-center rounded border bg-slate-800 text-[10px] text-white">
+                          <span>Video {index + 1}</span>
+                          <button type="button" onClick={() => void quitarMediaRealizada(item.id, 'videos', index)} className="absolute right-1 top-1 rounded-full bg-red-600 p-0.5 text-white"><X className="h-3 w-3" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <input type="checkbox" checked={item.activo} onChange={(event) => setRealizadas((prev) => prev.map((row) => row.id === item.id ? { ...row, activo: event.target.checked } : row))} className="h-4 w-4 accent-green-600" />
+                    Mostrar en la página pública
+                  </label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => void guardarActividadRealizada(item)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700"><Save className="mr-1 inline h-3.5 w-3.5" /> Guardar cambios</button>
+                    <button type="button" onClick={() => void eliminarActividadRealizada(item.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50"><Trash2 className="mr-1 inline h-3.5 w-3.5" /> Eliminar</button>
+                  </div>
+                </div>
+              </details>
+            ))}
+
+            <details className="group overflow-hidden rounded-xl border-2 border-dashed border-green-200 bg-green-50/30">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3.5 font-bold text-green-700"><Plus className="h-5 w-5" /> Agregar actividad realizada<ChevronDown className="ml-auto h-5 w-5 transition-transform group-open:rotate-180" /></summary>
+              <div className="space-y-3 border-t border-green-100 p-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input value={realizadaForm.tipo_actividad} onChange={(event) => setRealizadaForm({ ...realizadaForm, tipo_actividad: event.target.value })} placeholder="Tipo de actividad" className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                  <input value={realizadaForm.organizacion} onChange={(event) => setRealizadaForm({ ...realizadaForm, organizacion: event.target.value })} placeholder="Nombre de organización" className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                  <input value={realizadaForm.proyecto_tema} onChange={(event) => setRealizadaForm({ ...realizadaForm, proyecto_tema: event.target.value })} placeholder="Proyecto o tema" className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                  <input type="date" value={realizadaForm.fecha} onChange={(event) => setRealizadaForm({ ...realizadaForm, fecha: event.target.value })} className="rounded-lg border bg-white px-3 py-2 text-sm" />
+                </div>
+                <textarea value={realizadaForm.descripcion} onChange={(event) => setRealizadaForm({ ...realizadaForm, descripcion: event.target.value })} placeholder="Descripción de la actividad..." rows={2} className="w-full rounded-lg border bg-white px-3 py-2 text-sm" />
+                <label className="relative flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-green-300 bg-white px-3 py-2 text-xs font-semibold text-green-800 hover:bg-green-50">
+                  <span>{realizadaForm.archivos.length > 0 ? `${realizadaForm.archivos.length} archivo(s) seleccionado(s)` : 'Seleccionar fotos y videos'}</span>
+                  <span className="rounded-md bg-green-50 px-2 py-1 text-green-700">Subir medios</span>
+                  <input type="file" accept="image/*,video/*" multiple onChange={(event) => setRealizadaForm({ ...realizadaForm, archivos: Array.from(event.target.files || []) })} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                </label>
+                <button type="button" onClick={() => void agregarActividadRealizada()} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"><Plus className="mr-1 inline h-4 w-4" /> Guardar actividad realizada</button>
+              </div>
+            </details>
           </CardContent>
         )}
       </Card>

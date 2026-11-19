@@ -97,6 +97,17 @@ interface FdmaSeccion {
   fdma_actividades: FdmaActividad[];
 }
 
+interface ActividadRealizada {
+  id: string;
+  tipo_actividad: string;
+  organizacion: string;
+  proyecto_tema: string;
+  descripcion: string;
+  fecha: string | null;
+  imagenes: string[];
+  videos: string[];
+}
+
 function ordenarActividades(actividades: FdmaActividad[]) {
   return actividades
     .map((actividad, indice) => ({ actividad, indice }))
@@ -157,6 +168,14 @@ function FdmaGanadorCard({ ganador }: { ganador: FdmaActividad['ganadores'][numb
     if (fotos.length < 2) return;
     setFotoActiva((actual) => (actual + paso + fotos.length) % fotos.length);
   };
+
+  useEffect(() => {
+    if (fotos.length < 2) return undefined;
+    const intervalo = window.setInterval(() => {
+      setFotoActiva((actual) => (actual + 1) % fotos.length);
+    }, 5000);
+    return () => window.clearInterval(intervalo);
+  }, [fotos.length]);
 
   return (
     <div className="min-w-0 overflow-hidden rounded-xl border border-[#2d6a4f]/15 bg-white/90 p-3.5 shadow-sm">
@@ -401,6 +420,7 @@ export const LandingFDMA = () => {
   const [cartelAbierto, setCartelAbierto] = useState<Convocatoria | null>(null);
   const [eventosSemana, setEventosSemana] = useState<EventoCalendario[]>([]);
   const [fdma, setFdma] = useState<FdmaSeccion | null>(null);
+  const [actividadesRealizadas, setActividadesRealizadas] = useState<ActividadRealizada[]>([]);
 
   const cargarTalleres = useCallback(() => supabase
     .from('talleres_publicos')
@@ -472,6 +492,21 @@ export const LandingFDMA = () => {
     cargarAliados();
     cargarConvocatorias();
     cargarPublicaciones();
+    supabase
+      .from('actividades_realizadas')
+      .select('*')
+      .eq('activo', true)
+      .order('orden', { ascending: true })
+      .order('fecha', { ascending: false })
+      .then(({ data }) => {
+        if (data) {
+          setActividadesRealizadas((data as ActividadRealizada[]).map((item) => ({
+            ...item,
+            imagenes: Array.isArray(item.imagenes) ? item.imagenes : [],
+            videos: Array.isArray(item.videos) ? item.videos : [],
+          })));
+        }
+      });
     supabase
       .from('fdma_secciones')
       .select('id, anio, titulo, subtitulo, descripcion, fdma_actividades(id, titulo, subtitulo, descripcion, fecha, imagenes, videos, pdfs, ganadores, enlace_url)')
@@ -679,6 +714,51 @@ export const LandingFDMA = () => {
                   )}
                   </section>
                   )}
+      {actividadesRealizadas.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
+          <div className="mb-8 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#2d6a4f]">Acciones en curso</p>
+            <h3 className="mt-1 text-2xl font-bold text-[#4a3728] md:text-3xl">Actividades realizadas</h3>
+            <p className="mt-1.5 text-base font-semibold text-[#2d6a4f] md:text-lg">Esto aún no se termina, la brasa sigue encendida 🔥</p>
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {actividadesRealizadas.map((item) => (
+              <article key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm">
+                {(item.imagenes.length > 0 || item.videos.length > 0) && (
+                  <FdmaCarrusel actividad={{
+                    id: item.id,
+                    titulo: item.proyecto_tema,
+                    subtitulo: item.organizacion,
+                    descripcion: item.descripcion,
+                    fecha: item.fecha,
+                    imagenes: item.imagenes,
+                    videos: item.videos,
+                    pdfs: [],
+                    ganadores: [],
+                    enlace_url: null,
+                  }} />
+                )}
+                <div className="flex flex-grow flex-col p-5">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    {item.tipo_actividad && <span className="inline-flex items-center rounded-full bg-[#d8ece1] px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-[#1b4332]">{item.tipo_actividad}</span>}
+                    {item.fecha && <span className="text-xs font-bold text-[#4a3728]/60">{new Date(`${item.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                  </div>
+                  {item.organizacion && <p className="text-sm font-extrabold uppercase tracking-wide text-[#2d6a4f]">{item.organizacion}</p>}
+                  <h4 className="mt-1 break-words text-lg font-bold text-[#4a3728]">{item.proyecto_tema}</h4>
+                  {item.descripcion && <p className="mt-2 break-words text-sm leading-relaxed text-[#4a3728]/75">{item.descripcion}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#2d6a4f]/20 bg-[#d8ece1]/70 px-6 py-5 text-center sm:flex-row sm:text-left">
+            <div>
+              <p className="font-bold text-[#4a3728]">¿Te gustaría llevar una plática, taller, stand o jornada ambiental a tu empresa, escuela o comunidad?</p>
+              <p className="mt-0.5 text-sm text-[#4a3728]/75">Conoce a nuestro equipo organizador y contáctanos directamente.</p>
+            </div>
+            <Link to="/directorio" className="shrink-0 rounded-full bg-[#2d6a4f] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b4332]">Ir al directorio →</Link>
+          </div>
+        </section>
+      )}
       {fdma && fdma.fdma_actividades.length > 0 && (
         <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
           <div className="mb-7 text-center">
