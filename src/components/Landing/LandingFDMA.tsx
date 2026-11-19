@@ -560,19 +560,34 @@ export const LandingFDMA = () => {
           </div>
           <FdmaCarruselGlobal actividades={fdma.fdma_actividades} anio={fdma.anio} />
           {(() => {
-            const actividadesNormales = fdma.fdma_actividades.filter(
-              (act) => act.ganadores.length === 0 && act.pdfs.length === 0
-            );
-            const actividadesEspeciales = fdma.fdma_actividades.filter(
-              (act) => act.ganadores.length > 0 || act.pdfs.length > 0
-            );
+            const obtenerDia = (act: FdmaActividad) => {
+              if (act.fecha) {
+                const partes = act.fecha.split('-');
+                if (partes.length === 3) return Number(partes[2]);
+              }
+              const texto = `${act.titulo} ${act.subtitulo}`.toLowerCase();
+              if (/\b15\b/.test(texto)) return 15;
+              if (/\b16\b/.test(texto)) return 16;
+              if (/\b17\b/.test(texto)) return 17;
+              if (/\b18\b/.test(texto)) return 18;
+              return null;
+            };
 
-            const renderTarjeta = (actividad: FdmaActividad, anchoCompleto = false) => (
+            const dia15 = fdma.fdma_actividades.filter((act) => obtenerDia(act) === 15);
+            const dia16 = fdma.fdma_actividades.filter((act) => obtenerDia(act) === 16);
+            const dias17y18 = fdma.fdma_actividades.filter((act) => {
+              const dia = obtenerDia(act);
+              return dia === 17 || dia === 18;
+            });
+            const otrasActividades = fdma.fdma_actividades.filter((act) => {
+              const dia = obtenerDia(act);
+              return dia !== 15 && dia !== 16 && dia !== 17 && dia !== 18;
+            });
+
+            const renderTarjeta = (actividad: FdmaActividad) => (
               <article
                 key={actividad.id}
-                className={`min-w-0 overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm ${
-                  anchoCompleto ? 'md:col-span-2' : ''
-                }`}
+                className="min-w-0 overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm"
               >
                 <FdmaCarrusel actividad={actividad} />
                 <div className="p-5">
@@ -638,15 +653,25 @@ export const LandingFDMA = () => {
             );
 
             return (
-              <div className="space-y-6">
-                {actividadesNormales.length > 0 && (
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {actividadesNormales.map((act) => renderTarjeta(act, false))}
+              <div className="mt-6 space-y-6">
+                {dia15.length > 0 && (
+                  <div className="grid grid-cols-1 gap-6">
+                    {dia15.map((act) => renderTarjeta(act))}
                   </div>
                 )}
-                {actividadesEspeciales.length > 0 && (
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {actividadesEspeciales.map((act) => renderTarjeta(act, true))}
+                {dia16.length > 0 && (
+                  <div className="grid grid-cols-1 gap-6">
+                    {dia16.map((act) => renderTarjeta(act))}
+                  </div>
+                )}
+                {dias17y18.length > 0 && (
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {dias17y18.map((act) => renderTarjeta(act))}
+                  </div>
+                )}
+                {otrasActividades.length > 0 && (
+                  <div className="grid grid-cols-1 gap-6">
+                    {otrasActividades.map((act) => renderTarjeta(act))}
                   </div>
                 )}
               </div>
