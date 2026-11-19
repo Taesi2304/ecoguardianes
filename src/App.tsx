@@ -49,6 +49,7 @@ import AgendaPage from './components/Cartelera/AgendaPage';
 import ScrollToTop from './components/ScrollToTop';
 import AvisoNuevaVersion from './components/AvisoNuevaVersion';
 import TituloPagina from './components/TituloPagina';
+import ActividadDetalle from './components/pages/ActividadDetalle';
 
 // 1. Plantilla para las páginas públicas (Mantiene el Header y )
 const PublicLayout = () => {
@@ -89,6 +90,7 @@ export default function App() {
           <Route path="/calendario" element={<Calendario />} />
           <Route path="/directorio" element={<Equipo />} />
           <Route path="/organigrama" element={<Organigrama />} />
+          <Route path="/actividades/:slug" element={<ActividadDetalle />} />
           <Route path="/directorio/:slug" element={<PerfilEquipo />} />
         </Route>
 

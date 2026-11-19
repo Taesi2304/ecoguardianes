@@ -48,6 +48,7 @@ type FdmaGanador = {
 
 type ActividadRealizada = {
   id: string;
+  slug: string | null;
   tipo_actividad: string;
   organizacion: string;
   proyecto_tema: string;
@@ -67,6 +68,16 @@ function obtenerFotosGanador(ganador: FdmaGanador): string[] {
     return ganador.imagenes.filter(Boolean);
   }
   return ganador.imagen ? [ganador.imagen] : [];
+}
+
+function generarSlug(texto: string) {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
 }
 
 function normalizarActividad(actividad: FdmaActividad): FdmaActividad {
@@ -361,6 +372,7 @@ export default function AdminPaginaInicio() {
     }
 
     const { error: errInsert } = await supabase.from('actividades_realizadas').insert({
+      slug: generarSlug(`${realizadaForm.proyecto_tema}-${realizadaForm.organizacion}`),
       tipo_actividad: realizadaForm.tipo_actividad.trim(),
       organizacion: realizadaForm.organizacion.trim(),
       proyecto_tema: realizadaForm.proyecto_tema.trim(),
@@ -385,6 +397,7 @@ export default function AdminPaginaInicio() {
     const { error: errUpdate } = await supabase
       .from('actividades_realizadas')
       .update({
+        slug: generarSlug(`${item.proyecto_tema}-${item.organizacion}`),
         tipo_actividad: item.tipo_actividad.trim(),
         organizacion: item.organizacion.trim(),
         proyecto_tema: item.proyecto_tema.trim(),

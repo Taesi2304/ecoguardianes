@@ -99,6 +99,7 @@ interface FdmaSeccion {
 
 interface ActividadRealizada {
   id: string;
+  slug: string | null;
   tipo_actividad: string;
   organizacion: string;
   proyecto_tema: string;
@@ -403,6 +404,79 @@ function FdmaCarruselGlobal({ actividades, anio }: { actividades: FdmaActividad[
       {medios.length > 1 && <div className="mt-3 flex max-w-full gap-1.5 overflow-x-auto px-1 pb-1">{medios.map((item, posicion) => <button key={`${item.url}-${posicion}`} type="button" onClick={() => setIndice(posicion)} aria-label={`Ver ${item.titulo}, medio ${posicion + 1}`} className={`h-2 shrink-0 rounded-full transition-all ${posicion === indice ? 'w-7 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/30'}`} />)}</div>}
       {visorAbierto && <VisorImagenes fotos={fotosGlobales} indice={visorIndice} nombre={`Galería FDMA ${anio}`} onCambiar={setVisorIndice} onCerrar={() => setVisorAbierto(false)} />}
     </div>
+  );
+}
+
+function SeccionActividadesRealizadas({ actividades }: { actividades: ActividadRealizada[] }) {
+  const [inicio, setInicio] = useState(0);
+
+  useEffect(() => {
+    if (actividades.length < 2) return undefined;
+    const intervalo = window.setInterval(() => {
+      setInicio((actual) => (actual + 1) % actividades.length);
+    }, 5000);
+    return () => window.clearInterval(intervalo);
+  }, [actividades.length]);
+
+  if (actividades.length === 0) return null;
+
+  const avanzar = () => setInicio((actual) => (actual + 1) % actividades.length);
+  const retroceder = () => setInicio((actual) => (actual - 1 + actividades.length) % actividades.length);
+  const visibles = Array.from({ length: Math.min(3, actividades.length) }, (_, offset) =>
+    actividades[(inicio + offset) % actividades.length]
+  );
+
+  return (
+    <section id="actividades-realizadas" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-10 sm:px-8">
+      <div className="mb-8 flex flex-col items-center justify-between gap-4 sm:flex-row sm:items-end">
+        <div className="text-center sm:text-left">
+          <h3 className="text-2xl font-bold text-[#2d6a4f] md:text-3xl">Actividades realizadas</h3>
+          <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-[#2d6a4f] sm:mx-0" />
+          <p className="mt-3 text-lg font-semibold text-[#4a3728] md:text-xl">Esto aún no se termina, brasa sigue encendida 🔥</p>
+        </div>
+        {actividades.length > 3 && (
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={retroceder} aria-label="Actividad anterior" className="rounded-full border border-[#4a3728]/15 bg-white p-2.5 text-[#2d6a4f] shadow-sm transition hover:bg-[#d8ece1]"><ChevronLeft className="h-5 w-5" /></button>
+            <button type="button" onClick={avanzar} aria-label="Siguiente actividad" className="rounded-full border border-[#4a3728]/15 bg-white p-2.5 text-[#2d6a4f] shadow-sm transition hover:bg-[#d8ece1]"><ChevronRight className="h-5 w-5" /></button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {visibles.map((item) => {
+          const portada = item.imagenes[0];
+          const destino = `/actividades/${item.slug || item.id}`;
+          return (
+            <Link key={item.id} to={destino} className="group flex flex-col overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#d8ece1]">
+                {portada
+                  ? <img src={portada} alt={`${item.organizacion} — ${item.proyecto_tema}`} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  : <div className="flex h-full w-full items-center justify-center p-6"><img src="/logo_fdma.svg" alt="FDMA" className="h-20 w-20 opacity-60" /></div>}
+                {item.tipo_actividad && <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-[#2d6a4f] shadow-sm">{item.tipo_actividad}</span>}
+              </div>
+              <div className="flex flex-grow flex-col p-4">
+                <h4 className="line-clamp-2 text-base font-bold text-[#4a3728] transition group-hover:text-[#2d6a4f]">{item.proyecto_tema} – {item.organizacion}</h4>
+                {item.fecha && <p className="mt-1.5 text-xs font-semibold text-[#4a3728]/60">{new Date(`${item.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
+                <span className="mt-3 inline-flex items-center text-xs font-bold text-[#2d6a4f]">Ver crónica y galería →</span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {actividades.length > 1 && (
+        <div className="mt-6 flex justify-center gap-1.5">
+          {actividades.map((act, idx) => (
+            <button key={act.id} type="button" onClick={() => setInicio(idx)} aria-label={`Ir a actividad ${idx + 1}`} className={`h-2 rounded-full transition-all ${idx === inicio ? 'w-6 bg-[#2d6a4f]' : 'w-2 bg-[#2d6a4f]/25'}`} />
+          ))}
+        </div>
+      )}
+
+      <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#2d6a4f]/20 bg-[#d8ece1]/60 px-6 py-4 text-center sm:flex-row sm:text-left">
+        <p className="text-sm font-semibold text-[#4a3728]">¿Quieres llevar una plática, stand o jornada ambiental a tu empresa o comunidad?</p>
+        <Link to="/directorio" className="shrink-0 rounded-full bg-[#2d6a4f] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#1b4332]">Contáctanos en el directorio →</Link>
+      </div>
+    </section>
   );
 }
 
@@ -714,51 +788,7 @@ export const LandingFDMA = () => {
                   )}
                   </section>
                   )}
-      {actividadesRealizadas.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
-          <div className="mb-8 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#2d6a4f]">Acciones en curso</p>
-            <h3 className="mt-1 text-2xl font-bold text-[#4a3728] md:text-3xl">Actividades realizadas</h3>
-            <p className="mt-1.5 text-base font-semibold text-[#2d6a4f] md:text-lg">Esto aún no se termina, la brasa sigue encendida 🔥</p>
-          </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {actividadesRealizadas.map((item) => (
-              <article key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#4a3728]/10 bg-white shadow-sm">
-                {(item.imagenes.length > 0 || item.videos.length > 0) && (
-                  <FdmaCarrusel actividad={{
-                    id: item.id,
-                    titulo: item.proyecto_tema,
-                    subtitulo: item.organizacion,
-                    descripcion: item.descripcion,
-                    fecha: item.fecha,
-                    imagenes: item.imagenes,
-                    videos: item.videos,
-                    pdfs: [],
-                    ganadores: [],
-                    enlace_url: null,
-                  }} />
-                )}
-                <div className="flex flex-grow flex-col p-5">
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    {item.tipo_actividad && <span className="inline-flex items-center rounded-full bg-[#d8ece1] px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-[#1b4332]">{item.tipo_actividad}</span>}
-                    {item.fecha && <span className="text-xs font-bold text-[#4a3728]/60">{new Date(`${item.fecha}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
-                  </div>
-                  {item.organizacion && <p className="text-sm font-extrabold uppercase tracking-wide text-[#2d6a4f]">{item.organizacion}</p>}
-                  <h4 className="mt-1 break-words text-lg font-bold text-[#4a3728]">{item.proyecto_tema}</h4>
-                  {item.descripcion && <p className="mt-2 break-words text-sm leading-relaxed text-[#4a3728]/75">{item.descripcion}</p>}
-                </div>
-              </article>
-            ))}
-          </div>
-          <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#2d6a4f]/20 bg-[#d8ece1]/70 px-6 py-5 text-center sm:flex-row sm:text-left">
-            <div>
-              <p className="font-bold text-[#4a3728]">¿Te gustaría llevar una plática, taller, stand o jornada ambiental a tu empresa, escuela o comunidad?</p>
-              <p className="mt-0.5 text-sm text-[#4a3728]/75">Conoce a nuestro equipo organizador y contáctanos directamente.</p>
-            </div>
-            <Link to="/directorio" className="shrink-0 rounded-full bg-[#2d6a4f] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b4332]">Ir al directorio →</Link>
-          </div>
-        </section>
-      )}
+      <SeccionActividadesRealizadas actividades={actividadesRealizadas} />
       {fdma && fdma.fdma_actividades.length > 0 && (
         <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
           <div className="mb-7 text-center">
